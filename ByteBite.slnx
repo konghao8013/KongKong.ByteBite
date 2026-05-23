@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ByteBite.Api/ByteBite.Api.csproj" />
+    <Project Path="src/ByteBite.Application/ByteBite.Application.csproj" />
+    <Project Path="src/ByteBite.Domain/ByteBite.Domain.csproj" />
+    <Project Path="src/ByteBite.Infrastructure/ByteBite.Infrastructure.csproj" />
+    <Project Path="src/ByteBite.Shared/ByteBite.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ByteBite.IntegrationTests/ByteBite.IntegrationTests.csproj" />
+    <Project Path="tests/ByteBite.UnitTests/ByteBite.UnitTests.csproj" />
+  </Folder>
+</Solution>
