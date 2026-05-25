@@ -34,10 +34,10 @@ const statusLabel = (status: string) => {
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
-    pending: '#FF6633', accepted: '#4CAF50', preparing: '#FF9800',
-    ready: '#2196F3', completed: '#999', cancelled: '#999'
+    pending: '#FF6B6B', accepted: '#52C41A', preparing: '#FF9800',
+    ready: '#1890FF', completed: '#8C8C8C', cancelled: '#8C8C8C'
   }
-  return map[status] || '#999'
+  return map[status] || '#8C8C8C'
 }
 
 const formatTime = (dateStr: string) => {
@@ -150,17 +150,17 @@ onMounted(fetchAllData)
 <style scoped lang="scss">
 .dashboard-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: #F7F7F7;
 }
 
 .page-header {
-  background: #FFD161;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
   padding: 16px;
 
-  .page-title { margin: 0; font-size: 18px; font-weight: 700; color: #333; }
+  .page-title { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
 }
 
-.loading-state { text-align: center; padding: 80px 0; color: #999; }
+.loading-state { text-align: center; padding: 80px 0; color: #8C8C8C; }
 
 .dashboard-content { padding: 12px; }
 
@@ -172,69 +172,70 @@ onMounted(fetchAllData)
 }
 
 .overview-card {
-  background: #fff;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border-radius: 14px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &.highlight {
-    background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+    background: linear-gradient(135deg, #FFF1F0, #FFE4E1);
+    border: 1px solid #FFCCC7;
   }
 
-  .overview-label { font-size: 13px; color: #999; margin-bottom: 8px; }
-  .overview-value { font-size: 28px; font-weight: 800; color: #333; margin-bottom: 4px; }
-  .overview-value.revenue { color: #FF6633; }
-  .overview-hint { font-size: 12px; color: #E6A23C; }
+  .overview-label { font-size: 13px; color: #8C8C8C; margin-bottom: 8px; }
+  .overview-value { font-size: 28px; font-weight: 800; color: #1A1A2E; margin-bottom: 4px; }
+  .overview-value.revenue { color: #FF6B6B; }
+  .overview-hint { font-size: 12px; color: #FF6B6B; }
 }
 
 .chart-section {
-  background: #fff;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #333; }
+  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1A1A2E; }
 }
 
 .chart-placeholder {
   text-align: center;
   padding: 40px 0;
   background: #FAFAFA;
-  border-radius: 8px;
-  border: 2px dashed #E0E0E0;
+  border-radius: 10px;
+  border: 2px dashed #E8E8E8;
 
   .chart-icon { font-size: 36px; margin-bottom: 8px; }
-  p { margin: 4px 0; color: #999; font-size: 14px; }
-  .chart-hint { font-size: 12px; color: #ccc; }
+  p { margin: 4px 0; color: #8C8C8C; font-size: 14px; }
+  .chart-hint { font-size: 12px; color: #D9D9D9; }
 }
 
 .recent-section {
-  background: #fff;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #333; }
+  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1A1A2E; }
 }
 
-.empty-state { text-align: center; padding: 40px 0; color: #999; font-size: 14px; }
+.empty-state { text-align: center; padding: 40px 0; color: #8C8C8C; font-size: 14px; }
 
 .recent-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid #F0F0F0;
 
   &:last-child { border-bottom: none; }
 }
 
 .recent-left { display: flex; align-items: center; gap: 8px; }
-.recent-code { font-size: 16px; font-weight: 700; color: #FF6633; }
-.recent-time { font-size: 12px; color: #999; }
+.recent-code { font-size: 16px; font-weight: 700; color: #FF6B6B; }
+.recent-time { font-size: 12px; color: #8C8C8C; }
 .recent-right { display: flex; align-items: center; gap: 8px; }
-.recent-amount { font-size: 14px; font-weight: 600; color: #333; }
+.recent-amount { font-size: 14px; font-weight: 600; color: #1A1A2E; }
 .recent-status { font-size: 13px; font-weight: 600; }
 </style>

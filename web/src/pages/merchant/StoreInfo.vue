@@ -136,9 +136,9 @@ onMounted(loadStore)
 
 <style scoped lang="scss">
 .store-page {
-  background: #1a1a2e;
+  background: #F7F7F7;
   min-height: 100vh;
-  color: #fff;
+  color: #1A1A2E;
 }
 
 .store-header {
@@ -150,23 +150,23 @@ onMounted(loadStore)
   h2 { font-size: 20px; font-weight: 700; margin: 0; }
 
   .btn-edit {
-    background: #FFD161;
-    color: #1a1a2e;
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: #fff;
     border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 8px 18px;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
   }
 }
 
-.loading-state { text-align: center; padding: 60px; color: #999; }
+.loading-state { text-align: center; padding: 60px; color: #8C8C8C; }
 
 .store-banner {
   position: relative;
   height: 160px;
-  background: #2A2A2A;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
   overflow: hidden;
 
   .banner-img {
@@ -189,22 +189,23 @@ onMounted(loadStore)
     position: absolute;
     top: 12px;
     right: 12px;
-    padding: 4px 12px;
-    border-radius: 12px;
+    padding: 4px 14px;
+    border-radius: 16px;
     font-size: 13px;
     font-weight: 600;
 
-    &.open { background: #4CAF50; color: #fff; }
-    &.closed { background: #999; color: #fff; }
+    &.open { background: #52C41A; color: #fff; }
+    &.closed { background: rgba(0, 0, 0, 0.4); color: #fff; }
   }
 }
 
 .store-info-card {
   margin: -20px 16px 16px;
-  background: #2A2A2A;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border-radius: 16px;
   padding: 20px;
   position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .info-row {
@@ -212,31 +213,31 @@ onMounted(loadStore)
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #3A3A3A;
+  border-bottom: 1px solid #F0F0F0;
 
   &:last-child { border-bottom: none; }
 
-  .info-label { font-size: 14px; color: #999; }
-  .info-value { font-size: 14px; font-weight: 500; }
+  .info-label { font-size: 14px; color: #8C8C8C; }
+  .info-value { font-size: 14px; font-weight: 500; color: #1A1A2E; }
 }
 
 .edit-form {
   .form-group {
     margin-bottom: 16px;
 
-    label { display: block; font-size: 14px; color: #999; margin-bottom: 6px; }
+    label { display: block; font-size: 14px; color: #8C8C8C; margin-bottom: 6px; }
 
     input, textarea {
       width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #3A3A3A;
-      border-radius: 8px;
+      padding: 10px 14px;
+      border: 1px solid #E8E8E8;
+      border-radius: 10px;
       font-size: 15px;
-      background: #1a1a2e;
-      color: #fff;
+      background: #F7F7F7;
+      color: #1A1A2E;
       outline: none;
 
-      &:focus { border-color: #FFD161; }
+      &:focus { border-color: #FF6B6B; box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1); }
     }
 
     textarea { resize: vertical; }
@@ -250,44 +251,45 @@ onMounted(loadStore)
   button {
     flex: 1;
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
     font-weight: 600;
     border: none;
     cursor: pointer;
   }
-  .btn-cancel { background: #3A3A3A; color: #999; }
-  .btn-save { background: #FFD161; color: #1a1a2e; }
+  .btn-cancel { background: #F7F7F7; color: #8C8C8C; }
+  .btn-save { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
 }
 
 .business-toggle {
   margin: 0 16px 16px;
-  background: #2A2A2A;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border-radius: 16px;
   padding: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   .toggle-info { display: flex; align-items: center; gap: 8px; }
-  .toggle-label { font-size: 14px; color: #999; }
+  .toggle-label { font-size: 14px; color: #8C8C8C; }
   .toggle-status {
     font-size: 14px;
     font-weight: 600;
-    &.open { color: #4CAF50; }
-    &.closed { color: #999; }
+    &.open { color: #52C41A; }
+    &.closed { color: #8C8C8C; }
   }
 
   .btn-toggle {
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 8px 18px;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
     border: none;
     cursor: pointer;
 
-    &.open { background: #F44336; color: #fff; }
-    &.closed { background: #4CAF50; color: #fff; }
+    &.open { background: #FFF1F0; color: #FF6B6B; }
+    &.closed { background: #F6FFED; color: #52C41A; }
   }
 }
 </style>

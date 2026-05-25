@@ -31,10 +31,10 @@ const statusLabel = (status: string) => {
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
-    pending: '#FF6633', accepted: '#4CAF50', preparing: '#FF9800',
-    ready: '#2196F3', completed: '#999', cancelled: '#999', rejected: '#F44336'
+    pending: '#FF6B6B', accepted: '#52C41A', preparing: '#FF9800',
+    ready: '#1890FF', completed: '#8C8C8C', cancelled: '#8C8C8C', rejected: '#FF4D4F'
   }
-  return map[status] || '#999'
+  return map[status] || '#8C8C8C'
 }
 
 const diningModeLabel = (mode: string) => {
@@ -186,24 +186,24 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .orders-page {
   padding: 16px;
-  background: #1a1a2e;
+  background: #F7F7F7;
   min-height: 100vh;
-  color: #fff;
+  color: #1A1A2E;
 }
 
 .orders-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 
-  h2 { font-size: 20px; font-weight: 700; margin: 0; }
+  h2 { font-size: 20px; font-weight: 700; margin: 0; color: #1A1A2E; }
 
   .pending-badge {
-    background: #FF6633;
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
     color: #fff;
-    padding: 4px 12px;
-    border-radius: 12px;
+    padding: 5px 14px;
+    border-radius: 16px;
     font-size: 13px;
     font-weight: 600;
   }
@@ -211,11 +211,12 @@ onUnmounted(() => {
 
 .status-tabs {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   margin-bottom: 16px;
-  background: #2A2A2A;
-  padding: 4px;
-  border-radius: 10px;
+  background: #FFFFFF;
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .status-tab {
@@ -226,10 +227,15 @@ onUnmounted(() => {
   padding: 8px 4px;
   border-radius: 8px;
   font-size: 12px;
-  color: #999;
-  transition: all 0.2s;
+  color: #8C8C8C;
+  transition: all 0.25s;
+  position: relative;
 
-  &.active { background: #FFD161; color: #1a1a2e; }
+  &.active {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  }
 
   .tab-icon { font-size: 16px; }
   .tab-label { font-size: 11px; }
@@ -237,18 +243,19 @@ onUnmounted(() => {
     position: absolute;
     top: 2px;
     right: 2px;
-    background: #FF6633;
+    background: #FF6B6B;
     color: #fff;
     font-size: 10px;
-    padding: 1px 4px;
-    border-radius: 6px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 600;
   }
 }
 
 .loading-state, .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #999;
+  color: #8C8C8C;
 
   .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
 }
@@ -260,42 +267,43 @@ onUnmounted(() => {
 }
 
 .order-card {
-  background: #2A2A2A;
+  background: #FFFFFF;
   border-radius: 12px;
   padding: 16px;
-  border-left: 4px solid #FFD161;
+  border-left: 4px solid #FF6B6B;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .order-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 
   .order-info { display: flex; align-items: center; gap: 8px; }
 
   .order-no {
     font-size: 18px;
     font-weight: 700;
-    color: #FFD161;
+    color: #FF6B6B;
   }
 
   .order-mode {
     font-size: 12px;
     padding: 2px 8px;
     border-radius: 4px;
-    background: #3A3A3A;
-    color: #ccc;
+    background: #FFF1F0;
+    color: #FF6B6B;
   }
 
-  .order-table { font-size: 12px; color: #2196F3; }
+  .order-table { font-size: 12px; color: #1890FF; font-weight: 500; }
 
   .order-status { font-size: 14px; font-weight: 600; }
 }
 
 .order-time {
   font-size: 12px;
-  color: #999;
+  color: #8C8C8C;
   margin-bottom: 8px;
 }
 
@@ -307,10 +315,11 @@ onUnmounted(() => {
     align-items: center;
     padding: 4px 0;
     font-size: 14px;
+    color: #333;
 
     .item-name { flex: 1; }
-    .item-qty { color: #999; margin-right: 8px; }
-    .item-price { color: #FFD161; }
+    .item-qty { color: #8C8C8C; margin-right: 8px; }
+    .item-price { color: #FF6B6B; font-weight: 500; }
   }
 }
 
@@ -319,18 +328,18 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid #3A3A3A;
+  border-top: 1px solid #F0F0F0;
 
   .order-amount {
-    .amount-label { font-size: 12px; color: #999; }
-    .amount-value { font-size: 18px; font-weight: 700; color: #FFD161; }
-    .discount-info { font-size: 12px; color: #4CAF50; margin-left: 8px; }
+    .amount-label { font-size: 12px; color: #8C8C8C; }
+    .amount-value { font-size: 18px; font-weight: 700; color: #FF6B6B; }
+    .discount-info { font-size: 12px; color: #52C41A; margin-left: 8px; }
   }
 
   .order-actions { display: flex; gap: 8px; }
 }
 
-.btn-accept, btn-prepare, .btn-ready, .btn-complete {
+.btn-accept, .btn-prepare, .btn-ready, .btn-complete {
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 13px;
@@ -339,17 +348,17 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.btn-accept { background: #4CAF50; color: #fff; }
-.btn-reject { background: #F44336; color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px; border: none; cursor: pointer; }
-.btn-prepare { background: #FF9800; color: #fff; }
-.btn-ready { background: #2196F3; color: #fff; }
-.btn-complete { background: #FFD161; color: #1a1a2e; }
+.btn-accept { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
+.btn-reject { background: #F0F0F0; color: #FF4D4F; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+.btn-prepare { background: #FFF7E6; color: #FF9800; }
+.btn-ready { background: #E6F7FF; color: #1890FF; }
+.btn-complete { background: linear-gradient(135deg, #FFBE0B, #FF6B6B); color: #fff; }
 
 .order-remark {
   margin-top: 8px;
-  padding: 8px;
-  background: #3A3A3A;
-  border-radius: 6px;
+  padding: 8px 12px;
+  background: #FFF7E6;
+  border-radius: 8px;
   font-size: 13px;
   color: #FF9800;
 }

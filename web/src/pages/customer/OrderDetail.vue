@@ -30,7 +30,7 @@ onMounted(async () => {
 })
 
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {
-  pending: { label: '待接单', color: '#FF6633', icon: '⏳' },
+  pending: { label: '待接单', color: '#FF6B6B', icon: '⏳' },
   accepted: { label: '已接单', color: '#1890ff', icon: '✅' },
   preparing: { label: '制作中', color: '#fa8c16', icon: '👨‍🍳' },
   ready: { label: '备餐完毕', color: '#52c41a', icon: '🔔' },

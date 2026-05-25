@@ -247,7 +247,7 @@ const formatPrice = (price: number) => price.toFixed(2)
   width: 32px;
   height: 32px;
   border: 3px solid #eee;
-  border-top-color: #FF6633;
+  border-top-color: #FF6B6B;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -327,7 +327,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .current-price {
-  color: #FF6633;
+  color: #FF6B6B;
   font-weight: 700;
 }
 
@@ -384,7 +384,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 
 .spec-required {
   font-size: 11px;
-  color: #FF6633;
+  color: #FF6B6B;
   background: #fff5f0;
   padding: 1px 6px;
   border-radius: 4px;
@@ -409,7 +409,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .spec-option.active {
-  border-color: #FF6633;
+  border-color: #FF6B6B;
   background: #fff5f0;
 }
 
@@ -419,7 +419,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .spec-option.active .option-name {
-  color: #FF6633;
+  color: #FF6B6B;
   font-weight: 600;
 }
 
@@ -429,7 +429,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .spec-option.active .option-extra {
-  color: #FF6633;
+  color: #FF6B6B;
 }
 
 .quantity-section {
@@ -478,7 +478,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .qty-btn.plus {
-  background: #FF6633;
+  background: #FF6B6B;
   color: #fff;
 }
 
@@ -495,7 +495,7 @@ const formatPrice = (price: number) => price.toFixed(2)
   left: 0;
   right: 0;
   height: 60px;
-  background: #2A2A2A;
+  background: #FFFFFF; border-top: 1px solid #F0F0F0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -527,7 +527,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .add-cart-btn {
-  background: #FF6633;
+  background: #FF6B6B;
   color: #fff;
   border: none;
   padding: 12px 28px;
@@ -553,7 +553,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .go-back-btn {
-  background: #FF6633;
+  background: #FF6B6B;
   color: #fff;
   border: none;
   padding: 10px 32px;

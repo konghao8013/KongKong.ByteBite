@@ -9,7 +9,7 @@ const router = useRouter()
 const orderStore = useOrderStore()
 
 const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
-  pending: { label: '待接单', color: '#FF6633', bgColor: '#fff5f0' },
+  pending: { label: '待接单', color: '#FF6B6B', bgColor: '#fff5f0' },
   accepted: { label: '已接单', color: '#1890ff', bgColor: '#e6f7ff' },
   preparing: { label: '制作中', color: '#fa8c16', bgColor: '#fff7e6' },
   ready: { label: '备餐完毕', color: '#52c41a', bgColor: '#f6ffed' },

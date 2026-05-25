@@ -78,7 +78,7 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #2A2A2A 0%, #1a1a2e 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
   padding: 24px;
 }
 
@@ -138,7 +138,7 @@ const handleLogin = async () => {
       transition: border-color 0.2s;
 
       &:focus {
-        border-color: #FFD161;
+        border-color: #FF6B6B;
         box-shadow: 0 0 0 3px rgba(255, 209, 97, 0.15);
       }
 
@@ -152,7 +152,7 @@ const handleLogin = async () => {
 .login-btn {
   width: 100%;
   height: 48px;
-  background: linear-gradient(135deg, #FFD161, #FF6633);
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
   color: #fff;
   font-size: 16px;
   font-weight: 600;

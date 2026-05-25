@@ -73,8 +73,8 @@ const statusLabel = (status: string) => {
 }
 
 const statusColor = (status: string) => {
-  const map: Record<string, string> = { on: '#4CAF50', off: '#999', sold_out: '#FF9800' }
-  return map[status] || '#999'
+  const map: Record<string, string> = { on: '#52C41A', off: '#8C8C8C', sold_out: '#FF9800' }
+  return map[status] || '#8C8C8C'
 }
 
 onMounted(loadData)
@@ -154,9 +154,9 @@ onMounted(loadData)
 
 <style scoped lang="scss">
 .menu-page {
-  background: #1a1a2e;
+  background: #F7F7F7;
   min-height: 100vh;
-  color: #fff;
+  color: #1A1A2E;
 }
 
 .menu-header {
@@ -168,26 +168,27 @@ onMounted(loadData)
   h2 { font-size: 20px; font-weight: 700; margin: 0; }
 
   .btn-add {
-    background: #FFD161;
-    color: #1a1a2e;
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: #fff;
     border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 8px 18px;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
   }
 }
 
-.loading-state { text-align: center; padding: 60px; color: #999; }
+.loading-state { text-align: center; padding: 60px; color: #8C8C8C; }
 
 .menu-content { display: flex; min-height: calc(100vh - 60px); }
 
 .category-sidebar {
   width: 90px;
-  background: #2A2A2A;
+  background: #FFFFFF;
   padding: 8px 4px;
   overflow-y: auto;
+  border-right: 1px solid #F0F0F0;
 }
 
 .category-item {
@@ -195,31 +196,34 @@ onMounted(loadData)
   flex-direction: column;
   align-items: center;
   padding: 10px 4px;
-  border-radius: 8px;
+  border-radius: 10px;
   margin-bottom: 4px;
   cursor: pointer;
   position: relative;
-  color: #999;
+  color: #8C8C8C;
   font-size: 12px;
   transition: all 0.2s;
 
-  &.active { background: #3A3A3A; color: #FFD161; }
+  &.active {
+    background: #FFF1F0;
+    color: #FF6B6B;
+  }
 
   .cat-icon { font-size: 20px; margin-bottom: 4px; }
   .cat-name { font-size: 11px; text-align: center; word-break: break-all; }
-  .cat-count { font-size: 10px; color: #666; margin-top: 2px; }
+  .cat-count { font-size: 10px; color: #BFBFBF; margin-top: 2px; }
   .cat-delete {
     position: absolute;
     top: 2px;
     right: 2px;
     background: none;
     border: none;
-    color: #666;
+    color: #D9D9D9;
     font-size: 14px;
     cursor: pointer;
     display: none;
   }
-  &:hover .cat-delete { display: block; }
+  &:hover .cat-delete { display: block; color: #FF4D4F; }
 }
 
 .product-list {
@@ -231,7 +235,7 @@ onMounted(loadData)
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #999;
+  color: #8C8C8C;
   span { font-size: 48px; display: block; margin-bottom: 12px; }
 }
 
@@ -239,42 +243,43 @@ onMounted(loadData)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #2A2A2A;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 8px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .product-info {
   flex: 1;
 
-  .product-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .product-desc { font-size: 12px; color: #999; margin-bottom: 6px; }
+  .product-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: #1A1A2E; }
+  .product-desc { font-size: 12px; color: #8C8C8C; margin-bottom: 6px; }
   .product-meta { display: flex; align-items: center; gap: 12px; font-size: 13px; }
-  .product-price { color: #FFD161; font-weight: 600; }
-  .product-sales { color: #999; }
+  .product-price { color: #FF6B6B; font-weight: 600; }
+  .product-sales { color: #8C8C8C; }
   .product-status { font-weight: 600; }
   .product-specs { margin-top: 6px; }
-  .spec-group { font-size: 11px; color: #999; background: #3A3A3A; padding: 2px 8px; border-radius: 4px; margin-right: 4px; }
+  .spec-group { font-size: 11px; color: #8C8C8C; background: #F7F7F7; padding: 2px 8px; border-radius: 4px; margin-right: 4px; }
 }
 
 .product-actions {
   .btn-toggle {
-    padding: 6px 14px;
-    border-radius: 6px;
+    padding: 6px 16px;
+    border-radius: 16px;
     font-size: 13px;
     border: none;
     cursor: pointer;
     font-weight: 600;
   }
-  .btn-on { background: #4CAF50; color: #fff; }
-  .btn-off { background: #3A3A3A; color: #999; }
+  .btn-on { background: #F6FFED; color: #52C41A; }
+  .btn-off { background: #F7F7F7; color: #8C8C8C; }
 }
 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -282,25 +287,25 @@ onMounted(loadData)
 }
 
 .modal-content {
-  background: #2A2A2A;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border-radius: 16px;
   padding: 24px;
   width: 90%;
   max-width: 360px;
 
-  h3 { margin: 0 0 16px; font-size: 18px; }
+  h3 { margin: 0 0 16px; font-size: 18px; color: #1A1A2E; }
 
   input {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #3A3A3A;
-    border-radius: 8px;
+    padding: 10px 14px;
+    border: 1px solid #E8E8E8;
+    border-radius: 10px;
     font-size: 15px;
-    background: #1a1a2e;
-    color: #fff;
+    background: #F7F7F7;
+    color: #1A1A2E;
     outline: none;
 
-    &:focus { border-color: #FFD161; }
+    &:focus { border-color: #FF6B6B; box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1); }
   }
 }
 
@@ -312,13 +317,13 @@ onMounted(loadData)
   button {
     flex: 1;
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
     font-weight: 600;
     border: none;
     cursor: pointer;
   }
-  .btn-cancel { background: #3A3A3A; color: #999; }
-  .btn-confirm { background: #FFD161; color: #1a1a2e; }
+  .btn-cancel { background: #F7F7F7; color: #8C8C8C; }
+  .btn-confirm { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
 }
 </style>

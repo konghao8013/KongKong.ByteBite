@@ -119,7 +119,7 @@ onMounted(loadStats)
 }
 
 .page-header {
-  background: #FFD161;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
   padding: 16px;
 
   h2 { margin: 0; font-size: 18px; font-weight: 700; color: #333; }
@@ -153,7 +153,7 @@ onMounted(loadStats)
 
   &.active { border-top: 3px solid #4CAF50; }
   &.warning { border-top: 3px solid #FF9800; }
-  &.highlight { border-top: 3px solid #FF6633; }
+  &.highlight { border-top: 3px solid #FF6B6B; }
 
   .stat-value {
     font-size: 24px;
@@ -161,7 +161,7 @@ onMounted(loadStats)
     color: #333;
     margin-bottom: 4px;
 
-    &.revenue { color: #FF6633; }
+    &.revenue { color: #FF6B6B; }
   }
 
   .stat-label {

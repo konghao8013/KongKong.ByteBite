@@ -162,10 +162,10 @@ onMounted(loadMerchants)
 }
 
 .page-header {
-  background: #FFD161;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
   padding: 16px;
 
-  h2 { margin: 0; font-size: 18px; font-weight: 700; color: #333; }
+  h2 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
 }
 
 .filter-bar {
@@ -184,7 +184,7 @@ onMounted(loadMerchants)
   margin-bottom: 8px;
   box-sizing: border-box;
 
-  &:focus { border-color: #FFD161; }
+  &:focus { border-color: #FF6B6B; }
 }
 
 .status-filters {
@@ -201,7 +201,7 @@ onMounted(loadMerchants)
   cursor: pointer;
   transition: all 0.2s;
 
-  &.active { background: #FF6633; color: #fff; }
+  &.active { background: #FF6B6B; color: #fff; }
 }
 
 .loading-state, .empty-state {
@@ -237,8 +237,8 @@ onMounted(loadMerchants)
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #FFD161;
-  color: #333;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,8 +287,8 @@ onMounted(loadMerchants)
     cursor: pointer;
   }
 
-  .btn-approve { background: #4CAF50; color: #fff; }
-  .btn-suspend { background: #F44336; color: #fff; }
-  .btn-activate { background: #2196F3; color: #fff; }
+  .btn-approve { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
+  .btn-suspend { background: #FFF1F0; color: #FF4D4F; }
+  .btn-activate { background: #E6F7FF; color: #1890FF; }
 }
 </style>

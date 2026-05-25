@@ -27,7 +27,7 @@ withDefaults(defineProps<{
 
 .spinner {
   border: 3px solid #eee;
-  border-top-color: #FF6633;
+  border-top-color: #FF6B6B;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

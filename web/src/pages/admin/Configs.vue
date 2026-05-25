@@ -118,7 +118,7 @@ onMounted(() => {
 }
 
 .page-header {
-  background: #FFD161;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
   padding: 16px;
 
   h2 { margin: 0; font-size: 18px; font-weight: 700; color: #333; }

@@ -82,7 +82,7 @@ const switchTab = (tab: typeof tabs[0]) => {
   transition: color 0.2s;
 
   &.active {
-    color: #FF6633;
+    color: #FF6B6B;
   }
 }
 

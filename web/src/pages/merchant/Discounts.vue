@@ -95,21 +95,21 @@ onMounted(fetchDiscounts)
 <style scoped lang="scss">
 .discounts-page {
   min-height: 100vh;
-  background: #1a1a2e;
-  color: #fff;
+  background: #F7F7F7;
+  color: #1A1A2E;
 }
 
 .page-header {
   padding: 16px;
-  background: #FFD161;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
 
-  h2 { margin: 0; font-size: 18px; font-weight: 700; color: #333; }
+  h2 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
 }
 
 .loading-state, .empty-state {
   text-align: center;
   padding: 80px 20px;
-  color: #999;
+  color: #8C8C8C;
 
   .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
 }
@@ -117,10 +117,11 @@ onMounted(fetchDiscounts)
 .discount-list { padding: 12px; }
 
 .discount-card {
-  background: #2A2A2A;
-  border-radius: 12px;
+  background: #FFFFFF;
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &.inactive { opacity: 0.6; }
   &.expired { opacity: 0.5; }
@@ -136,60 +137,60 @@ onMounted(fetchDiscounts)
 .discount-type {
   font-size: 12px;
   font-weight: 600;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 20px;
   color: #fff;
 
-  &.full_reduction { background: #FF6633; }
-  &.discount { background: #E6A23C; }
+  &.full_reduction { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+  &.discount { background: linear-gradient(135deg, #FFBE0B, #FFD166); color: #1A1A2E; }
 }
 
 .discount-status {
   font-size: 13px;
   font-weight: 600;
 
-  &.active { color: #4CAF50; }
-  &.expired { color: #F44336; }
+  &.active { color: #52C41A; }
+  &.expired { color: #FF4D4F; }
 }
 
 .discount-body { margin-bottom: 12px; }
 
-.discount-name { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
-.discount-desc { font-size: 18px; font-weight: 700; color: #FF6633; margin-bottom: 6px; }
-.discount-scope { font-size: 13px; color: #999; margin-bottom: 4px; }
-.discount-time { font-size: 12px; color: #666; }
+.discount-name { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: #1A1A2E; }
+.discount-desc { font-size: 18px; font-weight: 700; color: #FF6B6B; margin-bottom: 6px; }
+.discount-scope { font-size: 13px; color: #8C8C8C; margin-bottom: 4px; }
+.discount-time { font-size: 12px; color: #BFBFBF; }
 
 .discount-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #3A3A3A;
+  border-top: 1px solid #F0F0F0;
   padding-top: 12px;
 }
 
-.discount-usage { font-size: 13px; color: #999; }
+.discount-usage { font-size: 13px; color: #8C8C8C; }
 
 .discount-actions { display: flex; gap: 8px; }
 
 .btn-toggle {
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 6px 16px;
+  border-radius: 16px;
   font-size: 13px;
   font-weight: 600;
   border: none;
   cursor: pointer;
-  background: #4CAF50;
-  color: #fff;
+  background: #F6FFED;
+  color: #52C41A;
 }
 
 .btn-delete {
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 6px 16px;
+  border-radius: 16px;
   font-size: 13px;
   font-weight: 600;
   border: none;
   cursor: pointer;
-  background: #F44336;
-  color: #fff;
+  background: #FFF1F0;
+  color: #FF4D4F;
 }
 </style>

@@ -54,7 +54,7 @@ const goToAdmin = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(135deg, #FFD161 0%, #FF6633 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
   padding: 60px 24px 40px;
 }
 
@@ -63,10 +63,7 @@ const goToAdmin = () => {
   margin-bottom: 48px;
 }
 
-.hero-icon {
-  font-size: 72px;
-  margin-bottom: 16px;
-}
+.hero-icon { font-size: 72px; margin-bottom: 16px; }
 
 .hero-title {
   font-size: 32px;
@@ -104,7 +101,7 @@ const goToAdmin = () => {
   background: #fff;
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 
@@ -114,10 +111,7 @@ const goToAdmin = () => {
   }
 }
 
-.action-icon {
-  font-size: 36px;
-  flex-shrink: 0;
-}
+.action-icon { font-size: 36px; flex-shrink: 0; }
 
 .action-info {
   flex: 1;
@@ -125,22 +119,18 @@ const goToAdmin = () => {
   h3 {
     font-size: 17px;
     font-weight: 600;
-    color: #333;
+    color: #1A1A2E;
     margin: 0 0 4px;
   }
 
   p {
     font-size: 13px;
-    color: #999;
+    color: #8C8C8C;
     margin: 0;
   }
 }
 
-.action-arrow {
-  font-size: 24px;
-  color: #ccc;
-  flex-shrink: 0;
-}
+.action-arrow { font-size: 24px; color: #D9D9D9; flex-shrink: 0; }
 
 .home-tip {
   margin-top: 40px;

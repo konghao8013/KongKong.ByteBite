@@ -34,7 +34,7 @@ const statusLabels: Record<string, string> = {
   align-items: center;
   justify-content: center;
   padding: 32px 20px;
-  background: linear-gradient(135deg, #FFD161 0%, #FF6633 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
   border-radius: 16px;
   color: #fff;
 }

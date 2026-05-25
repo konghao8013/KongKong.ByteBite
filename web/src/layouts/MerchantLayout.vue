@@ -71,33 +71,36 @@ const handleLogout = async () => {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
+  background: #F7F7F7;
 }
 
 .merchant-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: #1a1a2e;
+  padding: 10px 16px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #F0F0F0;
 
-  .topbar-title { font-size: 14px; color: #FFD161; font-weight: 600; }
+  .topbar-title { font-size: 16px; color: #FF6B6B; font-weight: 700; }
 
   .topbar-logout {
     background: none;
-    border: 1px solid #666;
-    color: #999;
-    padding: 4px 12px;
-    border-radius: 4px;
+    border: 1px solid #E8E8E8;
+    color: #8C8C8C;
+    padding: 5px 14px;
+    border-radius: 16px;
     font-size: 12px;
     cursor: pointer;
+    transition: all 0.2s;
 
-    &:active { color: #FFD161; border-color: #FFD161; }
+    &:active { color: #FF6B6B; border-color: #FF6B6B; }
   }
 }
 
 .merchant-content {
   flex: 1;
-  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
 }
 
 .merchant-tabbar {
@@ -106,9 +109,10 @@ const handleLogout = async () => {
   left: 0;
   right: 0;
   display: flex;
-  height: calc(50px + env(safe-area-inset-bottom));
+  height: calc(56px + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: #2A2A2A;
+  background: #FFFFFF;
+  border-top: 1px solid #F0F0F0;
   z-index: 100;
 }
 
@@ -118,20 +122,13 @@ const handleLogout = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  color: #999;
+  gap: 3px;
+  color: #BFBFBF;
   transition: color 0.2s;
 
-  &.active {
-    color: #FFD161;
-  }
+  &.active { color: #FF6B6B; }
 }
 
-.tabbar-icon {
-  font-size: 20px;
-}
-
-.tabbar-label {
-  font-size: 11px;
-}
+.tabbar-icon { font-size: 22px; }
+.tabbar-label { font-size: 11px; font-weight: 500; }
 </style>

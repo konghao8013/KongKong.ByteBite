@@ -66,82 +66,75 @@ const handleLogout = async () => {
 
 .admin-sidebar {
   width: 220px;
-  background: #2A2A2A;
-  color: #fff;
+  background: #FFFFFF;
+  color: #1A1A2E;
   transition: width 0.3s;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  border-right: 1px solid #F0F0F0;
 
-  &.collapsed {
-    width: 64px;
-  }
+  &.collapsed { width: 64px; }
 }
 
 .sidebar-header {
   padding: 20px 16px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #F0F0F0;
   text-align: center;
 
   h2 {
     margin: 0;
     font-size: 18px;
-    color: #FFD161;
+    color: #FF6B6B;
+    font-weight: 700;
   }
 }
 
-.sidebar-menu {
-  padding: 12px 0;
-}
+.sidebar-menu { padding: 12px 0; }
 
 .menu-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  color: #ccc;
+  color: #8C8C8C;
   text-decoration: none;
   transition: all 0.2s;
+  border-right: 3px solid transparent;
 
   &:hover {
-    background: #3A3A3A;
-    color: #FFD161;
+    background: #FFF1F0;
+    color: #FF6B6B;
   }
 
   &.active {
-    background: #3A3A3A;
-    color: #FFD161;
-    border-right: 3px solid #FFD161;
+    background: #FFF1F0;
+    color: #FF6B6B;
+    border-right-color: #FF6B6B;
+    font-weight: 600;
   }
 }
 
-.menu-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.menu-label {
-  font-size: 14px;
-  white-space: nowrap;
-}
+.menu-icon { font-size: 18px; flex-shrink: 0; }
+.menu-label { font-size: 14px; white-space: nowrap; }
 
 .sidebar-footer {
   margin-top: auto;
   padding: 12px 0;
-  border-top: 1px solid #444;
+  border-top: 1px solid #F0F0F0;
 
   .logout {
-    color: #F44336;
+    color: #FF4D4F;
     cursor: pointer;
 
-    &:hover { background: #3A3A3A; }
+    &:hover { background: #FFF1F0; }
   }
 }
 
 .admin-main {
   flex: 1;
   padding: 24px;
-  background: #f5f5f5;
+  background: #F7F7F7;
   overflow-y: auto;
 }
 </style>

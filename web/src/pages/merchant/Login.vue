@@ -171,7 +171,7 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #FFD161 0%, #FF6633 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
   padding: 24px;
 }
 
@@ -179,9 +179,9 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   width: 100%;
   max-width: 400px;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 40px 32px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 40px rgba(255, 107, 107, 0.2);
 }
 
 .login-header {
@@ -190,29 +190,30 @@ const switchMode = () => { isRegister.value = !isRegister.value }
 
   .login-icon { font-size: 48px; display: block; margin-bottom: 12px; }
 
-  h2 { font-size: 24px; font-weight: 700; color: #333; margin: 0 0 8px; }
-  p { font-size: 14px; color: #999; margin: 0; }
+  h2 { font-size: 24px; font-weight: 700; color: #1A1A2E; margin: 0 0 8px; }
+  p { font-size: 14px; color: #8C8C8C; margin: 0; }
 }
 
 .login-form {
   .form-group {
     margin-bottom: 20px;
 
-    label { display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 8px; }
+    label { display: block; font-size: 14px; font-weight: 500; color: #1A1A2E; margin-bottom: 8px; }
 
     input {
       width: 100%;
       height: 44px;
       padding: 0 16px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      border: 1px solid #E8E8E8;
+      border-radius: 10px;
       font-size: 15px;
       outline: none;
       transition: border-color 0.2s;
       box-sizing: border-box;
+      background: #FAFAFA;
 
-      &:focus { border-color: #FF6633; box-shadow: 0 0 0 3px rgba(255, 102, 51, 0.15); }
-      &::placeholder { color: #bbb; }
+      &:focus { border-color: #FF6B6B; box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1); background: #fff; }
+      &::placeholder { color: #BFBFBF; }
     }
   }
 }
@@ -221,25 +222,26 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   display: flex;
   gap: 16px;
   margin-bottom: 20px;
-  padding: 10px 12px;
-  background: #FFF8F0;
-  border-radius: 8px;
-  border: 1px solid #FFE0B2;
+  padding: 10px 14px;
+  background: #FFF1F0;
+  border-radius: 10px;
+  border: 1px solid #FFCCC7;
 
-  .hint-item { font-size: 12px; color: #FF9800; }
+  .hint-item { font-size: 12px; color: #FF6B6B; }
 }
 
 .login-btn {
   width: 100%;
   height: 48px;
-  background: linear-gradient(135deg, #FF6633, #FF4411);
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 
   &:hover { opacity: 0.9; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -249,8 +251,8 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   text-align: center;
   margin-top: 20px;
   font-size: 14px;
-  color: #999;
+  color: #8C8C8C;
 
-  span { color: #FF6633; cursor: pointer; font-weight: 500; &:hover { text-decoration: underline; } }
+  span { color: #FF6B6B; cursor: pointer; font-weight: 500; &:hover { text-decoration: underline; } }
 }
 </style>
