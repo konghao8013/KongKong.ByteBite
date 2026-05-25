@@ -13,4 +13,7 @@ public class CustomerStoreController : ControllerBase
 
     [HttpGet("{storeId:guid}/menu")]
     public async Task<object> GetStoreMenu(Guid storeId) => await _customerStoreService.GetStoreMenuAsync(storeId);
+
+    [HttpGet("code/{storeCode}/menu")]
+    public async Task<object> GetStoreMenuByCode(string storeCode) => await _customerStoreService.GetStoreMenuByCodeAsync(storeCode);
 }

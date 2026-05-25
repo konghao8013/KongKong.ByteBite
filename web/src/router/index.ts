@@ -1,6 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 
+const customerRoutes: RouteRecordRaw[] = [
+  { path: '', name: 'StoreMenu', component: () => import('@/pages/customer/StoreMenu.vue') },
+  { path: 'cart', name: 'Cart', component: () => import('@/pages/customer/Cart.vue') },
+  { path: 'product/:productId', name: 'ProductDetail', component: () => import('@/pages/customer/ProductDetail.vue') },
+  { path: 'order/:orderId', name: 'OrderDetail', component: () => import('@/pages/customer/OrderDetail.vue') },
+  { path: 'orders', name: 'MyOrders', component: () => import('@/pages/customer/MyOrders.vue') },
+]
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -50,15 +58,15 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/store/:storeId',
+    path: '/A/:code',
     component: () => import('@/layouts/CustomerLayout.vue'),
-    children: [
-      { path: '', name: 'StoreMenu', component: () => import('@/pages/customer/StoreMenu.vue') },
-      { path: 'cart', name: 'Cart', component: () => import('@/pages/customer/Cart.vue') },
-      { path: 'product/:productId', name: 'ProductDetail', component: () => import('@/pages/customer/ProductDetail.vue') },
-      { path: 'order/:orderId', name: 'OrderDetail', component: () => import('@/pages/customer/OrderDetail.vue') },
-      { path: 'orders', name: 'MyOrders', component: () => import('@/pages/customer/MyOrders.vue') },
-    ],
+    children: customerRoutes,
+  },
+  {
+    path: '/store/:storeId',
+    redirect: (to) => {
+      return { path: `/A/${to.params.storeId}` }
+    },
   },
 ]
 

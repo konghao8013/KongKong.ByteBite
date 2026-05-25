@@ -1,13 +1,13 @@
 # 功能规格（Spec）索引
 
-> 版本：v1.1.0 | 更新日期：2026-05-22
+> 版本：v1.3.0 | 更新日期：2026-05-25
 
 ## 按领域组织
 
 | 领域 | Spec | 核心实体 | API 契约 |
 |------|------|----------|----------|
 | 认证鉴权 | [spec-auth.md](spec-auth.md) | Admin, Merchant, Customer | [auth.md](../contracts/auth.md) |
-| 商家-店铺 | [spec-merchant-store.md](spec-merchant-store.md) | Merchant, Store | [merchant.md](../contracts/merchant.md) |
+| 商家-店铺 | [spec-merchant-store.md](spec-merchant-store.md) | Merchant, Store, StoreCode | [merchant.md](../contracts/merchant.md), [customer.md](../contracts/customer.md) |
 | 分类-商品 | [spec-category-product.md](spec-category-product.md) | Category, Product, SpecGroup, SpecOption | [merchant.md](../contracts/merchant.md) |
 | 订单-取货码 | [spec-order-pickup.md](spec-order-pickup.md) | Order, OrderItem | [order.md](../contracts/order.md) |
 | 优惠活动 | [spec-discount.md](spec-discount.md) | DiscountRule | [merchant.md](../contracts/merchant.md) |

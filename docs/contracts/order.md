@@ -1,6 +1,6 @@
 # 订单 API 契约
 
-> 版本：v1.1.0 | 更新日期：2026-05-22
+> 版本：v1.2.0 | 更新日期：2026-05-25
 
 ## 顾客端 - 创建订单
 
@@ -19,7 +19,9 @@
 | items[].productName | string | 是 | 商品名称 |
 | items[].specOptions | array | 否 | 选中规格 |
 | diningMode | string | 是 | 就餐方式：dine_in/takeaway/delivery |
-| tableNo | string | 否 | 桌号（堂食时） |
+| tableNo | string | 否 | 桌号（堂食时选填） |
+| deliveryAddress | string | 否 | 配送地址（外卖时必填） |
+| deliveryPhone | string | 否 | 联系电话（外卖时必填） |
 | remark | string | 否 | 整单备注 |
 | customerId | string | 否 | 顾客ID（已登录时） |
 
@@ -39,13 +41,32 @@
 
 ### GET /api/stores/{storeId}/orders
 
-获取店铺订单列表
+获取店铺订单列表（含 OrderItems 订单项明细）
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | status | string | 否 | 状态筛选：pending/accepted/preparing/ready/completed/cancelled |
 | pageIndex | int | 否 | 页码（默认1） |
 | pageSize | int | 否 | 每页数量（默认20） |
+
+**响应字段说明**：返回 Order 实体列表，每个 Order 包含以下关键字段：
+
+| 字段 | 说明 | 商家端展示位置 |
+|------|------|----------------|
+| pickupCode | 取货码 | 订单卡片 + 详情弹窗标题 |
+| diningMode | 就餐方式 | 订单卡片标签 + 详情弹窗就餐方式区 |
+| tableNo | 桌号 | 订单卡片标签 + 详情弹窗就餐方式区 |
+| deliveryAddress | 配送地址 | 详情弹窗配送信息区（外卖时） |
+| deliveryPhone | 联系电话 | 详情弹窗配送信息区（外卖时，支持一键拨打） |
+| orderItems | 订单项列表 | 订单卡片摘要（前3项）+ 详情弹窗商品明细 |
+| totalAmount | 商品合计 | 详情弹窗金额明细 |
+| discountAmount | 优惠金额 | 详情弹窗金额明细 |
+| packingFee | 打包费 | 详情弹窗金额明细 |
+| actualAmount | 实付金额 | 订单卡片合计 + 详情弹窗金额明细 |
+| remark | 备注 | 订单卡片备注 + 详情弹窗备注区 |
+| rejectReason | 拒单原因 | 详情弹窗拒单原因区 |
+| createdAt | 下单时间 | 详情弹窗订单时间线 |
+| acceptedAt/preparingAt/readyAt/completedAt | 状态变更时间 | 详情弹窗订单时间线 |
 
 ---
 

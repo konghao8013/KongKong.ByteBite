@@ -80,7 +80,8 @@ web/src/
 | /login | 统一登录 | — | 否 |
 | /merchant/* | 商家端页面 | MerchantLayout | merchant_token |
 | /admin/* | 管理端页面 | AdminLayout | admin_token |
-| /store/:storeId/* | 顾客端页面 | CustomerLayout | 否 |
+| /store/:storeId/* | 顾客端页面（旧路由，重定向至 /A/:code） | CustomerLayout | 否 |
+| /A/:code/* | 顾客端页面（短链，按店铺码） | CustomerLayout | 否 |
 
 **路由守卫**：检查 localStorage 中的 token 判断登录状态，未登录跳转 /login
 

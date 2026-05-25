@@ -16,7 +16,10 @@ export const customerApi = {
     request.get<CustomerDto>(`/customers/${id}`),
 
   getStoreMenu: (storeId: string) =>
-    request.get<StoreMenuDto>(`/customer/stores/${storeId}/menu`),
+    request.get<StoreMenuDto>(`/CustomerStore/${storeId}/menu`),
+
+  getStoreMenuByCode: (storeCode: string) =>
+    request.get<StoreMenuDto>(`/CustomerStore/code/${storeCode}/menu`),
 
   createOrder: (data: CreateOrderData) =>
     request.post<OrderDto>('/orders', data),

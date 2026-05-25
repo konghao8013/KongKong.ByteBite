@@ -1,6 +1,6 @@
 # 系统架构总览
 
-> 版本：v1.1.0 | 更新日期：2026-05-22
+> 版本：v1.3.0 | 更新日期：2026-05-25
 
 ## 1. 系统定位
 
@@ -14,7 +14,7 @@
 |------|----------|------|----------|
 | 管理员 | 用户名+密码 | /admin/* | 审核商家、平台统计、系统配置 |
 | 商家 | 手机号+密码 | /merchant/* | 管理店铺、菜单、接单、经营数据 |
-| 顾客 | 扫码进入（无需登录） | /store/:storeId/* | 浏览菜单、下单、查看取货码 |
+| 顾客 | 扫码进入（无需登录） | /A/:code/* | 浏览菜单、下单、查看取货码 |
 
 **统一登录**：`POST /api/auth/login` 根据账号自动识别角色，返回 `{ role, data, storeId }`
 
@@ -25,8 +25,8 @@
 ```
 ByteBite.Api          → 控制器、过滤器、Hub、Program.cs
 ByteBite.Application  → 服务类、异常定义
-ByteBite.Infrastructure → EF Core DbContext、实体、实体扩展
-ByteBite.Shared       → 公共工具类（密码哈希、取货码生成等）
+ByteBite.Infrastructure → EF Core DbContext、实体、迁移
+ByteBite.Shared       → 公共工具类（密码哈希、取货码生成、Base36编码等）
 ByteBite.Domain       ← 预留领域层（当前为空）
 ```
 
@@ -39,7 +39,8 @@ ByteBite.Domain       ← 预留领域层（当前为空）
 | 无 DTO 层 | Service 直接返回 EF 实体，全局过滤器自动包装 ApiResponse |
 | 无仓储层 | Service 直接注入 DbContext 操作数据 |
 | 无接口层 | Service 直接注册实现类，不定义 IService/Repository 接口 |
-| DB First | EF 实体由 Scaffold 生成，不手动修改；扩展用 partial class + [NotMapped] |
+| Code First | EF 实体可自由修改；`dotnet ef migrations add` 生成迁移；启动时自动应用 |
+| 数据初始化 | IDataSeeder 接口 + 模块化 Seeder，按 Order 顺序执行 |
 | 全局过滤 | ApiResponseWrapperFilter 包装响应 + GlobalExceptionFilter 捕获异常 |
 | 业务异常 | Service 层抛出 BusinessException(code, message)，控制器无需 try-catch |
 

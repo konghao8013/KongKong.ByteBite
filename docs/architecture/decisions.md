@@ -29,37 +29,51 @@
 
 - 优点：代码量减少 40%+，开发速度提升
 - 缺点：后期如果需要替换 ORM 或增加缓存层，需要重构 Service 层
-- 例外：创建/更新请求入参（如 UnifiedLoginRequest）仍然定义为 DTO；实体敏感字段（PasswordHash）用 partial class + [NotMapped] 处理
+- 例外：创建/更新请求入参（如 UnifiedLoginRequest）仍然定义为 DTO；实体敏感字段（PasswordHash）直接在实体中标注 [NotMapped]
 
 ---
 
-## ADR-002: DB First 模式 + partial class 扩展
+## ADR-002: Code First 模式 + partial class 扩展
 
-**日期**：2026-05-20
-**状态**：已采纳
+**日期**：2026-05-25
+**状态**：已采纳（替代原 ADR-002 DB First 模式）
 
 ### 背景
 
-数据库由 SQL 脚本定义，EF Core 通过 Scaffold 生成实体类。如果手动修改生成的实体，下次 Scaffold 会覆盖。
+项目初期使用 DB First 模式（SQL 脚本建表 → Scaffold 生成实体），但存在以下问题：
+- 手动修改实体中的数据库字段会被下次 Scaffold 覆盖
+- 数据库结构变更依赖手动执行 SQL 脚本，容易遗漏
+- AI 辅助开发时，新增字段需要同时修改实体、SQL 脚本、DbContext 三处，效率低
 
 ### 决策
 
-- EF 实体由 Scaffold 生成，放在 `Persistence/Entities/`
-- 不手动修改生成的实体文件
-- 需要添加非数据库字段时，使用 partial class 扩展，放在 `Extensions/Entities/`
-- 扩展字段标注 `[NotMapped]`
+迁移到 **Code First** 模式，同时保留 partial class 扩展机制：
+
+1. **Code First 迁移管理**：
+   - 实体中的数据库字段可自由修改
+   - 通过 `dotnet ef migrations add` 生成迁移，`db.Database.MigrateAsync()` 启动时自动应用
+   - 迁移文件位于 `Persistence/Migrations/`
+
+2. **partial class 扩展机制**（保留）：
+   - EF 实体文件（`Persistence/Entities/`）只包含数据库结构相关属性，保持干净
+   - 非数据库字段（如 Token、计算属性等）通过 partial class 扩展
+   - 扩展文件位于 `Persistence/Extensions/Entities/`，命名空间与原实体相同
+   - 扩展字段标注 `[NotMapped]`
 
 ### 理由
 
-1. Scaffold 生成的代码应被视为"不可修改"的生成产物
-2. partial class 是 C# 语言特性，天然支持扩展而不修改原文件
-3. [NotMapped] 确保 EF 不尝试将扩展字段映射到数据库
+1. Code First 让 AI 辅助开发更高效：新增字段只需修改实体 + 生成迁移
+2. partial class 扩展让实体职责分离：数据库字段 vs 运行时属性
+3. 实体文件只反映数据库结构，阅读更清晰
+4. 迁移自动追踪数据库版本，不再依赖手动 SQL 脚本
 
 ### 影响
 
-- 扩展文件命名规则：`{EntityName}Partial.cs`
-- 扩展文件命名空间必须与原实体相同
-- Token 字段、计算属性等全部通过此方式添加
+- 新增字段流程：修改实体（仅数据库字段） → OnModelCreating 配置 → `dotnet ef migrations add` → 启动应用
+- 非数据库字段：在 `Persistence/Extensions/Entities/` 下创建 `{EntityName}Partial.cs`
+- 新增 `ByteBiteDbContextFactory`（Design-time factory，支持 dotnet ef 命令）
+- 新增 `Persistence/Migrations/` 目录，包含所有迁移文件
+- Program.cs 启动时调用 `db.Database.MigrateAsync()` 自动应用迁移
 
 ---
 
@@ -154,26 +168,74 @@
 
 ---
 
-## ADR-006: 种子数据自动初始化
+## ADR-006: 数据初始化模块化（IDataSeeder）
 
-**日期**：2026-05-20
+**日期**：2026-05-25
+**状态**：已采纳（替代原 ADR-006 种子数据自动初始化）
+
+### 背景
+
+原有 SeedData 是一个 450+ 行的大方法，所有初始化逻辑耦合在一起。新增功能后需要在庞大的方法中找到合适位置插入逻辑，容易出错。AI 辅助开发时，新功能的初始化逻辑应该独立、自包含。
+
+### 决策
+
+采用模块化数据初始化体系：
+- 定义 `IDataSeeder` 接口（`Order` 属性 + `SeedAsync` 方法）
+- 每个业务领域创建独立 Seeder 类
+- `SeedData.InitializeAsync` 按 Order 顺序执行所有 Seeder
+- 每个 Seeder 内部先检查是否已初始化（幂等性）
+
+### 理由
+
+1. 新增功能只需创建一个 Seeder 文件，无需修改现有代码
+2. Order 属性控制执行顺序，依赖关系清晰
+3. 每个 Seeder 独立、自包含，可单独测试
+4. AI 辅助开发时，一个功能的初始化代码集中在一个文件中
+
+### 影响
+
+- 当前 Seeder 列表：AdminSeeder(10) → IndustryCategorySeeder(20) → TemplateSeeder(30) → StoreMenuSeeder(40) → OrderSeeder(50) → StoreCodeSeeder(100)
+- 新增功能时创建 `Seeders/XxxSeeder.cs`，在 `SeedData.cs` 中注册
+- 原 SeedData.cs 的大方法拆分为 `file class`（TemplateSeeder、StoreMenuSeeder、OrderSeeder）
+
+---
+
+## ADR-007: 店铺码自增编码 + 短链分享体系
+
+**日期**：2026-05-25
 **状态**：已采纳
 
 ### 背景
 
-开发和演示需要初始数据，手动执行 SQL 不方便且容易遗忘。
+店铺分享链接当前使用 UUID 格式（如 `/store/550e8400-e29b-41d4-a716-446655440000`），链接过长，不适合线下扫码、口口相传等场景。需要一种更短的店铺标识方式。
 
 ### 决策
 
-应用启动时在 Program.cs 中调用 `SeedData.InitializeAsync()`，自动检查并创建缺失数据。
+1. **店铺码（StoreCode）**：基于数据库 int 自增 ID，通过 Base36 编码为6位简码显示
+   - 字符集：A-Z（26字母）+ 0-9（10数字）= 36进制
+   - 编码示例：自增ID 1 → `000001`，自增ID 1000000 → `LFLS0S`
+   - 数据库存储 `store_code` 字段（VARCHAR(6), UNIQUE），创建店铺时自动生成
+   - 最大容量：36^6 = 2,176,782,336 个店铺（远超需求）
+
+2. **短链分享体系**：`/{模块代号}/{店铺码}`
+   - 模块代号：A-Z（26字母）+ 0-9（10数字）= 36个模块位
+   - 当前使用：`/A/` = 店铺点单页
+   - 分享链接示例：`http://host/A/AFXF08`
+   - 后续可扩展：`/B/` = 优惠活动页、`/C/` = 会员页等
+
+3. **前端路由**：`/A/:code` 替代原 `/store/:storeId`
 
 ### 理由
 
-1. 开发环境一键启动就有数据，无需手动操作
-2. 检查式创建（if not exist then create）不会重复插入
-3. 管理员密码自动重置（如果 BCrypt 验证不匹配则更新），确保 admin/admin123 始终可用
+1. UUID 链接长度 50+ 字符，6位店铺码链接仅 10 字符，扫码/口传体验大幅提升
+2. 自增 ID + Base36 编码是确定性算法，无需随机碰撞检测，比取货码的循环检查更高效
+3. 模块化短链设计（/A/、/B/...）为后续业务扩展预留了 36 个模块位
+4. Base36 是行业标准（YouTube、短链服务均采用），认知成本低
 
 ### 影响
 
-- 每次启动会执行 6-8 条 SELECT 检查查询（性能影响微乎其微）
-- 数据变更需修改 SeedData.cs 而非 SQL 脚本
+- Store 实体新增 `StoreCode` 字段（VARCHAR(6), UNIQUE, NOT NULL）
+- CustomerStoreController 新增按 StoreCode 查询菜单的 API
+- 前端顾客端路由从 `/store/:storeId` 改为 `/A/:code`
+- StoreShareDialog 分享链接使用短链格式
+- 旧路由 `/store/:storeId` 需要兼容重定向

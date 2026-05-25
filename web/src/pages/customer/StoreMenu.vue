@@ -10,7 +10,7 @@ import type { StoreMenuDto, StoreMenuItemDto, StoreMenuCategoryDto } from '@/typ
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
-const storeId = route.params.storeId as string
+const storeCode = route.params.code as string
 
 const menuData = ref<StoreMenuDto | null>(null)
 const activeCategory = ref<string>('')
@@ -19,12 +19,14 @@ const error = ref('')
 
 onMounted(async () => {
   try {
-    const data = await customerApi.getStoreMenu(storeId)
+    const data = await customerApi.getStoreMenuByCode(storeCode)
     menuData.value = data
+    if (data.storeId) localStorage.setItem('current_store_id', data.storeId)
     if (menuData.value?.categories?.length) {
       activeCategory.value = menuData.value.categories[0].id
     }
-    cartStore.loadFromLocalStorage(storeId)
+    const sid = menuData.value?.storeId || storeCode
+    cartStore.loadFromLocalStorage(sid)
   } catch {
     error.value = '加载菜单失败，请稍后重试'
   } finally {
@@ -42,7 +44,7 @@ const selectCategory = (category: StoreMenuCategoryDto) => {
 
 const addToCart = (item: StoreMenuItemDto) => {
   if (item.specs.length > 0) {
-    router.push({ name: 'ProductDetail', params: { storeId, productId: item.id } })
+    router.push({ name: 'ProductDetail', params: { code: storeCode, productId: item.id } })
     return
   }
   cartStore.addItem({

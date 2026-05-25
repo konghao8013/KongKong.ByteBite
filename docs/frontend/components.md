@@ -60,6 +60,24 @@
 | code | string | 取货码 |
 | status | string | 订单状态 |
 
+### StoreShareDialog
+
+店铺分享弹窗（短链二维码 + 链接复制 + 原生分享）
+
+- 分享链接格式：`{host}/A/{storeCode}`（6位店铺码短链）
+- 二维码内容：同分享链接
+
+| Prop | 类型 | 说明 |
+|------|------|------|
+| storeId | string | 店铺ID |
+| storeName | string | 店铺名称 |
+| storeCode | string | 6位店铺码 |
+| visible | boolean | 是否显示 |
+
+| Emit | 说明 |
+|------|------|
+| close | 关闭弹窗 |
+
 ---
 
 ## 组合式函数
@@ -80,9 +98,9 @@ SignalR 连接管理，自动重连、断线检测
 
 | 页面 | 功能 | 数据源 |
 |------|------|--------|
-| Orders | 订单列表、状态筛选、接单/拒单/制作/核销 | orderApi |
+| Orders | 订单列表、状态筛选、订单详情弹窗（配送信息/商品明细/金额明细/时间线）、接单/拒单/制作/核销 | orderApi |
 | Menu | 分类侧栏、商品列表、上下架切换 | categoryApi + productApi |
-| StoreInfo | 店铺信息展示/编辑、营业状态切换 | storeApi |
+| StoreInfo | 店铺信息展示/编辑、营业状态切换、分享店铺（二维码+链接） | storeApi |
 | Dashboard | 经营概览、图表占位、近期订单 | dashboardApi + orderApi |
 | Discounts | 优惠活动列表、启用/停用/删除 | discountApi |
 
@@ -100,6 +118,6 @@ SignalR 连接管理，自动重连、断线检测
 |------|------|--------|
 | StoreMenu | 分类导航、商品列表、加入购物车 | customerStoreApi |
 | ProductDetail | 商品详情、规格选择、数量调整 | productApi |
-| Cart | 购物车管理、优惠匹配、下单 | orderApi |
+| Cart | 购物车管理、就餐方式选择（堂食桌号/外卖配送信息）、优惠匹配、下单 | orderApi |
 | MyOrders | 顾客订单列表 | orderApi |
 | OrderDetail | 订单详情、取货码展示 | orderApi |

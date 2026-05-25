@@ -1,14 +1,10 @@
-# M3 - 顾客浏览/下单/取货码
+# 订单-取货码领域 Spec
 
-> 模块编号：M3
-> 状态：✅ 已完成
-> SQL 文件：`docs/sql/01_users_and_stores.sql`（customers表）、`docs/sql/03_orders_and_discounts.sql`
+> 版本：v1.2.0 | 更新日期：2026-05-25
 
----
+## 领域概述
 
-## 1. 功能概述
-
-顾客扫码进入店铺，浏览菜单，加入购物车，提交订单，获取取货码。商家通过 SignalR 实时接收新订单通知，按流程处理订单。
+顾客扫码进入店铺，浏览菜单，加入购物车，提交订单，获取取货码。商家通过 SignalR 实时接收新订单通知，查看订单详情（含配送信息），按流程处理订单。
 
 ---
 
@@ -35,9 +31,14 @@
 | id | UUID | PK | 主键 |
 | store_id | UUID | FK→stores | 店铺ID |
 | customer_id | UUID | FK→customers | 顾客ID |
+| device_id | VARCHAR(200) | | 设备标识（匿名用户） |
+| order_no | VARCHAR(20) | | 订单编号（如：20260520001） |
 | pickup_code | VARCHAR(6) | | 取货码（店铺内唯一） |
+| dining_mode | VARCHAR(20) | DEFAULT 'dine_in' | 就餐方式：dine_in/takeaway/delivery |
+| table_no | VARCHAR(20) | | 桌号（堂食时填写） |
+| delivery_address | VARCHAR(500) | | 配送地址（外卖时必填） |
+| delivery_phone | VARCHAR(20) | | 联系电话（外卖时必填） |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | 状态 |
-| dining_mode | VARCHAR(20) | DEFAULT 'dine_in' | 就餐方式 |
 | total_amount | DECIMAL(18,2) | NOT NULL | 总金额 |
 | discount_amount | DECIMAL(18,2) | DEFAULT 0 | 优惠金额 |
 | actual_amount | DECIMAL(18,2) | NOT NULL | 实付金额 |
@@ -133,6 +134,9 @@
 - BR-5：先做后付模式，订单无支付环节
 - BR-6：订单状态严格按流转路径变更，非法变更抛异常
 - BR-7：取货码在店铺内唯一，生成时循环检查直到找到可用码
+- BR-8：堂食模式下可填桌号（选填），外卖模式下配送地址和联系电话为必填
+- BR-9：商家端订单详情弹窗展示完整信息：就餐方式、配送信息（外卖）、商品明细、金额明细、备注、订单时间线
+- BR-10：外卖配送信息中联系电话支持 tel: 协议一键拨打
 
 ---
 

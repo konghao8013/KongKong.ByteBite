@@ -66,7 +66,7 @@ docs/
 | 层级 | 技术 |
 |------|------|
 | 前端 | Vue 3.5 + Vite 8 + TypeScript 6 + Element Plus + Pinia |
-| 后端 | .NET 10 + EF Core 10 (DB First) |
+| 后端 | .NET 10 + EF Core 10 (Code First) |
 | 数据库 | PostgreSQL 17 |
 | 实时通信 | SignalR |
 | 部署 | 前端端口 3000 (dev) / 后端端口 5044 |

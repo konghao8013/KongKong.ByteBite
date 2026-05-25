@@ -8,7 +8,7 @@ import type { StoreMenuItemDto } from '@/types/models/customer'
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
-const storeId = route.params.storeId as string
+const storeId = localStorage.getItem('current_store_id') || ''
 const productId = route.params.productId as string
 
 const product = ref<StoreMenuItemDto | null>(null)

@@ -790,6 +790,8 @@ public partial class ByteBiteDbContext : DbContext
 
             entity.HasIndex(e => e.MerchantId, "ix_stores_merchant_id");
 
+            entity.HasIndex(e => e.StoreCode, "uq_stores_store_code").IsUnique();
+
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
@@ -839,6 +841,10 @@ public partial class ByteBiteDbContext : DbContext
                 .HasMaxLength(100)
                 .HasComment("店铺名称")
                 .HasColumnName("name");
+            entity.Property(e => e.StoreCode)
+                .HasMaxLength(6)
+                .HasComment("店铺码（6位Base36编码，唯一标识，用于短链分享）")
+                .HasColumnName("store_code");
             entity.Property(e => e.PackingFee)
                 .HasPrecision(18, 2)
                 .HasDefaultValue(0m)

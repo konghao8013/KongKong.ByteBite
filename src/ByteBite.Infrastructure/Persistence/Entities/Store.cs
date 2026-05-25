@@ -21,6 +21,11 @@ public partial class Store
     public string Name { get; set; } = null!;
 
     /// <summary>
+    /// 店铺码（6位Base36编码，唯一标识，用于短链分享）
+    /// </summary>
+    public string StoreCode { get; set; } = null!;
+
+    /// <summary>
     /// 店铺描述
     /// </summary>
     public string? Description { get; set; }

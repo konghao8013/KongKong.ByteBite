@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/modules/useCartStore'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { customerApi } from '@/api/modules/customer'
@@ -8,13 +8,15 @@ import { formatPrice } from '@/utils/format'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { CreateOrderData } from '@/types/models/customer'
 
-const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
-const storeId = route.params.storeId as string
+const storeId = localStorage.getItem('current_store_id') || ''
 
 const diningMode = ref<string>('dine_in')
+const tableNo = ref('')
+const deliveryAddress = ref('')
+const deliveryPhone = ref('')
 const orderRemark = ref('')
 const submitting = ref(false)
 
@@ -60,6 +62,9 @@ const submitOrder = async () => {
         remark: item.remark || undefined
       })),
       diningMode: diningMode.value,
+      tableNo: diningMode.value === 'dine_in' ? tableNo.value || undefined : undefined,
+      deliveryAddress: diningMode.value === 'delivery' ? deliveryAddress.value || undefined : undefined,
+      deliveryPhone: diningMode.value === 'delivery' ? deliveryPhone.value || undefined : undefined,
       remark: orderRemark.value || undefined
     }
 
@@ -105,6 +110,19 @@ const submitOrder = async () => {
             <span class="mode-label">{{ option.label }}</span>
           </div>
         </div>
+      </div>
+
+      <!-- 堂食：桌号输入 -->
+      <div v-if="diningMode === 'dine_in'" class="extra-info-section">
+        <div class="section-label">桌号（选填）</div>
+        <el-input v-model="tableNo" placeholder="输入桌号，如：A3" clearable />
+      </div>
+
+      <!-- 外卖：配送信息 -->
+      <div v-if="diningMode === 'delivery'" class="extra-info-section">
+        <div class="section-label">配送信息</div>
+        <el-input v-model="deliveryAddress" placeholder="配送地址" clearable class="delivery-input" />
+        <el-input v-model="deliveryPhone" placeholder="联系电话" clearable class="delivery-input" />
       </div>
 
       <!-- 商品列表 -->
@@ -273,6 +291,18 @@ const submitOrder = async () => {
   .mode-option.active & {
     color: $brand-color;
     font-weight: 600;
+  }
+}
+
+.extra-info-section {
+  background: #fff;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+
+  .delivery-input {
+    margin-bottom: 8px;
+
+    &:last-child { margin-bottom: 0; }
   }
 }
 

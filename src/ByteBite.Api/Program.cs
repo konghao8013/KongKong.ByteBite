@@ -6,6 +6,8 @@ using ByteBite.Application.Services;
 using ByteBite.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers(options =>
@@ -39,6 +41,13 @@ builder.Services.AddScoped<DashboardService>();
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
+
+// 自动迁移数据库结构（Code First模式）
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ByteBiteDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 // 启动时自动初始化种子数据
 await SeedData.InitializeAsync(app.Services);

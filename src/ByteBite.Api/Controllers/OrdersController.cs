@@ -12,7 +12,7 @@ public class OrdersController : ControllerBase
     public OrdersController(OrderService orderService) { _orderService = orderService; }
 
     [HttpPost("api/orders")]
-    public async Task<Order> CreateOrder([FromBody] CreateOrderRequest request) => await _orderService.CreateOrderAsync(request.StoreId, request.CustomerId, request.DeviceId, request.DiningMode, request.Items, request.Remark);
+    public async Task<Order> CreateOrder([FromBody] CreateOrderRequest request) => await _orderService.CreateOrderAsync(request.StoreId, request.CustomerId, request.DeviceId, request.DiningMode, request.Items, request.Remark, request.TableNo, request.DeliveryAddress, request.DeliveryPhone);
 
     [HttpGet("api/orders/pickup/{pickupCode}/store/{storeId:guid}")]
     public async Task<Order> GetByPickupCode(string pickupCode, Guid storeId) => await _orderService.GetByPickupCodeAsync(pickupCode, storeId);
@@ -40,5 +40,5 @@ public class OrdersController : ControllerBase
     public async Task<Order> CancelOrder(Guid orderId) => await _orderService.CancelOrderAsync(orderId);
 }
 
-public class CreateOrderRequest { public Guid StoreId { get; set; } public Guid? CustomerId { get; set; } public string? DeviceId { get; set; } public string DiningMode { get; set; } = "dine_in"; public List<OrderItem> Items { get; set; } = []; public string? Remark { get; set; } }
+public class CreateOrderRequest { public Guid StoreId { get; set; } public Guid? CustomerId { get; set; } public string? DeviceId { get; set; } public string DiningMode { get; set; } = "dine_in"; public string? TableNo { get; set; } public string? DeliveryAddress { get; set; } public string? DeliveryPhone { get; set; } public List<OrderItem> Items { get; set; } = []; public string? Remark { get; set; } }
 public class RejectOrderRequest { public string Reason { get; set; } = string.Empty; }

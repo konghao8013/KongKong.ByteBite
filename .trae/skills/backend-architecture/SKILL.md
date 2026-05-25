@@ -87,36 +87,29 @@ public class MerchantDto { ... }
 - 实体包含敏感字段（如 PasswordHash）需要过滤时
 - 前端需要的字段与实体差异很大时
 
-### 6. EF 实体扩展：不要修改数据库生成的实体文件
+### 6. Code First 模式 + partial class 扩展
 
-数据库通过 EF Core (Scaffold/DB First) 生成的实体文件位于 `Persistence/Entities/`，**绝对不要直接修改这些文件**。
+项目已从 DB First 迁移到 **Code First** 模式，同时保留 partial class 扩展机制。
 
-当需要给实体添加非数据库字段（如 Token、计算属性等），必须使用 **partial class** 扩展，放在 `Extensions/Entities/` 目录下：
+**Code First 迁移管理**：
+1. 实体中的数据库字段可自由修改
+2. 在 `ByteBiteDbContext.OnModelCreating` 中添加字段配置（列名映射、注释、默认值等）
+3. 执行 `dotnet ef migrations add <MigrationName>` 生成迁移
+4. 应用启动时 `db.Database.MigrateAsync()` 自动应用迁移
 
-```csharp
-// ✅ 正确 - 在 Extensions/Entities/MerchantPartial.cs 中扩展
-// 文件路径: ByteBite.Infrastructure/Extensions/Entities/MerchantPartial.cs
-using System.ComponentModel.DataAnnotations.Schema;
-using ByteBite.Infrastructure.Persistence.Entities;
-
-namespace ByteBite.Infrastructure.Persistence.Entities;
-
-public partial class Merchant
-{
-    [NotMapped]
-    public string? Token { get; set; }
-}
-
-// ❌ 错误 - 直接修改 Persistence/Entities/Merchant.cs
-// 这个文件是数据库生成的，下次重新 Scaffold 会被覆盖
-```
+**partial class 扩展机制**（保留）：
+- EF 实体文件（`Persistence/Entities/`）**只包含数据库结构相关属性**，保持干净
+- 非数据库字段（如 Token、计算属性等）通过 partial class 扩展
+- 扩展文件位于 `Persistence/Extensions/Entities/`，命名空间与原实体相同
+- 扩展字段标注 `[NotMapped]`
 
 **规则**：
-- 扩展文件命名：`{EntityName}Partial.cs`
-- 扩展文件命名空间：必须与原实体相同（`ByteBite.Infrastructure.Persistence.Entities`）
-- 扩展文件位置：`ByteBite.Infrastructure/Extensions/Entities/`
-- 非数据库字段必须标注 `[NotMapped]`
-- 原实体文件（`Persistence/Entities/*.cs`）永远不要手动修改
+- 数据库字段 → 直接在实体文件 `Persistence/Entities/{EntityName}.cs` 中添加
+- 非数据库字段 → 在扩展文件 `Persistence/Extensions/Entities/{EntityName}Partial.cs` 中添加
+- 新增数据库字段必须在 `OnModelCreating` 中配置 `HasColumnName`，确保 snake_case 列名映射
+- 每次新增数据库字段后必须生成迁移：`dotnet ef migrations add Xxx --output-dir Persistence/Migrations --context ByteBiteDbContext`
+- 迁移文件位于 `ByteBite.Infrastructure/Persistence/Migrations/`
+- 迁移工具：`ByteBiteDbContextFactory`（Design-time factory，用于 `dotnet ef` 命令）
 
 ### 7. 统一错误处理
 
@@ -188,6 +181,10 @@ try { ... } catch { ... }
 ```
 ByteBite.Api/
   Controllers/        ← 控制器，只做参数接收和调用 Service
+  Data/               ← 数据初始化模块
+    IDataSeeder.cs    ← 数据初始化接口（Order + SeedAsync）
+    SeedData.cs       ← 初始化入口（协调各 Seeder）
+    Seeders/          ← 各模块独立 Seeder
   Filters/            ← 全局过滤器（ApiResponseWrapperFilter, GlobalExceptionFilter）
   Hubs/               ← SignalR Hub
   Program.cs
@@ -198,11 +195,41 @@ ByteBite.Application/
   Exceptions/         ← BusinessException 等自定义异常
 
 ByteBite.Infrastructure/
-  Persistence/        ← DbContext + EF 实体（数据库生成，不要手动修改）
-  Extensions/
-    Entities/         ← 实体 partial class 扩展（非数据库字段放这里）
+  Persistence/
+    ByteBiteDbContext.cs     ← EF Core DbContext（OnModelCreating 配置所有实体）
+    ByteBiteDbContextFactory.cs ← Design-time factory（用于 dotnet ef 命令）
+    Entities/                ← EF 实体（Code First，仅包含数据库结构字段）
+    Extensions/Entities/     ← 实体 partial class 扩展（非数据库字段，如 Token）
+    Migrations/              ← EF Core 迁移文件
 
 ByteBite.Shared/
-  Helpers/            ← PasswordHasher, PickupCodeGenerator
-  Extensions/         ← 扩展方法
+  Helpers/            ← PasswordHasher, PickupCodeGenerator, Base36Encoder
 ```
+
+## 数据初始化模块
+
+新增功能后，需要初始化数据时，创建一个新的 Seeder 类：
+
+```csharp
+// 文件位置: ByteBite.Api/Data/Seeders/XxxSeeder.cs
+public class XxxSeeder : IDataSeeder
+{
+    public int Order => 60; // 越小越先执行
+    public async Task SeedAsync(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ByteBiteDbContext>();
+        // 初始化逻辑（先检查是否已存在，幂等性）
+    }
+}
+```
+
+然后在 `SeedData.cs` 的 `InitializeAsync` 方法中注册新的 Seeder。
+
+**Order 参考**：
+- 10: AdminSeeder
+- 20: IndustryCategorySeeder
+- 30: TemplateSeeder
+- 40: StoreMenuSeeder
+- 50: OrderSeeder
+- 100: StoreCodeSeeder

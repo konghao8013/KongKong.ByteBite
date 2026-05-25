@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { storeApi } from '@/api/modules/store'
+import StoreShareDialog from '@/components/common/StoreShareDialog.vue'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const loading = ref(false)
 const saving = ref(false)
 const store = ref<any>(null)
 const editMode = ref(false)
+const shareVisible = ref(false)
 const form = ref({ name: '', description: '', coverImageUrl: '' })
 
 const loadStore = async () => {
@@ -55,7 +57,10 @@ onMounted(loadStore)
   <div class="store-page">
     <div class="store-header">
       <h2>店铺信息</h2>
-      <button v-if="!editMode" class="btn-edit" @click="editMode = true">编辑</button>
+      <div class="header-actions">
+        <button v-if="!editMode" class="btn-share" @click="shareVisible = true">分享</button>
+        <button v-if="!editMode" class="btn-edit" @click="editMode = true">编辑</button>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-state">加载中...</div>
@@ -130,7 +135,19 @@ onMounted(loadStore)
           {{ store.businessStatus === 'open' ? '打烊休息' : '开始营业' }}
         </button>
       </div>
+
+      <div class="share-section">
+        <button class="btn-share-store" @click="shareVisible = true">🔗 分享店铺</button>
+      </div>
     </div>
+
+    <StoreShareDialog
+      v-if="shareVisible"
+      :store-code="store?.storeCode || ''"
+      :store-name="store?.name || ''"
+      :visible="shareVisible"
+      @close="shareVisible = false"
+    />
   </div>
 </template>
 
@@ -149,9 +166,22 @@ onMounted(loadStore)
 
   h2 { font-size: 20px; font-weight: 700; margin: 0; }
 
+  .header-actions { display: flex; gap: 8px; }
+
   .btn-edit {
     background: linear-gradient(135deg, #FF6B6B, #FF8E53);
     color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-share {
+    background: #FFF1F0;
+    color: #FF6B6B;
     border: none;
     padding: 8px 18px;
     border-radius: 20px;
@@ -290,6 +320,23 @@ onMounted(loadStore)
 
     &.open { background: #FFF1F0; color: #FF6B6B; }
     &.closed { background: #F6FFED; color: #52C41A; }
+  }
+}
+
+.share-section {
+  margin: 0 16px 16px;
+
+  .btn-share-store {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: #FFFFFF;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
   }
 }
 </style>

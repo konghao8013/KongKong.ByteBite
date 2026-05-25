@@ -27,10 +27,9 @@ public class OrderService
     /// <param name="ct">取消令牌</param>
     /// <returns>新创建的订单实体（含订单项）</returns>
     /// <exception cref="BusinessException">404-店铺不存在</exception>
-    public async Task<Order> CreateOrderAsync(Guid storeId, Guid? customerId, string? deviceId, string diningMode, List<OrderItem> items, string? remark, CancellationToken ct = default)
+    public async Task<Order> CreateOrderAsync(Guid storeId, Guid? customerId, string? deviceId, string diningMode, List<OrderItem> items, string? remark, string? tableNo = null, string? deliveryAddress = null, string? deliveryPhone = null, CancellationToken ct = default)
     {
         var store = await _db.Stores.FindAsync([storeId], ct) ?? throw new BusinessException(404, "店铺不存在");
-        // 生成唯一取货码，确保同店铺内不重复
         string pickupCode;
         do { pickupCode = PickupCodeGenerator.Generate(4); } while (await _db.Orders.AnyAsync(o => o.PickupCode == pickupCode && o.StoreId == storeId, ct));
         var totalAmount = items.Sum(i => i.TotalPrice);
@@ -39,6 +38,7 @@ public class OrderService
             Id = Guid.NewGuid(), StoreId = storeId, CustomerId = customerId, DeviceId = deviceId,
             OrderNo = DateTime.UtcNow.ToString("yyyyMMddHHmmss") + new Random().Next(100, 999),
             PickupCode = pickupCode, DiningMode = diningMode, Status = "pending",
+            TableNo = tableNo, DeliveryAddress = deliveryAddress, DeliveryPhone = deliveryPhone,
             TotalAmount = totalAmount, DiscountAmount = 0, ActualAmount = totalAmount, PackingFee = 0,
             Remark = remark, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
         };

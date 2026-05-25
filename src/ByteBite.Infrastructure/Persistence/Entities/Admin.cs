@@ -3,9 +3,6 @@ using System.Collections.Generic;
 
 namespace ByteBite.Infrastructure.Persistence.Entities;
 
-/// <summary>
-/// 平台管理员表
-/// </summary>
 public partial class Admin
 {
     public Guid Id { get; set; }
@@ -16,9 +13,6 @@ public partial class Admin
 
     public string? DisplayName { get; set; }
 
-    /// <summary>
-    /// 角色：super_admin-超级管理员, admin-管理员, viewer-只读
-    /// </summary>
     public string Role { get; set; } = null!;
 
     public string Status { get; set; } = null!;

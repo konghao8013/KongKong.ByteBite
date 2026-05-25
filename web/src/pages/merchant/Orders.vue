@@ -6,6 +6,8 @@ const storeId = localStorage.getItem('merchant_store_id') || ''
 const loading = ref(false)
 const orders = ref<any[]>([])
 const activeTab = ref('pending')
+const selectedOrder = ref<any>(null)
+const showDetail = ref(false)
 const tabs = [
   { key: 'pending', label: '待接单', icon: '🔔' },
   { key: 'accepted', label: '已接单', icon: '✅' },
@@ -42,10 +44,31 @@ const diningModeLabel = (mode: string) => {
   return map[mode] || mode
 }
 
+const diningModeIcon = (mode: string) => {
+  const map: Record<string, string> = { dine_in: '🪑', takeaway: '🥡', delivery: '🛵' }
+  return map[mode] || '🍽️'
+}
+
 const formatTime = (dateStr: string) => {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
+
+const formatFullTime = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`
+}
+
+const openDetail = (order: any) => {
+  selectedOrder.value = order
+  showDetail.value = true
+}
+
+const closeDetail = () => {
+  showDetail.value = false
+  selectedOrder.value = null
 }
 
 const loadOrders = async () => {
@@ -139,7 +162,7 @@ onUnmounted(() => {
     </div>
 
     <div v-else class="orders-list">
-      <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+      <div v-for="order in filteredOrders" :key="order.id" class="order-card" @click="openDetail(order)">
         <div class="order-header">
           <div class="order-info">
             <span class="order-no">#{{ order.pickupCode }}</span>
@@ -154,10 +177,13 @@ onUnmounted(() => {
         <div class="order-time">{{ formatTime(order.createdAt) }}</div>
 
         <div class="order-items">
-          <div v-for="item in (order.orderItems || [])" :key="item.id" class="order-item">
+          <div v-for="item in (order.orderItems || []).slice(0, 3)" :key="item.id" class="order-item">
             <span class="item-name">{{ item.productName }}</span>
             <span class="item-qty">×{{ item.quantity }}</span>
             <span class="item-price">¥{{ item.totalPrice }}</span>
+          </div>
+          <div v-if="(order.orderItems || []).length > 3" class="item-more">
+            还有 {{ (order.orderItems || []).length - 3 }} 件商品...
           </div>
         </div>
 
@@ -168,16 +194,154 @@ onUnmounted(() => {
             <span v-if="order.discountAmount > 0" class="discount-info">优惠 -¥{{ order.discountAmount }}</span>
           </div>
 
-          <div class="order-actions">
+          <div class="order-actions" @click.stop>
+            <button class="btn-detail" @click="openDetail(order)">详情</button>
             <button v-if="order.status === 'pending'" class="btn-accept" @click="handleAccept(order)">接单</button>
             <button v-if="order.status === 'pending'" class="btn-reject" @click="handleReject(order)">拒单</button>
             <button v-if="order.status === 'accepted'" class="btn-prepare" @click="handlePrepare(order)">开始制作</button>
             <button v-if="order.status === 'preparing'" class="btn-ready" @click="handleReady(order)">制作完成</button>
-            <button v-if="order.status === 'ready'" class="btn-complete" @click="handleComplete(order)">核销完成</button>
+            <button v-if="order.status === 'ready'" class="btn-complete" @click="handleComplete(order)">核销</button>
           </div>
         </div>
 
         <div v-if="order.remark" class="order-remark">备注: {{ order.remark }}</div>
+      </div>
+    </div>
+
+    <!-- 订单详情弹窗 -->
+    <div v-if="showDetail && selectedOrder" class="detail-overlay" @click.self="closeDetail">
+      <div class="detail-panel">
+        <div class="detail-header">
+          <div class="detail-title-row">
+            <span class="detail-pickup-code">#{{ selectedOrder.pickupCode }}</span>
+            <span class="detail-status" :style="{ color: statusColor(selectedOrder.status) }">
+              {{ statusLabel(selectedOrder.status) }}
+            </span>
+          </div>
+          <button class="detail-close" @click="closeDetail">✕</button>
+        </div>
+
+        <!-- 就餐方式 -->
+        <div class="detail-section">
+          <div class="section-title">{{ diningModeIcon(selectedOrder.diningMode) }} 就餐方式</div>
+          <div class="dining-info">
+            <span class="dining-mode-tag">{{ diningModeLabel(selectedOrder.diningMode) }}</span>
+            <span v-if="selectedOrder.tableNo" class="dining-detail">桌号: {{ selectedOrder.tableNo }}</span>
+            <span v-if="selectedOrder.diningMode === 'delivery' && selectedOrder.deliveryAddress" class="dining-detail">
+              {{ selectedOrder.deliveryAddress }}
+            </span>
+            <span v-if="selectedOrder.diningMode === 'delivery' && selectedOrder.deliveryPhone" class="dining-detail">
+              📞 {{ selectedOrder.deliveryPhone }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 配送信息（外卖时突出显示） -->
+        <div v-if="selectedOrder.diningMode === 'delivery' && selectedOrder.deliveryAddress" class="detail-section delivery-section">
+          <div class="section-title">🛵 配送信息</div>
+          <div class="delivery-card">
+            <div class="delivery-row">
+              <span class="delivery-label">配送地址</span>
+              <span class="delivery-value">{{ selectedOrder.deliveryAddress }}</span>
+            </div>
+            <div v-if="selectedOrder.deliveryPhone" class="delivery-row">
+              <span class="delivery-label">联系电话</span>
+              <a :href="'tel:' + selectedOrder.deliveryPhone" class="delivery-phone">{{ selectedOrder.deliveryPhone }}</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 商品明细 -->
+        <div class="detail-section">
+          <div class="section-title">🍽️ 商品明细</div>
+          <div class="detail-items">
+            <div v-for="item in (selectedOrder.orderItems || [])" :key="item.id" class="detail-item">
+              <div class="detail-item-main">
+                <span class="detail-item-name">{{ item.productName }}</span>
+                <span class="detail-item-spec" v-if="item.specOptions">（{{ item.specOptions }}）</span>
+              </div>
+              <div class="detail-item-right">
+                <span class="detail-item-qty">×{{ item.quantity }}</span>
+                <span class="detail-item-price">¥{{ item.totalPrice }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 金额明细 -->
+        <div class="detail-section">
+          <div class="section-title">💰 金额明细</div>
+          <div class="amount-rows">
+            <div class="amount-row">
+              <span>商品合计</span>
+              <span>¥{{ selectedOrder.totalAmount }}</span>
+            </div>
+            <div v-if="selectedOrder.discountAmount > 0" class="amount-row discount">
+              <span>优惠减免</span>
+              <span>-¥{{ selectedOrder.discountAmount }}</span>
+            </div>
+            <div v-if="selectedOrder.packingFee > 0" class="amount-row">
+              <span>打包费</span>
+              <span>¥{{ selectedOrder.packingFee }}</span>
+            </div>
+            <div class="amount-row total">
+              <span>实付金额</span>
+              <span>¥{{ selectedOrder.actualAmount }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 备注 -->
+        <div v-if="selectedOrder.remark" class="detail-section">
+          <div class="section-title">📝 备注</div>
+          <div class="detail-remark">{{ selectedOrder.remark }}</div>
+        </div>
+
+        <!-- 拒单原因 -->
+        <div v-if="selectedOrder.rejectReason" class="detail-section">
+          <div class="section-title">❌ 拒单原因</div>
+          <div class="detail-reject">{{ selectedOrder.rejectReason }}</div>
+        </div>
+
+        <!-- 订单时间线 -->
+        <div class="detail-section">
+          <div class="section-title">⏱️ 订单时间</div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <span class="timeline-label">下单时间</span>
+              <span class="timeline-value">{{ formatFullTime(selectedOrder.createdAt) }}</span>
+            </div>
+            <div v-if="selectedOrder.acceptedAt" class="timeline-item">
+              <span class="timeline-label">接单时间</span>
+              <span class="timeline-value">{{ formatFullTime(selectedOrder.acceptedAt) }}</span>
+            </div>
+            <div v-if="selectedOrder.preparingAt" class="timeline-item">
+              <span class="timeline-label">制作时间</span>
+              <span class="timeline-value">{{ formatFullTime(selectedOrder.preparingAt) }}</span>
+            </div>
+            <div v-if="selectedOrder.readyAt" class="timeline-item">
+              <span class="timeline-label">完成时间</span>
+              <span class="timeline-value">{{ formatFullTime(selectedOrder.readyAt) }}</span>
+            </div>
+            <div v-if="selectedOrder.completedAt" class="timeline-item">
+              <span class="timeline-label">核销时间</span>
+              <span class="timeline-value">{{ formatFullTime(selectedOrder.completedAt) }}</span>
+            </div>
+            <div v-if="selectedOrder.cancelledAt" class="timeline-item">
+              <span class="timeline-label">取消时间</span>
+              <span class="timeline-value">{{ formatFullTime(selectedOrder.cancelledAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="detail-actions">
+          <button v-if="selectedOrder.status === 'pending'" class="btn-accept full" @click="handleAccept(selectedOrder); closeDetail()">接单</button>
+          <button v-if="selectedOrder.status === 'pending'" class="btn-reject full" @click="handleReject(selectedOrder); closeDetail()">拒单</button>
+          <button v-if="selectedOrder.status === 'accepted'" class="btn-prepare full" @click="handlePrepare(selectedOrder); closeDetail()">开始制作</button>
+          <button v-if="selectedOrder.status === 'preparing'" class="btn-ready full" @click="handleReady(selectedOrder); closeDetail()">制作完成</button>
+          <button v-if="selectedOrder.status === 'ready'" class="btn-complete full" @click="handleComplete(selectedOrder); closeDetail()">核销完成</button>
+        </div>
       </div>
     </div>
   </div>
@@ -272,6 +436,10 @@ onUnmounted(() => {
   padding: 16px;
   border-left: 4px solid #FF6B6B;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+
+  &:active { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
 }
 
 .order-header {
@@ -282,11 +450,7 @@ onUnmounted(() => {
 
   .order-info { display: flex; align-items: center; gap: 8px; }
 
-  .order-no {
-    font-size: 18px;
-    font-weight: 700;
-    color: #FF6B6B;
-  }
+  .order-no { font-size: 18px; font-weight: 700; color: #FF6B6B; }
 
   .order-mode {
     font-size: 12px;
@@ -297,15 +461,10 @@ onUnmounted(() => {
   }
 
   .order-table { font-size: 12px; color: #1890FF; font-weight: 500; }
-
   .order-status { font-size: 14px; font-weight: 600; }
 }
 
-.order-time {
-  font-size: 12px;
-  color: #8C8C8C;
-  margin-bottom: 8px;
-}
+.order-time { font-size: 12px; color: #8C8C8C; margin-bottom: 8px; }
 
 .order-items {
   margin-bottom: 12px;
@@ -313,7 +472,7 @@ onUnmounted(() => {
   .order-item {
     display: flex;
     align-items: center;
-    padding: 4px 0;
+    padding: 3px 0;
     font-size: 14px;
     color: #333;
 
@@ -321,6 +480,8 @@ onUnmounted(() => {
     .item-qty { color: #8C8C8C; margin-right: 8px; }
     .item-price { color: #FF6B6B; font-weight: 500; }
   }
+
+  .item-more { font-size: 12px; color: #BFBFBF; padding-top: 2px; }
 }
 
 .order-footer {
@@ -339,7 +500,7 @@ onUnmounted(() => {
   .order-actions { display: flex; gap: 8px; }
 }
 
-.btn-accept, .btn-prepare, .btn-ready, .btn-complete {
+.btn-accept, .btn-prepare, .btn-ready, .btn-complete, .btn-detail {
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 13px;
@@ -348,8 +509,9 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+.btn-detail { background: #F7F7F7; color: #1A1A2E; }
 .btn-accept { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
-.btn-reject { background: #F0F0F0; color: #FF4D4F; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+.btn-reject { background: #FFF1F0; color: #FF4D4F; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
 .btn-prepare { background: #FFF7E6; color: #FF9800; }
 .btn-ready { background: #E6F7FF; color: #1890FF; }
 .btn-complete { background: linear-gradient(135deg, #FFBE0B, #FF6B6B); color: #fff; }
@@ -361,5 +523,216 @@ onUnmounted(() => {
   border-radius: 8px;
   font-size: 13px;
   color: #FF9800;
+}
+
+/* 详情弹窗 */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.detail-panel {
+  background: #FFFFFF;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0 0 24px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid #F0F0F0;
+  position: sticky;
+  top: 0;
+  background: #FFFFFF;
+  border-radius: 20px 20px 0 0;
+  z-index: 1;
+
+  .detail-title-row { display: flex; align-items: center; gap: 10px; }
+  .detail-pickup-code { font-size: 22px; font-weight: 800; color: #FF6B6B; }
+  .detail-status { font-size: 15px; font-weight: 600; }
+
+  .detail-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #F7F7F7;
+    border: none;
+    font-size: 16px;
+    color: #8C8C8C;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.detail-section {
+  padding: 14px 20px 0;
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A1A2E;
+    margin-bottom: 10px;
+  }
+}
+
+.dining-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  .dining-mode-tag {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #FFF1F0;
+    color: #FF6B6B;
+  }
+
+  .dining-detail {
+    font-size: 13px;
+    color: #1A1A2E;
+  }
+}
+
+.delivery-section {
+  .delivery-card {
+    background: #FFF7E6;
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid #FFE0B2;
+  }
+
+  .delivery-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+
+    &:last-child { margin-bottom: 0; }
+  }
+
+  .delivery-label {
+    font-size: 13px;
+    color: #8C8C8C;
+    white-space: nowrap;
+    min-width: 60px;
+  }
+
+  .delivery-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A1A2E;
+  }
+
+  .delivery-phone {
+    font-size: 14px;
+    font-weight: 600;
+    color: #FF6B6B;
+    text-decoration: none;
+  }
+}
+
+.detail-items {
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #FAFAFA;
+
+    &:last-child { border-bottom: none; }
+  }
+
+  .detail-item-main {
+    flex: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .detail-item-name { font-size: 14px; color: #1A1A2E; font-weight: 500; }
+  .detail-item-spec { font-size: 12px; color: #8C8C8C; }
+  .detail-item-right { display: flex; align-items: center; gap: 12px; }
+  .detail-item-qty { font-size: 13px; color: #8C8C8C; }
+  .detail-item-price { font-size: 14px; color: #FF6B6B; font-weight: 600; min-width: 60px; text-align: right; }
+}
+
+.amount-rows {
+  background: #FAFAFA;
+  border-radius: 10px;
+  padding: 12px;
+
+  .amount-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 14px;
+    color: #595959;
+
+    &.discount { color: #52C41A; }
+    &.total { font-size: 16px; font-weight: 700; color: #FF6B6B; border-top: 1px solid #E8E8E8; padding-top: 10px; margin-top: 4px; }
+  }
+}
+
+.detail-remark {
+  background: #FFF7E6;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  color: #FF9800;
+  line-height: 1.6;
+}
+
+.detail-reject {
+  background: #FFF1F0;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  color: #FF4D4F;
+  line-height: 1.6;
+}
+
+.timeline {
+  .timeline-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 13px;
+
+    .timeline-label { color: #8C8C8C; }
+    .timeline-value { color: #595959; }
+  }
+}
+
+.detail-actions {
+  padding: 20px;
+  display: flex;
+  gap: 10px;
+
+  .full {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+  }
 }
 </style>

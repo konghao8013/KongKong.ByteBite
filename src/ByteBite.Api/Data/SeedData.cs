@@ -5,101 +5,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ByteBite.Api.Data;
 
-/// <summary>
-/// 数据库种子数据初始化 - 首次启动时自动创建行业分类、模板、商家、店铺、菜单、订单等基础数据
-/// </summary>
 public static class SeedData
 {
-    /// <summary>
-    /// 执行种子数据初始化 - 检查关键数据是否存在，不存在则创建
-    /// </summary>
     public static async Task InitializeAsync(IServiceProvider services)
+    {
+        var seeders = new IDataSeeder[]
+        {
+            new AdminSeeder(),
+            new IndustryCategorySeeder(),
+            new TemplateSeeder(),
+            new StoreMenuSeeder(),
+            new OrderSeeder(),
+            new StoreCodeSeeder(),
+        };
+
+        foreach (var seeder in seeders.OrderBy(s => s.Order))
+        {
+            await seeder.SeedAsync(services);
+        }
+    }
+}
+
+file class TemplateSeeder : IDataSeeder
+{
+    public int Order => 30;
+
+    public async Task SeedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ByteBiteDbContext>();
 
-        // 行业分类
-        if (!await db.IndustryCategories.AnyAsync())
-        {
-            await SeedIndustryCategoriesAsync(db);
-        }
+        if (await db.StoreTemplates.AnyAsync()) return;
 
-        // 管理员账号
-        var admin = await db.Admins.FirstOrDefaultAsync(a => a.Username == "admin");
-        if (admin == null)
-        {
-            db.Admins.Add(new Admin
-            {
-                Id = Guid.NewGuid(), Username = "admin", PasswordHash = PasswordHasher.HashPassword("admin123"),
-                DisplayName = "系统管理员", Role = "super_admin", Status = "active",
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
-            });
-            await db.SaveChangesAsync();
-        }
-        else if (!PasswordHasher.VerifyPassword("admin123", admin.PasswordHash))
-        {
-            admin.PasswordHash = PasswordHasher.HashPassword("admin123");
-            admin.Status = "active";
-            await db.SaveChangesAsync();
-        }
-
-        // 模板
-        if (!await db.StoreTemplates.AnyAsync())
-        {
-            await SeedTemplateAsync(db);
-        }
-
-        // 商家+店铺+菜单
-        var merchant = await db.Merchants.FirstOrDefaultAsync(m => m.Phone == "18523978013");
-        if (merchant != null)
-        {
-            // 确保商家状态为active
-            if (merchant.Status != "active")
-            {
-                merchant.Status = "active";
-                await db.SaveChangesAsync();
-            }
-
-            var store = await db.Stores.FirstOrDefaultAsync(s => s.MerchantId == merchant.Id);
-            if (store == null)
-            {
-                await SeedStoreAndMenuAsync(db, merchant.Id);
-                store = await db.Stores.FirstOrDefaultAsync(s => s.MerchantId == merchant.Id);
-            }
-            else if (!await db.Categories.AnyAsync(c => c.StoreId == store.Id))
-            {
-                // 店铺存在但没有分类，需要补充菜单数据
-                await SeedStoreAndMenuAsync(db, merchant.Id, store.Id);
-            }
-
-            // 订单数据
-            if (store != null && !await db.Orders.AnyAsync(o => o.StoreId == store.Id))
-            {
-                await SeedOrdersAsync(db, store.Id);
-            }
-        }
-    }
-
-    /// <summary>
-    /// 初始化行业分类（三级：餐饮 → 烧烤 → 重庆特色烧烤）
-    /// </summary>
-    private static async Task SeedIndustryCategoriesAsync(ByteBiteDbContext db)
-    {
-        var cat1 = new IndustryCategory { Id = Guid.Parse("a0000000-0000-0000-0000-000000000001"), Name = "餐饮", Level = 1, SortOrder = 1, Icon = "🍜", IsVisible = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        var cat2 = new IndustryCategory { Id = Guid.Parse("a0000000-0000-0000-0000-000000000002"), Parent = cat1, Name = "烧烤", Level = 2, SortOrder = 1, Icon = "🔥", IsVisible = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        var cat3 = new IndustryCategory { Id = Guid.Parse("a0000000-0000-0000-0000-000000000003"), Parent = cat2, Name = "重庆特色烧烤", Level = 3, SortOrder = 1, Icon = "🌶️", IsVisible = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        var cat4 = new IndustryCategory { Id = Guid.Parse("a0000000-0000-0000-0000-000000000004"), Parent = cat2, Name = "东北烧烤", Level = 3, SortOrder = 2, Icon = "🥩", IsVisible = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        var cat5 = new IndustryCategory { Id = Guid.Parse("a0000000-0000-0000-0000-000000000005"), Parent = cat1, Name = "小吃快餐", Level = 2, SortOrder = 2, Icon = "🍔", IsVisible = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        var cat6 = new IndustryCategory { Id = Guid.Parse("a0000000-0000-0000-0000-000000000006"), Parent = cat1, Name = "饮品甜点", Level = 2, SortOrder = 3, Icon = "🧋", IsVisible = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        db.IndustryCategories.AddRange(cat1, cat2, cat3, cat4, cat5, cat6);
-        await db.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// 初始化重庆烧烤模板 - 包含8个分类和20+商品
-    /// </summary>
-    private static async Task SeedTemplateAsync(ByteBiteDbContext db)
-    {
         var industryId = Guid.Parse("a0000000-0000-0000-0000-000000000003");
         var template = new StoreTemplate
         {
@@ -109,7 +46,6 @@ public static class SeedData
             CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
         };
 
-        // 模板分类
         var tCats = new[]
         {
             new TemplateCategory { Id = Guid.NewGuid(), Template = template, Name = "🔥 热销", CategoryType = "hot", Icon = "🔥", SortOrder = 1, HotTopCount = 10, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
@@ -122,7 +58,6 @@ public static class SeedData
             new TemplateCategory { Id = Guid.NewGuid(), Template = template, Name = "🍱 套餐", CategoryType = "combo", Icon = "🍱", SortOrder = 8, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
         };
 
-        // 模板商品
         var tProducts = new (int CatIdx, string Name, string Desc, decimal Price, int MinQty)[]
         {
             (1, "凉拌毛豆", "开胃必点", 6, 1), (1, "凉拌花生米", "香酥可口", 6, 1),
@@ -148,18 +83,43 @@ public static class SeedData
         db.StoreTemplates.Add(template);
         await db.SaveChangesAsync();
     }
+}
 
-    /// <summary>
-    /// 初始化商家店铺和菜单 - 重庆老灶烧烤完整菜单
-    /// </summary>
-    private static async Task SeedStoreAndMenuAsync(ByteBiteDbContext db, Guid merchantId, Guid? existingStoreId = null)
+file class StoreMenuSeeder : IDataSeeder
+{
+    public int Order => 40;
+
+    public async Task SeedAsync(IServiceProvider services)
     {
-        Store store;
-        if (existingStoreId != null)
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ByteBiteDbContext>();
+
+        var merchant = await db.Merchants.FirstOrDefaultAsync(m => m.Phone == "18523978013");
+        if (merchant == null) return;
+
+        if (merchant.Status != "active")
         {
-            // 使用已有店铺，补充菜单数据
-            store = await db.Stores.FindAsync(existingStoreId) ?? throw new InvalidOperationException("店铺不存在");
-            // 更新店铺信息为重庆烧烤风格
+            merchant.Status = "active";
+            await db.SaveChangesAsync();
+        }
+
+        var store = await db.Stores.FirstOrDefaultAsync(s => s.MerchantId == merchant.Id);
+        if (store == null)
+        {
+            store = new Store
+            {
+                Id = Guid.NewGuid(), MerchantId = merchant.Id, Name = "重庆老灶烧烤（观音桥店）",
+                StoreCode = Base36Encoder.Encode(1),
+                Description = "正宗重庆风味烧烤，麻辣鲜香，烟火气十足！",
+                BusinessStatus = "open", BusinessHoursStart = new TimeOnly(17, 0), BusinessHoursEnd = new TimeOnly(2, 0),
+                IndustryCategoryId = Guid.Parse("a0000000-0000-0000-0000-000000000003"),
+                DiningMode = "dine_in,takeaway,delivery", DeliveryMinAmount = 30, PackingFee = 1,
+                MonthlySales = 0, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            };
+            db.Stores.Add(store);
+        }
+        else if (!await db.Categories.AnyAsync(c => c.StoreId == store.Id))
+        {
             store.Name = "重庆老灶烧烤（观音桥店）";
             store.Description = "正宗重庆风味烧烤，麻辣鲜香，烟火气十足！";
             store.BusinessStatus = "open";
@@ -173,19 +133,9 @@ public static class SeedData
         }
         else
         {
-            store = new Store
-            {
-                Id = Guid.NewGuid(), MerchantId = merchantId, Name = "重庆老灶烧烤（观音桥店）",
-                Description = "正宗重庆风味烧烤，麻辣鲜香，烟火气十足！",
-                BusinessStatus = "open", BusinessHoursStart = new TimeOnly(17, 0), BusinessHoursEnd = new TimeOnly(2, 0),
-                IndustryCategoryId = Guid.Parse("a0000000-0000-0000-0000-000000000003"),
-                DiningMode = "dine_in,takeaway,delivery", DeliveryMinAmount = 30, PackingFee = 1,
-                MonthlySales = 0, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
-            };
-            db.Stores.Add(store);
+            return;
         }
 
-        // 分类
         var cats = new (string Name, string Type, string Icon, int Sort)[]
         {
             ("🔥 热销", "hot", "🔥", 1), ("🎁 进店福利", "welfare", "🎁", 2),
@@ -208,7 +158,6 @@ public static class SeedData
         }
         await db.SaveChangesAsync();
 
-        // 商品数据
         var products = new (int CatIdx, string Name, string Desc, decimal Price, int MinQty, int MonthlySales, int TotalSales, bool IsCombo)[]
         {
             (1, "凉拌毛豆", "开胃必点", 6, 1, 320, 1580, false),
@@ -255,7 +204,6 @@ public static class SeedData
         }
         await db.SaveChangesAsync();
 
-        // 商品规格（羊肉串份量、五花肉份量、鸡翅口味、生蚝份量、啤酒规格）
         var specGroups = new (int ProductIdx, string Name, (string OptionName, decimal ExtraPrice, bool IsDefault)[] Options)[]
         {
             (2, "份量", new[] { ("小串(1串)", 0m, true), ("大串(2串)", 3m, false) }),
@@ -284,7 +232,6 @@ public static class SeedData
             }
         }
 
-        // 优惠规则
         db.DiscountRules.AddRange(
             new DiscountRule
             {
@@ -311,131 +258,66 @@ public static class SeedData
 
         await db.SaveChangesAsync();
     }
+}
 
-    /// <summary>
-    /// 初始化订单数据 - 包含近7天各种状态的订单，用于报表验收
-    /// </summary>
-    private static async Task SeedOrdersAsync(ByteBiteDbContext db, Guid storeId)
+file class OrderSeeder : IDataSeeder
+{
+    public int Order => 50;
+
+    public async Task SeedAsync(IServiceProvider services)
     {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ByteBiteDbContext>();
+
+        var merchant = await db.Merchants.FirstOrDefaultAsync(m => m.Phone == "18523978013");
+        if (merchant == null) return;
+
+        var store = await db.Stores.FirstOrDefaultAsync(s => s.MerchantId == merchant.Id);
+        if (store == null) return;
+
+        if (await db.Orders.AnyAsync(o => o.StoreId == store.Id)) return;
+
         var now = DateTime.UtcNow;
-        var orders = new List<Order>();
 
-        // 7天前已完成订单
-        CreateCompletedOrder(db, storeId, "20260514001", "A1B2", "dine_in", 86, 0, 86, 0, now.AddDays(-7).AddHours(18), ref orders);
-        CreateCompletedOrder(db, storeId, "20260514002", "C3D4", "takeaway", 42, 0, 43, 1, now.AddDays(-7).AddHours(19), ref orders);
-        CreateCompletedOrder(db, storeId, "20260514003", "E5F6", "dine_in", 128, 10, 118, 0, now.AddDays(-7).AddHours(20), ref orders);
+        AddCompletedOrder(db, store.Id, "20260514001", "A1B2", "dine_in", 86, 0, 86, 0, now.AddDays(-7).AddHours(18));
+        AddCompletedOrder(db, store.Id, "20260514002", "C3D4", "takeaway", 42, 0, 43, 1, now.AddDays(-7).AddHours(19));
+        AddCompletedOrder(db, store.Id, "20260514003", "E5F6", "dine_in", 128, 10, 118, 0, now.AddDays(-7).AddHours(20));
+        AddCompletedOrder(db, store.Id, "20260516001", "G7H8", "dine_in", 56, 0, 56, 0, now.AddDays(-5).AddHours(18.5));
+        AddCompletedOrder(db, store.Id, "20260516002", "I9J0", "delivery", 88, 0, 89, 1, now.AddDays(-5).AddHours(19.25));
+        AddCompletedOrder(db, store.Id, "20260518001", "K1L2", "dine_in", 168, 30, 138, 0, now.AddDays(-3).AddHours(19));
+        AddCompletedOrder(db, store.Id, "20260518002", "M3N4", "takeaway", 35, 0, 36, 1, now.AddDays(-3).AddHours(20));
+        AddCompletedOrder(db, store.Id, "20260518003", "O5P6", "dine_in", 72, 0, 72, 0, now.AddDays(-3).AddHours(21));
+        AddCompletedOrder(db, store.Id, "20260520001", "Q7R8", "dine_in", 96, 10, 86, 0, now.AddDays(-1).AddHours(18));
+        AddCompletedOrder(db, store.Id, "20260520002", "S9T0", "delivery", 128, 10, 118, 1, now.AddDays(-1).AddHours(19));
+        AddCompletedOrder(db, store.Id, "20260520003", "U1V2", "dine_in", 45, 0, 45, 0, now.AddDays(-1).AddHours(20));
 
-        // 5天前已完成
-        CreateCompletedOrder(db, storeId, "20260516001", "G7H8", "dine_in", 56, 0, 56, 0, now.AddDays(-5).AddHours(18.5), ref orders);
-        CreateCompletedOrder(db, storeId, "20260516002", "I9J0", "delivery", 88, 0, 89, 1, now.AddDays(-5).AddHours(19.25), ref orders);
-
-        // 3天前已完成
-        CreateCompletedOrder(db, storeId, "20260518001", "K1L2", "dine_in", 168, 30, 138, 0, now.AddDays(-3).AddHours(19), ref orders);
-        CreateCompletedOrder(db, storeId, "20260518002", "M3N4", "takeaway", 35, 0, 36, 1, now.AddDays(-3).AddHours(20), ref orders);
-        CreateCompletedOrder(db, storeId, "20260518003", "O5P6", "dine_in", 72, 0, 72, 0, now.AddDays(-3).AddHours(21), ref orders);
-
-        // 昨天已完成
-        CreateCompletedOrder(db, storeId, "20260520001", "Q7R8", "dine_in", 96, 0, 96, 0, now.AddDays(-1).AddHours(18), ref orders);
-        CreateCompletedOrder(db, storeId, "20260520002", "S9T0", "dine_in", 145, 10, 135, 0, now.AddDays(-1).AddHours(19.5), ref orders);
-        CreateCompletedOrder(db, storeId, "20260520003", "U1V2", "takeaway", 52, 0, 53, 1, now.AddDays(-1).AddHours(20), ref orders);
-        CreateCompletedOrder(db, storeId, "20260520004", "W3X4", "dine_in", 210, 30, 180, 0, now.AddDays(-1).AddHours(21), ref orders);
-
-        // 今天 - 各种状态
-        var todayOrders = new (string No, string Code, string Mode, decimal Total, decimal Disc, decimal Actual, decimal Pack, string Status, int MinAgo)[]
-        {
-            ("20260521001", "Y5Z6", "dine_in", 78, 0, 78, 0, "ready", 25),
-            ("20260521002", "A7B8", "dine_in", 115, 10, 105, 0, "preparing", 15),
-            ("20260521003", "C9D0", "takeaway", 45, 0, 46, 1, "accepted", 5),
-            ("20260521004", "E1F2", "dine_in", 168, 30, 138, 0, "pending", 2),
-            ("20260521005", "G3H4", "delivery", 62, 0, 63, 1, "pending", 1)
-        };
-
-        foreach (var (no, code, mode, total, disc, actual, pack, status, minAgo) in todayOrders)
-        {
-            var created = now.AddMinutes(-minAgo);
-            var order = new Order
-            {
-                Id = Guid.NewGuid(), StoreId = storeId, DeviceId = $"DEV-{code}",
-                OrderNo = no, PickupCode = code, DiningMode = mode,
-                TotalAmount = total, DiscountAmount = disc, ActualAmount = actual, PackingFee = pack,
-                Status = status, CreatedAt = created, UpdatedAt = now
-            };
-            // 根据状态设置时间戳
-            if (status != "pending") order.AcceptedAt = created.AddMinutes(2);
-            if (status is "preparing" or "ready") order.PreparingAt = created.AddMinutes(5);
-            if (status == "ready") order.ReadyAt = created.AddMinutes(15);
-            orders.Add(order);
-            db.Orders.Add(order);
-        }
-
-        // 已取消订单
-        db.Orders.Add(new Order
-        {
-            Id = Guid.NewGuid(), StoreId = storeId, DeviceId = "DEV-I5J6",
-            OrderNo = "20260519001", PickupCode = "I5J6", DiningMode = "dine_in",
-            TotalAmount = 38, DiscountAmount = 0, ActualAmount = 38, PackingFee = 0,
-            Status = "cancelled", RejectReason = "商家忙碌，暂不接单",
-            CreatedAt = now.AddDays(-2).AddHours(22), CancelledAt = now.AddDays(-2).AddHours(22).AddMinutes(3),
-            UpdatedAt = now.AddDays(-2).AddHours(22).AddMinutes(3)
-        });
-
-        await db.SaveChangesAsync();
-
-        // 订单项
-        var allProducts = await db.Products.Where(p => p.StoreId == storeId).ToListAsync();
-
-        // 为每个已完成订单创建订单项
-        foreach (var order in orders.Where(o => o.Status == "completed").Take(8))
-        {
-            // 每个订单随机选2-4个商品
-            var randomProducts = allProducts.OrderBy(p => Guid.NewGuid()).Take(new Random().Next(2, 5)).ToList();
-            foreach (var product in randomProducts)
-            {
-                var qty = product.MinOrderQty > 1 ? product.MinOrderQty : new Random().Next(1, 5);
-                db.OrderItems.Add(new OrderItem
-                {
-                    Id = Guid.NewGuid(), OrderId = order.Id, ProductId = product.Id,
-                    ProductName = product.Name, Quantity = qty, UnitPrice = product.BasePrice, TotalPrice = qty * product.BasePrice,
-                    IsCombo = product.IsCombo, CreatedAt = order.CreatedAt
-                });
-            }
-        }
-
-        // 为今天的活跃订单创建订单项
-        foreach (var order in orders.Where(o => o.Status != "completed" && o.Status != "cancelled"))
-        {
-            var randomProducts = allProducts.OrderBy(p => Guid.NewGuid()).Take(new Random().Next(2, 4)).ToList();
-            foreach (var product in randomProducts)
-            {
-                var qty = product.MinOrderQty > 1 ? product.MinOrderQty : new Random().Next(1, 4);
-                db.OrderItems.Add(new OrderItem
-                {
-                    Id = Guid.NewGuid(), OrderId = order.Id, ProductId = product.Id,
-                    ProductName = product.Name, Quantity = qty, UnitPrice = product.BasePrice, TotalPrice = qty * product.BasePrice,
-                    IsCombo = product.IsCombo, CreatedAt = order.CreatedAt
-                });
-            }
-        }
+        // 今日订单 - 各种状态
+        AddOrder(db, store.Id, "20260525001", "W3X4", "dine_in", 68, 0, 68, 0, "pending", now.AddHours(-1));
+        AddOrder(db, store.Id, "20260525002", "Y5Z6", "takeaway", 52, 0, 53, 1, "accepted", now.AddMinutes(-45));
+        AddOrder(db, store.Id, "20260525003", "A7B8", "dine_in", 136, 10, 126, 0, "preparing", now.AddMinutes(-30));
+        AddOrder(db, store.Id, "20260525004", "C9D0", "delivery", 88, 0, 89, 1, "ready", now.AddMinutes(-15));
 
         await db.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// 创建已完成订单 - 模拟完整的订单生命周期时间戳
-    /// </summary>
-    private static void CreateCompletedOrder(ByteBiteDbContext db, Guid storeId, string orderNo, string pickupCode, string diningMode, decimal total, decimal discount, decimal actual, decimal packingFee, DateTime createdAt, ref List<Order> orders)
+    private static void AddCompletedOrder(ByteBiteDbContext db, Guid storeId, string orderNo, string pickupCode, string diningMode, decimal total, decimal discount, decimal actual, decimal packingFee, DateTime createdAt)
+    {
+        AddOrder(db, storeId, orderNo, pickupCode, diningMode, total, discount, actual, packingFee, "completed", createdAt);
+    }
+
+    private static void AddOrder(ByteBiteDbContext db, Guid storeId, string orderNo, string pickupCode, string diningMode, decimal total, decimal discount, decimal actual, decimal packingFee, string status, DateTime createdAt)
     {
         var order = new Order
         {
             Id = Guid.NewGuid(), StoreId = storeId, DeviceId = $"DEV-{pickupCode}",
             OrderNo = orderNo, PickupCode = pickupCode, DiningMode = diningMode,
             TotalAmount = total, DiscountAmount = discount, ActualAmount = actual, PackingFee = packingFee,
-            Status = "completed", CreatedAt = createdAt,
-            AcceptedAt = createdAt.AddMinutes(2), PreparingAt = createdAt.AddMinutes(5),
-            ReadyAt = createdAt.AddMinutes(15), CompletedAt = createdAt.AddMinutes(20),
-            UpdatedAt = createdAt.AddMinutes(20)
+            Status = status, CreatedAt = createdAt, UpdatedAt = createdAt,
+            AcceptedAt = status != "pending" ? createdAt.AddMinutes(2) : null,
+            PreparingAt = status is "preparing" or "ready" or "completed" ? createdAt.AddMinutes(5) : null,
+            ReadyAt = status is "ready" or "completed" ? createdAt.AddMinutes(15) : null,
+            CompletedAt = status == "completed" ? createdAt.AddMinutes(20) : null,
         };
-        orders.Add(order);
         db.Orders.Add(order);
     }
 }

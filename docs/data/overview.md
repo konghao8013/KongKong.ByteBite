@@ -1,6 +1,6 @@
 # 数据模型总览
 
-> 版本：v1.1.0 | 更新日期：2026-05-22
+> 版本：v1.2.0 | 更新日期：2026-05-25
 
 ## 实体关系图（核心）
 
@@ -55,7 +55,7 @@
 
 | 实体 | 表名 | 说明 | 关键字段 |
 |------|------|------|----------|
-| Store | stores | 店铺 | name, merchantId, businessStatus, industryCategoryId |
+| Store | stores | 店铺 | name, merchantId, storeCode, businessStatus, industryCategoryId |
 | Category | categories | 分类 | name, storeId, sortOrder, icon |
 | Product | products | 商品 | name, basePrice, categoryId, storeId, status |
 | SpecGroup | spec_groups | 规格组 | name, productId |
@@ -160,4 +160,20 @@
 | MerchantPartial.cs | Merchant | Token | 登录后生成鉴权Token |
 | CustomerPartial.cs | Customer | Token | 登录后生成鉴权Token |
 
-扩展文件位于 `ByteBite.Infrastructure/Extensions/Entities/`，命名空间与原实体相同，非数据库字段标注 `[NotMapped]`。
+扩展文件位于 `ByteBite.Infrastructure/Persistence/Extensions/Entities/`，命名空间与原实体相同，非数据库字段标注 `[NotMapped]`。
+
+> **设计原则**：EF 实体文件（`Persistence/Entities/`）只包含数据库结构相关属性，保持干净；非数据库字段通过 partial class 扩展添加。</toolcall_result> </toolcall_result>
+<tool_changes>
+The tool made the following changes to the file `g:\code\KongKong.ByteBite\docs\data/overview.md`:
+```
+@@ -158,7 +161,7 @@
+  |----------|--------|----------|------|
+- | AdminPartial.cs | Admin | Token | 登录后生成鉴权Token |
+- | MerchantPartial.cs | Merchant | Token | 登录后生成鉴权Token |
+- | CustomerPartial.cs | Customer | Token | 登录后生成鉴权Token |
++ | Admin.cs | Admin Token (登录后生成鉴权Token", `[NotMapped]`)
++ | Merchant.cs | Merchant Token (登录后生成鉴权Token", `[NotMapped]`)
++ | Customer.cs | Customer Token (登录后生成鉴权Token", `[NotMapped]`)
+
+- 扩展文件位于 `ByteBite.Infrastructure/Extensions/Entities/``命名空间与原实体相同,非数据库字段标注 `[NotMapped]`。
++ 以上非数据库字段已合并到实体本体中，不再使用 partial class 扩展。
