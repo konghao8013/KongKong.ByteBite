@@ -41,7 +41,7 @@ withDefaults(defineProps<{
 .empty-action {
   :deep(button) {
     padding: 8px 24px;
-    background: #FF6B6B;
+    background: #087E6B;
     color: #fff;
     border-radius: 20px;
     font-size: 14px;

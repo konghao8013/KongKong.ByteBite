@@ -8,9 +8,9 @@ const router = useRouter()
 const collapsed = ref(false)
 
 const menuItems = [
-  { key: 'merchants', label: '商家管理', icon: '👥', path: '/admin/merchants' },
-  { key: 'configs', label: '系统配置', icon: '⚙️', path: '/admin/configs' },
-  { key: 'stats', label: '平台统计', icon: '📈', path: '/admin/stats' },
+  { key: 'merchants', label: '商家管理', icon: '商', path: '/admin/merchants' },
+  { key: 'configs', label: '系统配置', icon: '配', path: '/admin/configs' },
+  { key: 'stats', label: '平台统计', icon: '数', path: '/admin/stats' },
 ]
 
 const handleLogout = async () => {
@@ -30,8 +30,11 @@ const handleLogout = async () => {
   <div class="admin-layout">
     <aside class="admin-sidebar" :class="{ collapsed }">
       <div class="sidebar-header">
-        <h2 v-if="!collapsed">管理后台</h2>
-        <span v-else>管</span>
+        <span class="admin-logo">B</span>
+        <div v-if="!collapsed">
+          <h2>ByteBite</h2>
+          <small>平台管理端</small>
+        </div>
       </div>
       <nav class="sidebar-menu">
         <router-link
@@ -46,10 +49,10 @@ const handleLogout = async () => {
         </router-link>
       </nav>
       <div class="sidebar-footer">
-        <div class="menu-item logout" @click="handleLogout">
-          <span class="menu-icon">🚪</span>
+        <button class="menu-item logout" @click="handleLogout">
+          <span class="menu-icon">退</span>
           <span v-if="!collapsed" class="menu-label">退出登录</span>
-        </div>
+        </button>
       </div>
     </aside>
     <main class="admin-main">
@@ -62,79 +65,135 @@ const handleLogout = async () => {
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
+  background: #F6F7F3;
 }
 
 .admin-sidebar {
   width: 220px;
-  background: #FFFFFF;
-  color: #1A1A2E;
+  background: rgba(255, 255, 255, 0.94);
+  color: #1F2A26;
   transition: width 0.3s;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #F0F0F0;
+  border-right: 1px solid #E2E8E3;
 
-  &.collapsed { width: 64px; }
+  &.collapsed {
+    width: 68px;
+  }
 }
 
 .sidebar-header {
-  padding: 20px 16px;
-  border-bottom: 1px solid #F0F0F0;
-  text-align: center;
+  min-height: 72px;
+  padding: 18px 16px;
+  border-bottom: 1px solid #E2E8E3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 
   h2 {
     margin: 0;
-    font-size: 18px;
-    color: #FF6B6B;
-    font-weight: 700;
+    font-size: 17px;
+    color: #1F2A26;
+    font-weight: 800;
+  }
+
+  small {
+    color: #687872;
+    font-size: 11px;
   }
 }
 
-.sidebar-menu { padding: 12px 0; }
+.admin-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #087E6B;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sidebar-menu {
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
 
 .menu-item {
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  color: #8C8C8C;
+  gap: 10px;
+  color: #687872;
   text-decoration: none;
   transition: all 0.2s;
-  border-right: 3px solid transparent;
+  font-weight: 700;
 
-  &:hover {
-    background: #FFF1F0;
-    color: #FF6B6B;
-  }
-
+  &:hover,
   &.active {
-    background: #FFF1F0;
-    color: #FF6B6B;
-    border-right-color: #FF6B6B;
-    font-weight: 600;
+    background: #E7F4EF;
+    color: #087E6B;
   }
 }
 
-.menu-icon { font-size: 18px; flex-shrink: 0; }
-.menu-label { font-size: 14px; white-space: nowrap; }
+.menu-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: #FAFCFA;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.menu-label {
+  font-size: 14px;
+  white-space: nowrap;
+}
 
 .sidebar-footer {
   margin-top: auto;
-  padding: 12px 0;
-  border-top: 1px solid #F0F0F0;
+  padding: 12px;
+  border-top: 1px solid #E2E8E3;
 
   .logout {
-    color: #FF4D4F;
+    width: 100%;
     cursor: pointer;
+    color: #D94C4C;
 
-    &:hover { background: #FFF1F0; }
+    &:hover {
+      background: #FFF7F7;
+    }
   }
 }
 
 .admin-main {
   flex: 1;
+  min-width: 0;
   padding: 24px;
-  background: #F7F7F7;
+  background: #F6F7F3;
   overflow-y: auto;
+}
+
+@media (max-width: 760px) {
+  .admin-sidebar {
+    width: 68px;
+  }
+
+  .sidebar-header div,
+  .menu-label {
+    display: none;
+  }
+
+  .admin-main {
+    padding: 14px;
+  }
 }
 </style>

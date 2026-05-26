@@ -32,6 +32,10 @@ public class OrdersController : ControllerBase
     public async Task<List<Order>> GetByStoreId(Guid storeId, [FromQuery] string? status, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
         => await _orderService.GetByStoreIdAsync(storeId, status, pageIndex, pageSize);
 
+    [HttpGet("api/stores/{storeId:guid}/customer-orders")]
+    public async Task<List<Order>> GetCustomerOrders(Guid storeId, [FromQuery] string? deviceId, [FromQuery] Guid? customerId, [FromQuery] int pageSize = 50, CancellationToken ct = default)
+        => await _orderService.GetCustomerOrdersAsync(storeId, deviceId, customerId, pageSize, ct);
+
     [HttpPatch("api/orders/{orderId:guid}/accept")]
     public async Task<Order> AcceptOrder(Guid orderId, CancellationToken ct) => await UpdateAndNotify(orderId, _orderService.AcceptOrderAsync, ct);
 

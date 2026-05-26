@@ -95,21 +95,23 @@ onMounted(fetchDiscounts)
 <style scoped lang="scss">
 .discounts-page {
   min-height: 100vh;
-  background: #F7F7F7;
-  color: #1A1A2E;
+  background: #F6F7F3;
+  color: #1F2A26;
 }
 
 .page-header {
   padding: 16px;
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  background: #fff;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
 
-  h2 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
+  h2 { margin: 0; font-size: 18px; font-weight: 800; color: #1F2A26; }
 }
 
 .loading-state, .empty-state {
   text-align: center;
   padding: 80px 20px;
-  color: #8C8C8C;
+  color: #687872;
 
   .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
 }
@@ -118,10 +120,11 @@ onMounted(fetchDiscounts)
 
 .discount-card {
   background: #FFFFFF;
-  border-radius: 14px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 
   &.inactive { opacity: 0.6; }
   &.expired { opacity: 0.5; }
@@ -138,37 +141,37 @@ onMounted(fetchDiscounts)
   font-size: 12px;
   font-weight: 600;
   padding: 3px 12px;
-  border-radius: 20px;
+  border-radius: 999px;
   color: #fff;
 
-  &.full_reduction { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
-  &.discount { background: linear-gradient(135deg, #FFBE0B, #FFD166); color: #1A1A2E; }
+  &.full_reduction { background: #087E6B; }
+  &.discount { background: linear-gradient(135deg, #FFBE0B, #FFD166); color: #1F2A26; }
 }
 
 .discount-status {
   font-size: 13px;
   font-weight: 600;
 
-  &.active { color: #52C41A; }
-  &.expired { color: #FF4D4F; }
+  &.active { color: #259D63; }
+  &.expired { color: #D94C4C; }
 }
 
 .discount-body { margin-bottom: 12px; }
 
-.discount-name { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: #1A1A2E; }
-.discount-desc { font-size: 18px; font-weight: 700; color: #FF6B6B; margin-bottom: 6px; }
-.discount-scope { font-size: 13px; color: #8C8C8C; margin-bottom: 4px; }
-.discount-time { font-size: 12px; color: #BFBFBF; }
+.discount-name { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: #1F2A26; }
+.discount-desc { font-size: 18px; font-weight: 800; color: #FF6B4A; margin-bottom: 6px; }
+.discount-scope { font-size: 13px; color: #687872; margin-bottom: 4px; }
+.discount-time { font-size: 12px; color: #9AA9A3; }
 
 .discount-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #F0F0F0;
+  border-top: 1px solid #E2E8E3;
   padding-top: 12px;
 }
 
-.discount-usage { font-size: 13px; color: #8C8C8C; }
+.discount-usage { font-size: 13px; color: #687872; }
 
 .discount-actions { display: flex; gap: 8px; }
 
@@ -180,7 +183,7 @@ onMounted(fetchDiscounts)
   border: none;
   cursor: pointer;
   background: #F6FFED;
-  color: #52C41A;
+  color: #259D63;
 }
 
 .btn-delete {
@@ -190,7 +193,7 @@ onMounted(fetchDiscounts)
   font-weight: 600;
   border: none;
   cursor: pointer;
-  background: #FFF1F0;
-  color: #FF4D4F;
+  background: #E7F4EF;
+  color: #D94C4C;
 }
 </style>

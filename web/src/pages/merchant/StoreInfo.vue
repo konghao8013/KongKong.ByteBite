@@ -235,7 +235,7 @@ onMounted(loadStore)
 <style scoped lang="scss">
 .store-page {
   min-height: 100vh;
-  background: #f7f7f7;
+  background: #f6f7f3;
   color: #1a1a2e;
 }
 
@@ -273,7 +273,7 @@ onMounted(loadStore)
 
 .primary-button,
 .share-button {
-  background: #ff6b6b;
+  background: #087e6b;
   color: #fff;
 
   &:disabled {
@@ -283,8 +283,8 @@ onMounted(loadStore)
 }
 
 .ghost-button {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: #e7f4ef;
+  color: #D94C4C;
 }
 
 .loading-state {
@@ -347,7 +347,7 @@ onMounted(loadStore)
   justify-content: space-between;
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e2e8e3;
 
   &:last-child {
     border-bottom: none;
@@ -403,7 +403,7 @@ textarea {
   padding: 10px 12px;
   border: 1px solid #eee;
   border-radius: 8px;
-  background: #fafafa;
+  background: #fafcfa;
 
   input {
     width: auto;

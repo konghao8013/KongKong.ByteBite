@@ -236,7 +236,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 .product-detail-page {
   width: 100%;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #f6f7f3;
   padding-bottom: 70px;
 }
 
@@ -251,7 +251,7 @@ const formatPrice = (price: number) => price.toFixed(2)
   width: 32px;
   height: 32px;
   border: 3px solid #eee;
-  border-top-color: #FF6B6B;
+  border-top-color: #087E6B;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -276,7 +276,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 .product-image-placeholder {
   width: 100%;
   height: 100%;
-  background: #f0f0f0;
+  background: #e2e8e3;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -331,7 +331,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .current-price {
-  color: #FF6B6B;
+  color: #087E6B;
   font-weight: 700;
 }
 
@@ -388,8 +388,8 @@ const formatPrice = (price: number) => price.toFixed(2)
 
 .spec-required {
   font-size: 11px;
-  color: #FF6B6B;
-  background: #fff5f0;
+  color: #087E6B;
+  background: #FFF0EA;
   padding: 1px 6px;
   border-radius: 4px;
 }
@@ -413,8 +413,8 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .spec-option.active {
-  border-color: #FF6B6B;
-  background: #fff5f0;
+  border-color: #087E6B;
+  background: #FFF0EA;
 }
 
 .option-name {
@@ -423,7 +423,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .spec-option.active .option-name {
-  color: #FF6B6B;
+  color: #087E6B;
   font-weight: 600;
 }
 
@@ -433,7 +433,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .spec-option.active .option-extra {
-  color: #FF6B6B;
+  color: #087E6B;
 }
 
 .quantity-section {
@@ -482,7 +482,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .qty-btn.plus {
-  background: #FF6B6B;
+  background: #087E6B;
   color: #fff;
 }
 
@@ -499,7 +499,7 @@ const formatPrice = (price: number) => price.toFixed(2)
   left: 0;
   right: 0;
   height: 60px;
-  background: #FFFFFF; border-top: 1px solid #F0F0F0;
+  background: #FFFFFF; border-top: 1px solid #E2E8E3;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -531,7 +531,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .add-cart-btn {
-  background: #FF6B6B;
+  background: #087E6B;
   color: #fff;
   border: none;
   padding: 12px 28px;
@@ -557,7 +557,7 @@ const formatPrice = (price: number) => price.toFixed(2)
 }
 
 .go-back-btn {
-  background: #FF6B6B;
+  background: #087E6B;
   color: #fff;
   border: none;
   padding: 10px 32px;

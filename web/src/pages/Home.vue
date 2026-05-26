@@ -54,7 +54,7 @@ const goToAdmin = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  background: linear-gradient(135deg, #087E6B 0%, #0EA389 100%);
   padding: 60px 24px 40px;
 }
 
@@ -119,13 +119,13 @@ const goToAdmin = () => {
   h3 {
     font-size: 17px;
     font-weight: 600;
-    color: #1A1A2E;
+    color: #1F2A26;
     margin: 0 0 4px;
   }
 
   p {
     font-size: 13px;
-    color: #8C8C8C;
+    color: #687872;
     margin: 0;
   }
 }

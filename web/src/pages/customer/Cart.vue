@@ -8,6 +8,7 @@ import { formatPrice } from '@/utils/format'
 import { useDeviceId } from '@/composables/useDeviceId'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { CreateOrderData } from '@/types/models/customer'
+import { normalizeCustomerOrder } from '@/utils/order'
 
 const route = useRoute()
 const router = useRouter()
@@ -87,7 +88,10 @@ const submitOrder = async () => {
       remark: orderRemark.value || undefined
     }
 
-    const orderData = await customerApi.createOrder(data)
+    const orderData = normalizeCustomerOrder(
+      await customerApi.createOrder(data),
+      localStorage.getItem('current_store_name') || ''
+    )
     orderStore.addActiveOrder(orderData)
     cartStore.clearCart()
     router.push({ name: 'OrderDetail', params: { code: storeCode, orderId: orderData.id } })
@@ -237,7 +241,7 @@ const submitOrder = async () => {
 
 /* 顶部导航 */
 .page-header {
-  background: $primary-color;
+  background: rgba(255, 255, 255, 0.96);
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -245,6 +249,8 @@ const submitOrder = async () => {
   position: sticky;
   top: 0;
   z-index: 10;
+  border-bottom: 1px solid $border-color;
+  backdrop-filter: blur(12px);
 }
 
 .back-btn {
@@ -255,13 +261,15 @@ const submitOrder = async () => {
 
 .page-title {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 800;
+  color: $text-color;
 }
 
 .clear-btn {
   font-size: 14px;
-  color: $brand-color;
+  color: $primary-color;
   cursor: pointer;
+  font-weight: 700;
 }
 
 /* 就餐方式 */
@@ -269,6 +277,9 @@ const submitOrder = async () => {
   background: #fff;
   padding: 14px 16px;
   margin-bottom: 10px;
+  border: 1px solid $border-color;
+  border-left: 0;
+  border-right: 0;
 }
 
 .section-label {
@@ -295,8 +306,8 @@ const submitOrder = async () => {
   transition: all 0.2s;
 
   &.active {
-    border-color: $brand-color;
-    background: #fff5f0;
+    border-color: $primary-color;
+    background: $primary-light;
   }
 }
 
@@ -330,6 +341,8 @@ const submitOrder = async () => {
   background: #fff;
   padding: 0 16px;
   margin-bottom: 10px;
+  border-top: 1px solid $border-color;
+  border-bottom: 1px solid $border-color;
 }
 
 .cart-item {
@@ -381,7 +394,7 @@ const submitOrder = async () => {
 .item-price {
   font-size: 16px;
   font-weight: 700;
-  color: $brand-color;
+  color: $accent-color;
 }
 
 .item-unit-price {
@@ -421,7 +434,7 @@ const submitOrder = async () => {
   }
 
   &.plus {
-    background: $brand-color;
+    background: $primary-color;
     color: #fff;
   }
 }
@@ -501,7 +514,7 @@ const submitOrder = async () => {
 }
 
 .submit-btn {
-  background: $brand-color;
+  background: $primary-color;
   color: #fff;
   padding: 12px 28px;
   border-radius: 22px;

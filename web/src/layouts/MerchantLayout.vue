@@ -17,10 +17,11 @@ const activeTab = computed(() => {
 })
 
 const tabs = [
-  { key: 'orders', label: '订单', icon: '📋', path: '/merchant/orders' },
-  { key: 'menu', label: '菜单', icon: '🍽️', path: '/merchant/menu' },
-  { key: 'store', label: '店铺', icon: '🏪', path: '/merchant/store' },
-  { key: 'dashboard', label: '数据', icon: '📊', path: '/merchant/dashboard' },
+  { key: 'orders', label: '订单', icon: '订', path: '/merchant/orders' },
+  { key: 'menu', label: '菜品', icon: '菜', path: '/merchant/menu' },
+  { key: 'store', label: '门店', icon: '店', path: '/merchant/store' },
+  { key: 'discounts', label: '优惠', icon: '惠', path: '/merchant/discounts' },
+  { key: 'dashboard', label: '经营', icon: '数', path: '/merchant/dashboard' },
 ]
 
 const switchTab = (tab: typeof tabs[0]) => {
@@ -43,15 +44,44 @@ const handleLogout = async () => {
 
 <template>
   <div class="merchant-layout">
-    <div class="merchant-topbar">
-      <span class="topbar-title">空空码上点单</span>
-      <button class="topbar-logout" @click="handleLogout">退出</button>
+    <aside class="merchant-sidebar">
+      <div class="brand">
+        <span class="brand-logo">B</span>
+        <div>
+          <strong>ByteBite</strong>
+          <small>商家工作台</small>
+        </div>
+      </div>
+      <nav class="merchant-nav">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="nav-item"
+          :class="{ active: activeTab === tab.key }"
+          @click="switchTab(tab)"
+        >
+          <span class="nav-icon">{{ tab.icon }}</span>
+          <span>{{ tab.label }}</span>
+        </button>
+      </nav>
+      <button class="logout desktop-logout" @click="handleLogout">退出登录</button>
+    </aside>
+
+    <div class="merchant-main">
+      <header class="merchant-topbar">
+        <div>
+          <span class="topbar-kicker">Merchant Console</span>
+          <h1>商家工作台</h1>
+        </div>
+        <button class="logout" @click="handleLogout">退出登录</button>
+      </header>
+      <main class="merchant-content">
+        <router-view />
+      </main>
     </div>
-    <div class="merchant-content">
-      <router-view />
-    </div>
-    <div class="merchant-tabbar">
-      <div
+
+    <nav class="merchant-tabbar">
+      <button
         v-for="tab in tabs"
         :key="tab.key"
         class="tabbar-item"
@@ -60,75 +90,220 @@ const handleLogout = async () => {
       >
         <span class="tabbar-icon">{{ tab.icon }}</span>
         <span class="tabbar-label">{{ tab.label }}</span>
-      </div>
-    </div>
+      </button>
+    </nav>
   </div>
 </template>
 
 <style scoped lang="scss">
 .merchant-layout {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100dvh;
-  background: #F7F7F7;
+  background: #F6F7F3;
+}
+
+.merchant-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 18px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border-right: 1px solid #E2E8E3;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 14px;
+  border-bottom: 1px solid #E2E8E3;
+
+  strong {
+    display: block;
+    font-size: 15px;
+    color: #1F2A26;
+  }
+
+  small {
+    display: block;
+    color: #687872;
+    font-size: 11px;
+  }
+}
+
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #087E6B;
+  font-weight: 800;
+}
+
+.merchant-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.nav-item {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #687872;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  color: #087E6B;
+  background: #E7F4EF;
+}
+
+.nav-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: #FAFCFA;
+  font-size: 12px;
+}
+
+.merchant-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .merchant-topbar {
+  height: 66px;
+  padding: 0 24px;
+  border-bottom: 1px solid #E2E8E3;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #F0F0F0;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
 
-  .topbar-title { font-size: 16px; color: #FF6B6B; font-weight: 700; }
-
-  .topbar-logout {
-    background: none;
-    border: 1px solid #E8E8E8;
-    color: #8C8C8C;
-    padding: 5px 14px;
-    border-radius: 16px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:active { color: #FF6B6B; border-color: #FF6B6B; }
+  h1 {
+    margin: 2px 0 0;
+    font-size: 18px;
+    color: #1F2A26;
   }
+}
+
+.topbar-kicker {
+  color: #687872;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.logout {
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid #DCE6E1;
+  border-radius: 6px;
+  color: #687872;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.logout:hover {
+  color: #D94C4C;
+  border-color: #F2CACA;
+  background: #FFF7F7;
+}
+
+.desktop-logout {
+  margin-top: auto;
 }
 
 .merchant-content {
   flex: 1;
-  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  min-width: 0;
+  padding: 18px;
 }
 
 .merchant-tabbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  height: calc(56px + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  background: #FFFFFF;
-  border-top: 1px solid #F0F0F0;
-  z-index: 100;
+  display: none;
 }
 
-.tabbar-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  color: #BFBFBF;
-  transition: color 0.2s;
+@media (max-width: 760px) {
+  .merchant-layout {
+    display: flex;
+    flex-direction: column;
+  }
 
-  &.active { color: #FF6B6B; }
+  .merchant-sidebar {
+    display: none;
+  }
+
+  .merchant-topbar {
+    height: 58px;
+    padding: 0 16px;
+  }
+
+  .merchant-content {
+    padding: 0;
+    padding-bottom: calc(62px + env(safe-area-inset-bottom));
+  }
+
+  .merchant-tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    height: calc(62px + env(safe-area-inset-bottom));
+    padding: 7px 8px env(safe-area-inset-bottom);
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid #E2E8E3;
+    box-shadow: 0 -8px 24px rgba(31, 42, 38, 0.06);
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .tabbar-item {
+    flex: 1;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 2px;
+    color: #9AA9A3;
+  }
+
+  .tabbar-item.active {
+    color: #087E6B;
+    font-weight: 700;
+  }
+
+  .tabbar-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+  }
+
+  .tabbar-label {
+    font-size: 11px;
+  }
 }
-
-.tabbar-icon { font-size: 22px; }
-.tabbar-label { font-size: 11px; font-weight: 500; }
 </style>

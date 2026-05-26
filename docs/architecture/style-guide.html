@@ -2,1083 +2,1713 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>空空码上点单 - 风格测试页 v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ByteBite 清爽 UI 主题提案</title>
 <style>
 :root {
-  --primary: #FFD161;
-  --primary-dark: #F5C142;
-  --primary-deeper: #E8AD20;
-  --primary-bg: #FFFBF0;
-  --brand: #FF6633;
-  --brand-light: #FF8855;
-  --brand-bg: #FFF5F0;
-  --green: #07C160;
-  --green-light: #E8F8EE;
-  --blue: #4A90D9;
-  --blue-light: #EBF3FC;
-  --red: #FA5151;
-  --red-light: #FFF0F0;
-  --orange: #FF9500;
-  --orange-light: #FFF8EB;
-  --bg: #F5F5F5;
-  --bg-white: #FFFFFF;
-  --border: #F0F0F0;
-  --border-dark: #E5E5E5;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-hint: #999999;
-  --text-light: #CCCCCC;
-  --shadow-card: 0 2px 8px rgba(0,0,0,0.04);
-  --shadow-float: 0 4px 16px rgba(0,0,0,0.08);
+  --paper: #f6f7f3;
+  --canvas: #eef3f1;
+  --surface: #ffffff;
+  --surface-soft: #f9fbf8;
+  --line: #e2e8e3;
+  --line-strong: #cbd6d0;
+  --ink: #1f2a26;
+  --muted: #687872;
+  --faint: #9aa9a3;
+  --brand: #087e6b;
+  --brand-strong: #065f51;
+  --brand-soft: #e7f4ef;
+  --accent: #ff6b4a;
+  --accent-soft: #fff0ea;
+  --gold: #f7b731;
+  --gold-soft: #fff6db;
+  --blue: #346ac3;
+  --blue-soft: #eaf1ff;
+  --success: #259d63;
+  --danger: #d94c4c;
+  --shadow: 0 12px 30px rgba(31, 42, 38, .08);
+  --shadow-soft: 0 5px 15px rgba(31, 42, 38, .06);
+  --radius: 8px;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-full: 999px;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  background: var(--bg);
-  color: var(--text-primary);
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgba(238, 243, 241, .96), rgba(246, 247, 243, .96)),
+    var(--paper);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-.page-wrapper {
-  max-width: 430px;
-  margin: 0 auto;
-  background: var(--bg);
-  min-height: 100vh;
-  position: relative;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.section-header {
-  padding: 20px 16px 12px;
-  background: var(--bg-white);
-  border-bottom: 8px solid var(--bg);
-}
-.section-header h2 {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.section-header p {
-  font-size: 12px;
-  color: var(--text-hint);
-  margin-top: 2px;
-}
-
-/* ========== Color Palette ========== */
-.color-grid {
+.guide-shell {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  padding: 16px;
-  background: var(--bg-white);
-}
-.color-card {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-}
-.color-swatch {
-  height: 52px;
-  display: flex;
-  align-items: flex-end;
-  padding: 5px 7px;
-}
-.color-swatch span {
-  font-size: 9px;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  font-weight: 600;
-}
-.color-label {
-  padding: 5px 7px;
-  background: var(--bg-white);
-  font-size: 10px;
-  color: var(--text-hint);
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 100vh;
 }
 
-/* ========== Typography ========== */
-.typo-section { padding: 16px; background: var(--bg-white); }
-.typo-row {
-  display: flex;
-  align-items: baseline;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
+.side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 28px 22px;
+  background: rgba(255, 255, 255, .82);
+  border-right: 1px solid var(--line);
+  backdrop-filter: blur(14px);
 }
-.typo-label {
-  width: 72px;
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--text-hint);
-}
-.typo-sample { flex: 1; }
 
-/* ========== Store Header ========== */
-.store-header {
-  position: relative;
-  background: linear-gradient(135deg, #FFD161 0%, #FF9500 100%);
-  padding: 20px 16px 24px;
-  color: white;
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 800;
+  background: var(--brand);
+  box-shadow: 0 8px 20px rgba(8, 126, 107, .22);
 }
-.store-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.store-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-md);
-  background: rgba(255,255,255,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  backdrop-filter: blur(4px);
-}
-.store-name {
+
+.side h1 {
+  margin: 18px 0 8px;
   font-size: 20px;
-  font-weight: 700;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  line-height: 1.25;
 }
-.store-status-row {
-  display: flex;
+
+.side p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.nav {
+  display: grid;
+  gap: 6px;
+  margin-top: 28px;
+}
+
+.nav a {
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.nav a:hover {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.content {
+  padding: 36px;
+}
+
+.hero {
+  min-height: 320px;
+  padding: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, .92) 0%, rgba(255, 255, 255, .72) 58%, rgba(231, 244, 239, .74) 100%),
+    radial-gradient(circle at 86% 24%, rgba(255, 107, 74, .16), transparent 26%),
+    radial-gradient(circle at 80% 84%, rgba(52, 106, 195, .12), transparent 28%),
+    var(--surface);
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, .9fr);
+  gap: 34px;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
 }
-.store-status {
+
+.eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  background: rgba(255,255,255,0.25);
-  padding: 2px 10px;
-  border-radius: var(--radius-full);
-  backdrop-filter: blur(4px);
-}
-.store-desc {
-  font-size: 13px;
-  opacity: 0.9;
-  margin-top: 8px;
-}
-.store-notice {
-  margin-top: 10px;
-  background: rgba(255,255,255,0.2);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(4px);
-}
-
-/* ========== Category Nav ========== */
-.category-nav {
-  display: flex;
-  overflow-x: auto;
-  padding: 0 16px;
-  gap: 0;
-  background: var(--bg-white);
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  border-bottom: 1px solid var(--border);
-}
-.category-nav::-webkit-scrollbar { display: none; }
-.category-tab {
-  flex-shrink: 0;
-  padding: 12px 14px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  border-bottom: 2.5px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  position: relative;
-}
-.category-tab.active {
-  color: var(--text-primary);
-  font-weight: 600;
-  border-bottom-color: var(--brand);
-}
-.category-tab .tab-icon {
-  font-size: 12px;
-  margin-right: 2px;
-}
-
-/* ========== Product Card ========== */
-.product-list { padding: 0 12px; background: var(--bg-white); }
-.product-card {
-  display: flex;
-  gap: 12px;
-  padding: 14px 4px;
-  border-bottom: 1px solid var(--border);
-}
-.product-card:last-child { border-bottom: none; }
-.product-img {
-  width: 92px;
-  height: 92px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  flex-shrink: 0;
-  background: #F8F8F8;
-}
-.product-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-.product-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-}
-.product-specs {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
-  flex-wrap: wrap;
-}
-.spec-tag {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: var(--primary-bg);
+  gap: 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--brand);
-  border: 1px solid #FFE8CC;
-}
-.product-desc {
+  background: #fff;
   font-size: 12px;
-  color: var(--text-hint);
-  margin-top: 3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.product-bottom {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-top: 4px;
-}
-.product-price {
-  font-size: 18px;
   font-weight: 700;
-  color: var(--brand);
-  line-height: 1;
-}
-.product-price .symbol { font-size: 12px; font-weight: 600; }
-.product-price .from { font-size: 11px; font-weight: 400; color: var(--text-hint); }
-.product-original {
-  font-size: 11px;
-  color: var(--text-light);
-  text-decoration: line-through;
-  margin-left: 4px;
-}
-.product-sold {
-  font-size: 11px;
-  color: var(--text-hint);
-  margin-top: 2px;
 }
 
-/* ========== Add / Stepper ========== */
-.btn-add {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--brand);
-  color: white;
-  border: none;
+.hero h2 {
+  max-width: 720px;
+  margin: 18px 0 14px;
+  font-size: 42px;
+  line-height: 1.13;
+}
+
+.hero p {
+  max-width: 700px;
+  margin: 0;
+  color: var(--muted);
   font-size: 16px;
+}
+
+.hero-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.btn {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: transform 0.1s;
-}
-.btn-add:active { transform: scale(0.9); }
-
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.stepper-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--border-dark);
-  background: var(--bg-white);
+  gap: 8px;
+  color: var(--ink);
+  background: #fff;
   font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-secondary);
-}
-.stepper-btn.minus { color: var(--text-hint); }
-.stepper-btn.plus { background: var(--brand); color: white; border-color: var(--brand); }
-.stepper-count { font-size: 14px; font-weight: 600; min-width: 18px; text-align: center; }
-
-/* ========== Floating Cart ========== */
-.floating-cart {
-  position: fixed;
-  bottom: 72px;
-  right: 16px;
-  z-index: 200;
-}
-.cart-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #FFD161, #FF9500);
-  color: white;
-  border: none;
-  font-size: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 14px rgba(255,150,0,0.35);
-  cursor: pointer;
-  position: relative;
-}
-.cart-badge {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  background: var(--red);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  border: 2px solid white;
+  font-weight: 700;
 }
 
-/* ========== Bottom Bar ========== */
-.bottom-bar {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 430px;
-  background: #2A2A2A;
-  padding: 8px 16px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 200;
-}
-.cart-icon-wrap {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #3A3A3A;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-}
-.cart-icon-wrap .cart-badge {
-  top: -4px;
-  right: -4px;
-  border-color: #2A2A2A;
-}
-.cart-summary { flex: 1; }
-.cart-total { font-size: 18px; font-weight: 700; color: white; }
-.cart-total .symbol { font-size: 12px; }
-.cart-delivery { font-size: 11px; color: #888; }
-.btn-checkout {
-  padding: 10px 24px;
+.btn.primary {
+  border-color: var(--brand);
+  color: #fff;
   background: var(--brand);
-  color: white;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.btn-checkout:active { transform: scale(0.96); }
-.btn-checkout:disabled { background: #555; cursor: not-allowed; }
-
-/* ========== Pickup Code ========== */
-.pickup-card {
-  margin: 16px;
-  background: var(--bg-white);
-  border-radius: var(--radius-lg);
-  padding: 28px 24px;
-  text-align: center;
-  box-shadow: var(--shadow-card);
-}
-.pickup-icon { font-size: 40px; margin-bottom: 8px; }
-.pickup-label { font-size: 14px; color: var(--text-secondary); }
-.pickup-code {
-  font-size: 52px;
-  font-weight: 800;
-  color: var(--brand);
-  letter-spacing: 10px;
-  margin: 12px 0;
-  font-family: 'DIN Alternate', 'Courier New', monospace;
-}
-.pickup-hint { font-size: 12px; color: var(--text-hint); }
-.pickup-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 16px 0;
-}
-.pickup-order-info {
-  text-align: left;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.8;
 }
 
-/* ========== Order Status ========== */
-.order-status-bar {
+.btn.accent {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+.btn.icon-only {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.hero-board {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .9);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.board-top {
   display: flex;
-  align-items: flex-start;
-  padding: 24px 20px;
-  margin: 0 16px;
-  background: var(--bg-white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
 }
-.status-step {
+
+.mini-bars {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.mini-bar {
+  display: grid;
+  grid-template-columns: 68px 1fr 48px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bar-track {
+  height: 9px;
+  border-radius: 99px;
+  background: var(--surface-soft);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--brand);
+}
+
+.section {
+  margin-top: 34px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.section h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.section-head p {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.token {
+  min-height: 112px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.swatch {
+  height: 48px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+}
+
+.token strong,
+.component strong,
+.note-card strong {
+  display: block;
+  font-size: 14px;
+}
+
+.token span,
+.component span,
+.note-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.note-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.component {
+  min-height: 168px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.sample-stack {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.field {
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 13px;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pill {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pill.active {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.screen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.screen-block {
+  min-width: 0;
+}
+
+.screen-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.screen-title h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.screen-title span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.phone {
+  width: 360px;
+  height: 700px;
+  margin: 0 auto;
+  border: 10px solid #202522;
+  border-radius: 28px;
+  background: var(--paper);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.phone-inner {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
+  background: var(--paper);
 }
-.status-dot {
-  width: 24px;
+
+.statusbar {
   height: 24px;
-  border-radius: 50%;
-  background: var(--border-dark);
+  padding: 0 14px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.phone-header {
+  padding: 14px 16px 12px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+
+.phone-header h5 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.phone-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
   font-size: 12px;
-  color: white;
 }
-.status-dot.active { background: var(--brand); box-shadow: 0 2px 8px rgba(255,102,51,0.25); }
-.status-dot.done { background: var(--green); }
-.status-text { font-size: 11px; color: var(--text-hint); white-space: nowrap; }
-.status-text.active { color: var(--brand); font-weight: 600; }
-.status-text.done { color: var(--green); }
-.status-line { flex: 1; height: 2px; background: var(--border); margin-top: 12px; }
-.status-line.done { background: var(--green); }
 
-/* ========== Merchant Order Card ========== */
-.order-card {
-  margin: 8px 12px;
-  background: var(--bg-white);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  box-shadow: var(--shadow-card);
-}
-.order-card.new { border-left: 3px solid var(--brand); }
-.order-card.processing { border-left: 3px solid var(--orange); }
-.order-card.ready { border-left: 3px solid var(--green); }
-.order-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.order-id { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.order-time { font-size: 12px; color: var(--text-hint); }
-.order-tag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-weight: 500;
-  margin-left: 6px;
-}
-.order-tag.new-tag { background: var(--brand-bg); color: var(--brand); }
-.order-tag.processing-tag { background: var(--orange-light); color: var(--orange); }
-.order-tag.ready-tag { background: var(--green-light); color: var(--green); }
-.order-items { font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-}
-.order-amount { font-size: 18px; font-weight: 700; color: var(--brand); }
-.order-amount .symbol { font-size: 12px; }
-.order-meta { font-size: 11px; color: var(--text-hint); }
-.order-actions { display: flex; gap: 8px; }
-
-/* ========== Buttons ========== */
-.btn-section { padding: 16px; background: var(--bg-white); }
-.btn-row { display: flex; gap: 10px; margin-bottom: 10px; }
-.btn {
-  flex: 1;
-  padding: 10px 18px;
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s;
-  text-align: center;
-}
-.btn:active { transform: scale(0.96); }
-.btn-primary { background: var(--brand); color: white; }
-.btn-secondary { background: var(--bg); color: var(--text-secondary); }
-.btn-green { background: var(--green); color: white; }
-.btn-danger { background: var(--red); color: white; }
-.btn-outline { background: transparent; color: var(--brand); border: 1px solid var(--brand); }
-.btn-sm { padding: 7px 14px; font-size: 12px; }
-.btn-block { display: block; width: 100%; }
-
-/* ========== Badge / Tag ========== */
-.badge-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 12px 16px;
-  background: var(--bg-white);
-}
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 10px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 500;
-}
-.badge-hot { background: var(--brand-bg); color: var(--brand); }
-.badge-welfare { background: var(--primary-bg); color: var(--orange); }
-.badge-combo { background: var(--blue-light); color: var(--blue); }
-.badge-new { background: var(--green-light); color: var(--green); }
-.badge-sold-out { background: var(--bg); color: var(--text-hint); }
-
-/* ========== Spec Selector ========== */
-.spec-section { padding: 16px; background: var(--bg-white); }
-.spec-group { margin-bottom: 16px; }
-.spec-group-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
-.spec-options { display: flex; gap: 8px; flex-wrap: wrap; }
-.spec-option {
-  padding: 8px 16px;
+.search {
+  height: 34px;
+  margin-top: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  font-size: 13px;
-  border: 1px solid var(--border-dark);
-  background: var(--bg-white);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.spec-option.selected {
-  border-color: var(--brand);
-  color: var(--brand);
-  background: var(--brand-bg);
-}
-.spec-option .price-diff { font-size: 11px; color: var(--text-hint); }
-.spec-option.selected .price-diff { color: var(--brand); }
-
-/* ========== Empty State ========== */
-.empty-state { text-align: center; padding: 40px 24px; background: var(--bg-white); }
-.empty-icon { font-size: 44px; margin-bottom: 10px; }
-.empty-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
-.empty-desc { font-size: 13px; color: var(--text-hint); }
-
-/* ========== Divider ========== */
-.divider { height: 8px; background: var(--bg); }
-
-/* ========== Promo Banner ========== */
-.promo-banner {
-  margin: 12px 16px;
-  background: linear-gradient(135deg, #FFF5E6, #FFE8CC);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
   display: flex;
   align-items: center;
+  gap: 8px;
+  color: var(--faint);
+  background: var(--surface-soft);
+  font-size: 12px;
+}
+
+.store-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.store-meta span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 11px;
+}
+
+.phone-body {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.phone-bottom {
+  height: 58px;
+  padding: 8px 18px 7px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: rgba(255, 255, 255, .96);
+}
+
+.tab-item {
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.tab-item b {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  font-size: 12px;
+}
+
+.tab-item.active {
+  color: var(--brand);
+}
+
+.menu-layout {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 84px 1fr;
+}
+
+.cat-rail {
+  padding: 8px 0;
+  background: #f2f5f3;
+  border-right: 1px solid var(--line);
+}
+
+.cat-link {
+  min-height: 52px;
+  padding: 9px 8px 8px 12px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  position: relative;
+}
+
+.cat-link.active {
+  color: var(--brand);
+  background: #fff;
+  font-weight: 800;
+}
+
+.cat-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 99px 99px 0;
+  background: var(--brand);
+}
+
+.cat-link small {
+  color: var(--faint);
+  font-size: 10px;
+}
+
+.product-list {
+  padding: 12px 10px 74px;
+  overflow: hidden;
+}
+
+.list-section {
+  margin: 4px 0 10px;
+  font-size: 14px;
+}
+
+.dish {
+  display: grid;
+  grid-template-columns: 74px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.food-img {
+  width: 74px;
+  height: 74px;
+  border-radius: var(--radius-sm);
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, .75) 0 12%, transparent 13%),
+    radial-gradient(circle at 62% 60%, rgba(31, 42, 38, .18) 0 11%, transparent 12%),
+    linear-gradient(135deg, #ffd9b8, #f28f59);
+}
+
+.food-img.green {
+  background:
+    radial-gradient(circle at 30% 46%, rgba(255, 255, 255, .72) 0 12%, transparent 13%),
+    radial-gradient(circle at 68% 38%, rgba(31, 42, 38, .14) 0 11%, transparent 12%),
+    linear-gradient(135deg, #d4efd6, #5dbb83);
+}
+
+.food-img.dark {
+  background:
+    radial-gradient(circle at 60% 38%, rgba(255, 255, 255, .66) 0 10%, transparent 11%),
+    radial-gradient(circle at 35% 58%, rgba(31, 42, 38, .22) 0 14%, transparent 15%),
+    linear-gradient(135deg, #f1c27d, #8b4a2d);
+}
+
+.dish h6 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.dish p {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.price {
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.add-round {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--brand);
+  font-weight: 900;
+}
+
+.cart-float {
+  position: absolute;
+  left: 116px;
+  right: 18px;
+  bottom: 72px;
+  height: 42px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  color: #fff;
+  background: #202522;
+  box-shadow: 0 10px 24px rgba(31, 42, 38, .2);
+  font-size: 13px;
+}
+
+.phone-relative {
+  position: relative;
+}
+
+.detail-cover {
+  height: 190px;
+  margin: 12px;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 35% 44%, rgba(255, 255, 255, .76) 0 13%, transparent 14%),
+    radial-gradient(circle at 63% 54%, rgba(31, 42, 38, .18) 0 13%, transparent 14%),
+    linear-gradient(135deg, #ffd9b8, #f28f59);
+}
+
+.detail-content {
+  padding: 0 16px 16px;
+}
+
+.detail-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detail-title h5 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.detail-title small,
+.detail-content p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.option-group {
+  margin-top: 18px;
+}
+
+.option-group b {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 13px;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.option {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  background: #fff;
+  font-size: 12px;
+}
+
+.option.active {
+  color: var(--brand);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.detail-bottom {
+  margin-top: auto;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+}
+
+.checkout {
+  padding: 12px;
+}
+
+.segment {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.segment span {
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.segment .active {
+  color: #fff;
+  background: var(--brand);
+}
+
+.summary-line,
+.order-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.plain-panel {
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.plain-panel h6 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.order-card {
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.order-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.status {
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--brand);
+  background: var(--brand-soft);
+  font-size: 11px;
+}
+
+.status.warn {
+  color: #9a6a00;
+  background: var(--gold-soft);
+}
+
+.status.danger {
+  color: var(--danger);
+  background: #fff0f0;
+}
+
+.pickup-code {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.pickup-code b {
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-soft);
+  font-size: 24px;
+}
+
+.steps {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.step i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+}
+
+.step.done i {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.desktop {
+  width: 100%;
+  min-width: 720px;
+  height: 520px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.desktop-shell {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 178px 1fr;
+}
+
+.desktop-side {
+  padding: 18px 12px;
+  border-right: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
+.desk-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 8px 16px;
+  font-weight: 900;
+}
+
+.desk-logo i {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--brand);
+}
+
+.desk-nav {
+  display: grid;
+  gap: 5px;
+}
+
+.desk-nav span {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.desk-nav .active {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.desktop-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+.desk-top {
+  height: 60px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+}
+
+.desk-top h5 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.desk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.desk-content {
+  min-height: 0;
+  flex: 1;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.kpi {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.kpi span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.kpi strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 20px;
+}
+
+.work-grid {
+  display: grid;
+  grid-template-columns: 1.25fr .75fr;
+  gap: 12px;
+}
+
+.work-panel {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.work-panel h6 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.order-row,
+.table-row,
+.menu-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.order-row {
+  grid-template-columns: 68px 1fr 80px 74px;
+}
+
+.table-row {
+  grid-template-columns: 1.3fr .8fr .8fr .8fr;
+}
+
+.menu-row {
+  grid-template-columns: 54px 1fr 70px 70px 80px;
+}
+
+.order-row:last-child,
+.table-row:last-child,
+.menu-row:last-child {
+  border-bottom: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.chart {
+  height: 178px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: end;
+  gap: 8px;
+  padding: 14px 8px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.chart b {
+  border-radius: 5px 5px 0 0;
+  background: var(--brand);
+}
+
+.chart b:nth-child(2n) {
+  background: var(--blue);
+}
+
+.chart b:nth-child(3n) {
+  background: var(--gold);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
-.promo-icon { font-size: 24px; }
-.promo-text { flex: 1; }
-.promo-title { font-size: 14px; font-weight: 600; color: var(--brand); }
-.promo-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-.promo-tag {
-  padding: 4px 12px;
-  background: var(--brand);
-  color: white;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 500;
+
+.form-cell {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
 }
 
-/* ========== Search Bar ========== */
-.search-bar {
-  margin: 0 16px 12px;
-  background: var(--bg);
-  border-radius: var(--radius-full);
-  padding: 8px 14px;
+.form-cell label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.input-line {
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.qr {
+  width: 118px;
+  height: 118px;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, #202522 10px, transparent 10px) 0 0 / 24px 24px,
+    linear-gradient(#202522 10px, transparent 10px) 0 0 / 24px 24px,
+    #fff;
+  border: 10px solid #fff;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.discount-rule {
+  display: grid;
+  grid-template-columns: 1fr 90px 76px;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.admin-wide .desktop-shell {
+  grid-template-columns: 186px 1fr;
+}
+
+.filter-row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-row .field {
+  flex: 1;
+  background: #fff;
+}
+
+.login-screen {
+  height: 430px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(8, 126, 107, .94), rgba(52, 106, 195, .76)),
+    var(--brand);
+  box-shadow: var(--shadow);
+}
+
+.login-art {
+  padding: 44px;
+  color: #fff;
+}
+
+.login-art h4 {
+  margin: 0 0 12px;
+  font-size: 30px;
+}
+
+.login-art p {
+  max-width: 470px;
+  margin: 0;
+  color: rgba(255, 255, 255, .78);
+}
+
+.login-card {
+  margin: 28px;
+  padding: 24px;
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.login-card h5 {
+  margin: 0 0 18px;
+  font-size: 20px;
+}
+
+.screen-index {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.index-item {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--muted);
   font-size: 13px;
-  color: var(--text-hint);
+}
+
+.index-item b {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+@media (max-width: 1120px) {
+  .guide-shell {
+    display: block;
+  }
+
+  .side {
+    position: relative;
+    width: auto;
+    height: auto;
+  }
+
+  .nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .token-grid,
+  .principles,
+  .component-grid,
+  .screen-index {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .content {
+    padding: 18px;
+  }
+
+  .hero {
+    padding: 24px;
+  }
+
+  .hero h2 {
+    font-size: 30px;
+  }
+
+  .token-grid,
+  .principles,
+  .component-grid,
+  .screen-index {
+    grid-template-columns: 1fr;
+  }
+
+  .desktop {
+    min-width: 680px;
+  }
 }
 </style>
 </head>
 <body>
+<div class="guide-shell">
+  <aside class="side">
+    <div class="brand-mark">B</div>
+    <h1>ByteBite 清爽 UI 主题</h1>
+    <p>一版用于讨论的静态设计稿，覆盖顾客点餐、商家工作台和平台管理端。</p>
+    <nav class="nav">
+      <a href="#theme">主题方向</a>
+      <a href="#tokens">设计变量</a>
+      <a href="#components">组件样式</a>
+      <a href="#customer">顾客端</a>
+      <a href="#merchant">商家端</a>
+      <a href="#admin">管理端</a>
+      <a href="#login">入口登录</a>
+      <a href="#coverage">界面覆盖</a>
+    </nav>
+  </aside>
 
-<div class="page-wrapper">
-
-  <!-- ========== 1. 配色方案 ========== -->
-  <div class="section-header">
-    <h2>🎨 配色方案</h2>
-    <p>空空码上点单 · 清新风格 v2</p>
-  </div>
-  <div class="color-grid">
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--primary)"><span>#FFD161</span></div>
-      <div class="color-label">Primary 黄</div>
-    </div>
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--primary-dark)"><span>#F5C142</span></div>
-      <div class="color-label">Primary Dark</div>
-    </div>
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--brand)"><span>#FF6633</span></div>
-      <div class="color-label">Brand 橙</div>
-    </div>
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--brand-bg)"><span style="color:#FF6633;text-shadow:none">#FFF5F0</span></div>
-      <div class="color-label">Brand BG</div>
-    </div>
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--green)"><span>#07C160</span></div>
-      <div class="color-label">Green</div>
-    </div>
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--blue)"><span>#4A90D9</span></div>
-      <div class="color-label">Blue</div>
-    </div>
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--red)"><span>#FA5151</span></div>
-      <div class="color-label">Red</div>
-    </div>
-    <div class="color-card">
-      <div class="color-swatch" style="background:var(--orange)"><span>#FF9500</span></div>
-      <div class="color-label">Orange</div>
-    </div>
-  </div>
-
-  <!-- ========== 2. 字体排版 ========== -->
-  <div class="section-header">
-    <h2>📝 字体排版</h2>
-    <p>清晰易读，层次分明</p>
-  </div>
-  <div class="typo-section">
-    <div class="typo-row">
-      <span class="typo-label">H1 / 20px</span>
-      <span class="typo-sample" style="font-size:20px;font-weight:700">重庆特色烧烤</span>
-    </div>
-    <div class="typo-row">
-      <span class="typo-label">H2 / 17px</span>
-      <span class="typo-sample" style="font-size:17px;font-weight:600">商品分类标题</span>
-    </div>
-    <div class="typo-row">
-      <span class="typo-label">H3 / 15px</span>
-      <span class="typo-sample" style="font-size:15px;font-weight:600">烤羊肉串</span>
-    </div>
-    <div class="typo-row">
-      <span class="typo-label">Body / 14px</span>
-      <span class="typo-sample" style="font-size:14px">正文内容，用于商品描述和说明</span>
-    </div>
-    <div class="typo-row">
-      <span class="typo-label">Caption / 12px</span>
-      <span class="typo-sample" style="font-size:12px;color:var(--text-hint)">辅助信息、时间戳、提示</span>
-    </div>
-    <div class="typo-row">
-      <span class="typo-label">Price / 18px</span>
-      <span class="typo-sample" style="font-size:18px;font-weight:700;color:var(--brand)"><span style="font-size:12px">¥</span>15 <span style="font-size:11px;font-weight:400;color:var(--text-hint)">起</span></span>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- ========== 3. 顾客端 - 店铺首页 ========== -->
-  <div class="store-header">
-    <div class="store-top">
-      <div class="store-avatar">🔥</div>
+  <main class="content">
+    <section class="hero" id="theme">
       <div>
-        <div class="store-name">重庆特色烧烤</div>
-        <div class="store-status-row">
-          <span class="store-status">● 营业中</span>
-          <span style="font-size:12px;opacity:0.85">月售 1024 单</span>
+        <span class="eyebrow">Refresh Theme 01</span>
+        <h2>从“热闹点餐页”改成“清爽、可信、好操作”的餐饮经营系统。</h2>
+        <p>主色从大面积红色收敛为绿色业务色，红色只留给价格和关键动作。顾客端突出菜品和购物车，商家端突出订单效率，管理端突出筛选、表格和状态判断。</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="#customer">查看顾客端</a>
+          <a class="btn" href="#merchant">查看商家端</a>
+          <a class="btn" href="#admin">查看管理端</a>
         </div>
       </div>
-    </div>
-    <div class="store-desc">正宗重庆风味 · 炭火慢烤 · 鲜香四溢</div>
-    <div class="store-notice">📢 新客首单满30减5，更多优惠进店查看</div>
-  </div>
+      <div class="hero-board">
+        <div class="board-top">
+          <strong>设计目标优先级</strong>
+          <span class="status">讨论稿</span>
+        </div>
+        <div class="mini-bars">
+          <div class="mini-bar"><span>清爽度</span><div class="bar-track"><div class="bar-fill" style="width:92%"></div></div><b>92</b></div>
+          <div class="mini-bar"><span>点餐效率</span><div class="bar-track"><div class="bar-fill" style="width:88%"></div></div><b>88</b></div>
+          <div class="mini-bar"><span>商家效率</span><div class="bar-track"><div class="bar-fill" style="width:86%"></div></div><b>86</b></div>
+          <div class="mini-bar"><span>信息密度</span><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div><b>78</b></div>
+          <div class="mini-bar"><span>品牌温度</span><div class="bar-track"><div class="bar-fill" style="width:72%"></div></div><b>72</b></div>
+        </div>
+      </div>
+    </section>
 
-  <div class="search-bar">
-    🔍 搜索菜品
-  </div>
-
-  <div class="promo-banner">
-    <span class="promo-icon">🎉</span>
-    <div class="promo-text">
-      <div class="promo-title">满50减5 · 满100减15</div>
-      <div class="promo-desc">全场通用，与其他优惠不叠加</div>
-    </div>
-    <span class="promo-tag">去凑单</span>
-  </div>
-
-  <div class="category-nav">
-    <span class="category-tab active"><span class="tab-icon">🔥</span>热销</span>
-    <span class="category-tab"><span class="tab-icon">🎁</span>福利</span>
-    <span class="category-tab active">新疆烧烤</span>
-    <span class="category-tab">鸡和海鲜</span>
-    <span class="category-tab">蔬菜</span>
-    <span class="category-tab"><span class="tab-icon">🍱</span>套餐</span>
-    <span class="category-tab"><span class="tab-icon">🍺</span>饮品</span>
-  </div>
-
-  <div class="product-list">
-    <div class="product-card">
-      <div class="product-img" style="background:linear-gradient(135deg,#FFD161,#FF9500);display:flex;align-items:center;justify-content:center;font-size:36px">🍢</div>
-      <div class="product-info">
+    <section class="section">
+      <div class="section-head">
         <div>
-          <div class="product-name">烤羊肉串</div>
-          <div class="product-specs">
-            <span class="spec-tag">小份¥15</span>
-            <span class="spec-tag">大份¥25</span>
-          </div>
-          <div class="product-desc">精选新疆羊肉，炭火慢烤，外焦里嫩</div>
-        </div>
-        <div class="product-bottom">
-          <div>
-            <span class="product-price"><span class="from">起 </span><span class="symbol">¥</span>15</span>
-            <span class="product-sold">月售328</span>
-          </div>
-          <button class="btn-add">+</button>
+          <h3>主题原则</h3>
+          <p>这版不追求花哨，而是让真实用户少找、少想、少误点。</p>
         </div>
       </div>
-    </div>
+      <div class="principles">
+        <div class="note-card"><strong>少色块</strong><span>头部不再大面积红色，页面主背景轻、内容区白，重点按钮才上色。</span></div>
+        <div class="note-card"><strong>强层级</strong><span>标题、状态、金额、操作各有固定位置，减少视觉跳动。</span></div>
+        <div class="note-card"><strong>低圆角</strong><span>业务系统控件保持 6-8px 圆角，避免过于卡通。</span></div>
+        <div class="note-card"><strong>可落地</strong><span>所有静态稿都按当前路由和功能模块组织，便于后续拆成 Vue 组件。</span></div>
+      </div>
+    </section>
 
-    <div class="product-card">
-      <div class="product-img" style="background:linear-gradient(135deg,#07C160,#55EFC4);display:flex;align-items:center;justify-content:center;font-size:36px">🐟</div>
-      <div class="product-info">
+    <section class="section" id="tokens">
+      <div class="section-head">
         <div>
-          <div class="product-name">烤鱼</div>
-          <div class="product-specs">
-            <span class="spec-tag">半条¥48</span>
-            <span class="spec-tag">整条¥78</span>
-          </div>
-          <div class="product-desc">鲜活草鱼，秘制酱料，香辣入味</div>
-        </div>
-        <div class="product-bottom">
-          <div>
-            <span class="product-price"><span class="from">起 </span><span class="symbol">¥</span>48</span>
-            <span class="product-sold">月售156</span>
-          </div>
-          <button class="btn-add">+</button>
+          <h3>设计变量</h3>
+          <p>主色为“竹绿”，辅以珊瑚橙、订单蓝、优惠金，避免整套系统只有一个色相。</p>
         </div>
       </div>
-    </div>
+      <div class="token-grid">
+        <div class="token"><div class="swatch" style="background:#087e6b"></div><strong>Brand</strong><span>#087E6B 主要动作</span></div>
+        <div class="token"><div class="swatch" style="background:#ff6b4a"></div><strong>Accent</strong><span>#FF6B4A 价格和强调</span></div>
+        <div class="token"><div class="swatch" style="background:#f7b731"></div><strong>Gold</strong><span>#F7B731 优惠提醒</span></div>
+        <div class="token"><div class="swatch" style="background:#346ac3"></div><strong>Blue</strong><span>#346AC3 数据和配送</span></div>
+        <div class="token"><div class="swatch" style="background:#f6f7f3"></div><strong>Paper</strong><span>#F6F7F3 页面背景</span></div>
+        <div class="token"><div class="swatch" style="background:#1f2a26"></div><strong>Ink</strong><span>#1F2A26 正文标题</span></div>
+      </div>
+    </section>
 
-    <div class="product-card">
-      <div class="product-img" style="background:linear-gradient(135deg,#FF9500,#FFD161);display:flex;align-items:center;justify-content:center;font-size:36px">🍗</div>
-      <div class="product-info">
+    <section class="section" id="components">
+      <div class="section-head">
         <div>
-          <div class="product-name">蜜汁烤鸡翅</div>
-          <div class="product-desc">甜香酥脆，一口一个停不下来</div>
+          <h3>组件样式</h3>
+          <p>统一按钮、筛选、输入和状态标签，让顾客端与后台端同源但不同密度。</p>
         </div>
-        <div class="product-bottom">
-          <div>
-            <span class="product-price"><span class="symbol">¥</span>8</span>
-            <span class="product-original">¥12</span>
-            <span class="product-sold">月售512</span>
+      </div>
+      <div class="component-grid">
+        <div class="component">
+          <strong>按钮</strong><span>主按钮绿色，结算按钮可用橙色。</span>
+          <div class="sample-stack">
+            <button class="btn primary">保存设置</button>
+            <button class="btn accent">去结算</button>
+            <button class="btn">取消</button>
           </div>
-          <div class="stepper">
-            <button class="stepper-btn minus">−</button>
-            <span class="stepper-count">2</span>
-            <button class="stepper-btn plus">+</button>
+        </div>
+        <div class="component">
+          <strong>输入框</strong><span>轻底色，聚焦时切品牌色边框。</span>
+          <div class="sample-stack">
+            <div class="field">搜索订单号或手机号</div>
+            <div class="field">门店公告</div>
+            <div class="field">满减金额</div>
+          </div>
+        </div>
+        <div class="component">
+          <strong>状态</strong><span>状态颜色只表达业务含义。</span>
+          <div class="pill-row">
+            <span class="status">营业中</span>
+            <span class="status warn">待接单</span>
+            <span class="status danger">已拒单</span>
+            <span class="pill active">堂食</span>
+            <span class="pill">外带</span>
+          </div>
+        </div>
+        <div class="component">
+          <strong>表格行</strong><span>后台优先扫描，不做厚重卡片。</span>
+          <div class="sample-stack">
+            <div class="table-row"><b>重庆老灶烧烤</b><span class="muted">营业中</span><span>36 单</span><span class="status">正常</span></div>
+            <div class="table-row"><b>江北小面</b><span class="muted">休息</span><span>12 单</span><span class="status warn">待审核</span></div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="product-card" style="opacity:0.45">
-      <div class="product-img" style="background:#F0F0F0;display:flex;align-items:center;justify-content:center;font-size:36px;filter:grayscale(1)">🦪</div>
-      <div class="product-info">
+    <section class="section" id="customer">
+      <div class="section-head">
         <div>
-          <div class="product-name">烤生蚝 <span style="font-size:12px;color:var(--text-hint);font-weight:400">已售罄</span></div>
-          <div class="product-desc">新鲜生蚝，蒜蓉粉丝</div>
-        </div>
-        <div class="product-bottom">
-          <span class="product-price" style="color:var(--text-hint)"><span class="symbol">¥</span>10</span>
+          <h3>顾客端静态界面</h3>
+          <p>目标是扫码后第一屏能确认门店、快速找菜、看到购物车，不被大面积头图或强烈色块压住。</p>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div style="height:130px"></div>
+      <div class="screen-grid">
+        <div class="screen-block">
+          <div class="screen-title"><h4>1. 点餐首页</h4><span>/A/000001</span></div>
+          <div class="phone phone-relative">
+            <div class="phone-inner">
+              <div class="statusbar"><span>21:45</span><span>ByteBite</span></div>
+              <header class="phone-header">
+                <h5>重庆老灶烧烤（观音桥店）</h5>
+                <p>正宗重庆风味烧烤，麻辣鲜香，烟火气十足</p>
+                <div class="store-meta"><span>营业中</span><span>17:00-02:00</span><span>满 30 起送</span></div>
+                <div class="search">⌕ 搜索菜品、套餐、饮品</div>
+              </header>
+              <div class="phone-body">
+                <div class="menu-layout">
+                  <aside class="cat-rail">
+                    <div class="cat-link active">进店福利<small>2 件</small></div>
+                    <div class="cat-link">新疆烧烤<small>5 件</small></div>
+                    <div class="cat-link">鸡和海鲜<small>5 件</small></div>
+                    <div class="cat-link">蔬菜类<small>5 件</small></div>
+                    <div class="cat-link">凉菜<small>2 件</small></div>
+                    <div class="cat-link">饮用品类<small>5 件</small></div>
+                    <div class="cat-link">套餐<small>1 件</small></div>
+                  </aside>
+                  <section class="product-list">
+                    <h6 class="list-section">进店福利</h6>
+                    <article class="dish"><div class="food-img green"></div><div><h6>凉拌毛豆</h6><p>开胃必点 月售320份</p><span class="price">¥6.00</span></div><span class="add-round">+</span></article>
+                    <article class="dish"><div class="food-img green"></div><div><h6>凉拌花生米</h6><p>香酥可口 月售280份</p><span class="price">¥6.00</span></div><span class="add-round">+</span></article>
+                    <h6 class="list-section">新疆烧烤</h6>
+                    <article class="dish"><div class="food-img dark"></div><div><h6>烤羊肉串</h6><p>新疆风味，肥瘦相间</p><span class="price">¥3.00 起</span></div><span class="btn primary" style="height:28px;padding:0 9px;font-size:11px">选规格</span></article>
+                    <article class="dish"><div class="food-img"></div><div><h6>烤羊排</h6><p>整排烤制，外焦里嫩</p><span class="price">¥38.00</span></div><span class="add-round">+</span></article>
+                  </section>
+                </div>
+              </div>
+              <div class="cart-float"><span>已选 3 件 · ¥47.00</span><b>去结算</b></div>
+              <nav class="phone-bottom">
+                <span class="tab-item active"><b>□</b>菜单</span>
+                <span class="tab-item"><b>▣</b>购物车</span>
+                <span class="tab-item"><b>▤</b>订单</span>
+              </nav>
+            </div>
+          </div>
+        </div>
 
-  <div class="floating-cart">
-    <button class="cart-btn">
-      🛒
-      <span class="cart-badge">3</span>
-    </button>
-  </div>
+        <div class="screen-block">
+          <div class="screen-title"><h4>2. 菜品详情</h4><span>/product/:id</span></div>
+          <div class="phone">
+            <div class="phone-inner">
+              <div class="statusbar"><span>21:45</span><span>菜品详情</span></div>
+              <div class="phone-body" style="overflow:hidden">
+                <div class="detail-cover"></div>
+                <div class="detail-content">
+                  <div class="detail-title">
+                    <div><h5>烤羊肉串</h5><small>月售 890 份 · 最少 3 串起点</small></div>
+                    <span class="status">招牌</span>
+                  </div>
+                  <p>新疆风味，肥瘦相间，适合堂食热吃。默认微辣，可备注调整。</p>
+                  <div class="option-group"><b>份量</b><div class="options"><span class="option active">小串 3 串</span><span class="option">大串 2 串 + ¥3</span></div></div>
+                  <div class="option-group"><b>辣度</b><div class="options"><span class="option">不辣</span><span class="option active">微辣</span><span class="option">中辣</span><span class="option">特辣</span></div></div>
+                  <div class="option-group"><b>备注</b><div class="field">少盐、不要葱、打包分开装</div></div>
+                </div>
+              </div>
+              <div class="detail-bottom">
+                <div><span class="price" style="font-size:22px">¥12.00</span><small class="muted"> / 3串</small></div>
+                <button class="btn primary">加入购物车</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-  <div class="bottom-bar">
-    <div class="cart-icon-wrap">
-      🛒
-      <span class="cart-badge">3</span>
-    </div>
-    <div class="cart-summary">
-      <div class="cart-total"><span class="symbol">¥</span>31.00</div>
-      <div class="cart-delivery">另需打包费 ¥1</div>
-    </div>
-    <button class="btn-checkout">去结算</button>
-  </div>
+        <div class="screen-block">
+          <div class="screen-title"><h4>3. 购物车与结算</h4><span>/cart</span></div>
+          <div class="phone">
+            <div class="phone-inner">
+              <div class="statusbar"><span>21:45</span><span>购物车</span></div>
+              <header class="phone-header"><h5>确认订单</h5><p>选择用餐方式后提交，后台实时接单。</p></header>
+              <div class="phone-body checkout">
+                <div class="segment"><span class="active">堂食</span><span>外带</span><span>配送</span></div>
+                <div class="plain-panel">
+                  <h6>已选菜品</h6>
+                  <div class="order-line"><span>烤羊肉串 × 3</span><b>¥12.00</b></div>
+                  <div class="order-line"><span>凉拌毛豆 × 1</span><b>¥6.00</b></div>
+                  <div class="order-line"><span>烤羊排 × 1</span><b>¥38.00</b></div>
+                </div>
+                <div class="plain-panel">
+                  <h6>优惠与费用</h6>
+                  <div class="summary-line"><span>满 50 减 5</span><b style="color:var(--success)">-¥5.00</b></div>
+                  <div class="summary-line"><span>餐盒费</span><b>¥0.00</b></div>
+                  <div class="summary-line"><span>合计</span><b class="price">¥51.00</b></div>
+                </div>
+                <div class="plain-panel">
+                  <h6>备注</h6>
+                  <div class="field">口味、餐具数量、发票信息</div>
+                </div>
+              </div>
+              <div class="detail-bottom">
+                <div><span class="price" style="font-size:22px">¥51.00</span></div>
+                <button class="btn accent">提交订单</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-  <div class="divider"></div>
+        <div class="screen-block">
+          <div class="screen-title"><h4>4. 我的订单</h4><span>/orders</span></div>
+          <div class="phone">
+            <div class="phone-inner">
+              <div class="statusbar"><span>21:45</span><span>我的订单</span></div>
+              <header class="phone-header"><h5>我的订单</h5><p>无需登录，通过设备记录查看本店订单。</p><div class="pill-row"><span class="pill active">全部</span><span class="pill">进行中</span><span class="pill">已完成</span></div></header>
+              <div class="phone-body checkout">
+                <article class="order-card"><div class="order-card-head"><span>#BW9JG</span><span class="status warn">待接单</span></div><p class="muted">烤羊肉串、凉拌毛豆等 3 件</p><div class="summary-line"><span>今天 21:42</span><b class="price">¥51.00</b></div></article>
+                <article class="order-card"><div class="order-card-head"><span>#K71QA</span><span class="status">制作中</span></div><p class="muted">双人烧烤套餐 1 份</p><div class="summary-line"><span>昨天 20:15</span><b class="price">¥88.00</b></div></article>
+                <article class="order-card"><div class="order-card-head"><span>#M2P5C</span><span class="muted">已完成</span></div><p class="muted">烤鸡翅、可乐等 5 件</p><div class="summary-line"><span>5月24日</span><b class="price">¥72.00</b></div></article>
+              </div>
+              <nav class="phone-bottom">
+                <span class="tab-item"><b>□</b>菜单</span><span class="tab-item"><b>▣</b>购物车</span><span class="tab-item active"><b>▤</b>订单</span>
+              </nav>
+            </div>
+          </div>
+        </div>
 
-  <!-- ========== 4. 规格选择 ========== -->
-  <div class="section-header" style="position:relative">
-    <h2>📋 规格选择</h2>
-    <p>商品多规格弹窗样式</p>
-  </div>
-  <div class="spec-section">
-    <div style="display:flex;gap:12px;margin-bottom:16px">
-      <div style="width:96px;height:96px;border-radius:8px;background:linear-gradient(135deg,#FFD161,#FF9500);display:flex;align-items:center;justify-content:center;font-size:42px">🍢</div>
-      <div>
-        <div style="font-size:16px;font-weight:600">烤羊肉串</div>
-        <div style="font-size:20px;font-weight:700;color:var(--brand);margin-top:6px"><span style="font-size:12px">¥</span>25</div>
-        <div style="font-size:12px;color:var(--text-hint);margin-top:2px">已选：大份 · 微辣</div>
+        <div class="screen-block">
+          <div class="screen-title"><h4>5. 订单详情与取餐码</h4><span>/order/:id</span></div>
+          <div class="phone">
+            <div class="phone-inner">
+              <div class="statusbar"><span>21:45</span><span>订单详情</span></div>
+              <header class="phone-header"><h5>商家已接单</h5><p>请留意取餐码，堂食可向店员出示。</p></header>
+              <div class="phone-body checkout">
+                <div class="plain-panel">
+                  <h6>取餐码</h6>
+                  <div class="pickup-code"><b>B</b><b>W</b><b>9</b><b>J</b><b>G</b></div>
+                  <p class="muted">预计 18 分钟后可取餐</p>
+                </div>
+                <div class="plain-panel">
+                  <h6>订单进度</h6>
+                  <div class="steps">
+                    <div class="step done"><i></i><span>订单已提交 · 21:42</span></div>
+                    <div class="step done"><i></i><span>商家已接单 · 21:43</span></div>
+                    <div class="step"><i></i><span>制作完成后通知取餐</span></div>
+                  </div>
+                </div>
+                <div class="plain-panel">
+                  <h6>订单明细</h6>
+                  <div class="summary-line"><span>菜品小计</span><b>¥56.00</b></div>
+                  <div class="summary-line"><span>优惠</span><b style="color:var(--success)">-¥5.00</b></div>
+                  <div class="summary-line"><span>实付</span><b class="price">¥51.00</b></div>
+                </div>
+              </div>
+              <div class="detail-bottom"><button class="btn">返回菜单</button><button class="btn primary">再来一单</button></div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="spec-group">
-      <div class="spec-group-title">份量</div>
-      <div class="spec-options">
-        <div class="spec-option">小份<span class="price-diff"> ¥15</span></div>
-        <div class="spec-option selected">大份<span class="price-diff"> ¥25</span></div>
+    </section>
+
+    <section class="section" id="merchant">
+      <div class="section-head">
+        <div>
+          <h3>商家端静态界面</h3>
+          <p>商家端不做营销感首页，默认进入订单工作台；常用动作在顶部，列表和详情并排。</p>
+        </div>
       </div>
-    </div>
-    <div class="spec-group">
-      <div class="spec-group-title">辣度</div>
-      <div class="spec-options">
-        <div class="spec-option">不辣</div>
-        <div class="spec-option selected">微辣</div>
-        <div class="spec-option">中辣</div>
-        <div class="spec-option">特辣</div>
+
+      <div class="screen-grid">
+        <div class="screen-block">
+          <div class="screen-title"><h4>6. 订单工作台</h4><span>/merchant/orders</span></div>
+          <div class="desktop">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>ByteBite</div><nav class="desk-nav"><span class="active">订单</span><span>菜品</span><span>门店</span><span>优惠</span><span>经营</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>订单工作台</h5><div class="desk-actions"><span class="status">营业中</span><button class="btn primary">接单模式</button></div></header>
+                <div class="desk-content">
+                  <div class="kpi-grid"><div class="kpi"><span>待处理</span><strong>6</strong></div><div class="kpi"><span>制作中</span><strong>14</strong></div><div class="kpi"><span>今日营业额</span><strong>¥3,426</strong></div><div class="kpi"><span>平均出餐</span><strong>16m</strong></div></div>
+                  <div class="work-grid">
+                    <section class="work-panel"><h6>实时订单</h6><div class="order-row"><b>#BW9JG</b><span>堂食 · 3 件</span><span class="price">¥51</span><span class="status warn">待接单</span></div><div class="order-row"><b>#K71QA</b><span>外带 · 套餐</span><span class="price">¥88</span><span class="status">制作中</span></div><div class="order-row"><b>#PL8KC</b><span>配送 · 5 件</span><span class="price">¥126</span><span class="status">制作中</span></div><div class="order-row"><b>#Q45VN</b><span>堂食 · 2 件</span><span class="price">¥32</span><span>待取餐</span></div></section>
+                    <aside class="work-panel"><h6>订单详情</h6><p class="muted">烤羊肉串 × 3<br>凉拌毛豆 × 1<br>烤羊排 × 1</p><div class="summary-line"><span>备注</span><b>少辣</b></div><button class="btn primary" style="width:100%;margin-top:10px">确认接单</button><button class="btn" style="width:100%;margin-top:8px">打印小票</button></aside>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen-block">
+          <div class="screen-title"><h4>7. 菜品与分类管理</h4><span>/merchant/menu</span></div>
+          <div class="desktop">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>ByteBite</div><nav class="desk-nav"><span>订单</span><span class="active">菜品</span><span>门店</span><span>优惠</span><span>经营</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>菜品管理</h5><div class="desk-actions"><button class="btn">导入模板</button><button class="btn primary">新增菜品</button></div></header>
+                <div class="desk-content">
+                  <div class="filter-row"><div class="field">搜索菜品名称</div><button class="btn">筛选</button></div>
+                  <div class="work-grid" style="grid-template-columns:170px 1fr">
+                    <section class="work-panel"><h6>分类</h6><div class="cat-link active">新疆烧烤<small>5 件</small></div><div class="cat-link">鸡和海鲜<small>5 件</small></div><div class="cat-link">蔬菜类<small>5 件</small></div><div class="cat-link">饮用品类<small>5 件</small></div><button class="btn" style="width:100%;margin-top:8px">新增分类</button></section>
+                    <section class="work-panel"><h6>菜品列表</h6><div class="menu-row"><span></span><b>名称</b><span>价格</span><span>状态</span><span>操作</span></div><div class="menu-row"><div class="food-img dark" style="width:42px;height:42px"></div><b>烤羊肉串</b><span class="price">¥3 起</span><span class="status">上架</span><span>编辑</span></div><div class="menu-row"><div class="food-img" style="width:42px;height:42px"></div><b>烤羊排</b><span class="price">¥38</span><span class="status">上架</span><span>编辑</span></div><div class="menu-row"><div class="food-img green" style="width:42px;height:42px"></div><b>凉拌毛豆</b><span class="price">¥6</span><span class="status warn">福利</span><span>编辑</span></div></section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen-block">
+          <div class="screen-title"><h4>8. 门店信息与分享码</h4><span>/merchant/store</span></div>
+          <div class="desktop">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>ByteBite</div><nav class="desk-nav"><span>订单</span><span>菜品</span><span class="active">门店</span><span>优惠</span><span>经营</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>门店设置</h5><div class="desk-actions"><button class="btn primary">保存</button></div></header>
+                <div class="desk-content">
+                  <div class="work-grid">
+                    <section class="work-panel"><h6>基础信息</h6><div class="form-grid"><div class="form-cell"><label>门店名称</label><div class="input-line"></div></div><div class="form-cell"><label>营业状态</label><div class="input-line"></div></div><div class="form-cell"><label>营业时间</label><div class="input-line"></div></div><div class="form-cell"><label>用餐方式</label><div class="input-line"></div></div><div class="form-cell"><label>起送金额</label><div class="input-line"></div></div><div class="form-cell"><label>打包费</label><div class="input-line"></div></div></div></section>
+                    <aside class="work-panel"><h6>商家码</h6><div class="qr"></div><p class="muted">短链：/A/000001<br>适合印在桌贴、海报和收银台。</p><button class="btn" style="width:100%">复制链接</button></aside>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen-block">
+          <div class="screen-title"><h4>9. 优惠活动</h4><span>/merchant/discounts</span></div>
+          <div class="desktop">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>ByteBite</div><nav class="desk-nav"><span>订单</span><span>菜品</span><span>门店</span><span class="active">优惠</span><span>经营</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>优惠活动</h5><div class="desk-actions"><button class="btn primary">新增活动</button></div></header>
+                <div class="desk-content">
+                  <div class="kpi-grid"><div class="kpi"><span>进行中</span><strong>3</strong></div><div class="kpi"><span>今日核销</span><strong>48</strong></div><div class="kpi"><span>优惠金额</span><strong>¥312</strong></div><div class="kpi"><span>带动订单</span><strong>29%</strong></div></div>
+                  <section class="work-panel"><h6>规则列表</h6><div class="discount-rule"><b>满 100 减 10</b><span>全店</span><span class="status">启用</span></div><div class="discount-rule"><b>满 200 减 30</b><span>全店</span><span class="status">启用</span></div><div class="discount-rule"><b>烧烤类 8 折</b><span>分类</span><span class="status warn">限时</span></div><div class="discount-rule"><b>新人进店福利</b><span>菜品</span><span>已暂停</span></div></section>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen-block">
+          <div class="screen-title"><h4>10. 经营数据</h4><span>/merchant/dashboard</span></div>
+          <div class="desktop">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>ByteBite</div><nav class="desk-nav"><span>订单</span><span>菜品</span><span>门店</span><span>优惠</span><span class="active">经营</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>经营数据</h5><div class="desk-actions"><span class="pill active">今日</span><span class="pill">7天</span><span class="pill">30天</span></div></header>
+                <div class="desk-content">
+                  <div class="kpi-grid"><div class="kpi"><span>营业额</span><strong>¥3,426</strong></div><div class="kpi"><span>订单数</span><strong>82</strong></div><div class="kpi"><span>客单价</span><strong>¥41.8</strong></div><div class="kpi"><span>复购率</span><strong>18%</strong></div></div>
+                  <div class="work-grid"><section class="work-panel"><h6>时段订单</h6><div class="chart"><b style="height:36%"></b><b style="height:22%"></b><b style="height:28%"></b><b style="height:48%"></b><b style="height:72%"></b><b style="height:84%"></b><b style="height:66%"></b><b style="height:78%"></b><b style="height:55%"></b><b style="height:42%"></b><b style="height:26%"></b><b style="height:18%"></b></div></section><aside class="work-panel"><h6>热销菜品</h6><div class="summary-line"><span>烤羊肉串</span><b>126 份</b></div><div class="summary-line"><span>烤鸡翅</span><b>88 份</b></div><div class="summary-line"><span>凉拌毛豆</span><b>64 份</b></div></aside></div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div style="margin-top:16px">
-      <div class="spec-group-title" style="margin-bottom:8px">备注</div>
-      <input type="text" placeholder="如：少放盐、多放孜然" style="width:100%;padding:10px 12px;border:1px solid var(--border-dark);border-radius:var(--radius-sm);font-size:14px;outline:none;background:var(--bg)" onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='var(--border-dark)'">
-    </div>
-    <button class="btn btn-primary btn-block" style="margin-top:20px;padding:12px">加入购物车 ¥25</button>
-  </div>
+    </section>
 
-  <div class="divider"></div>
-
-  <!-- ========== 5. 取货码 ========== -->
-  <div class="section-header" style="position:relative">
-    <h2>🎫 取货码 & 订单状态</h2>
-    <p>下单成功后的核心体验</p>
-  </div>
-
-  <div class="pickup-card">
-    <div class="pickup-icon">✅</div>
-    <div class="pickup-label">下单成功！请凭取货码取餐</div>
-    <div class="pickup-code">A3F2</div>
-    <div class="pickup-hint">取货码已保存，可截图出示给商家</div>
-    <div class="pickup-divider"></div>
-    <div class="pickup-order-info">
-      <div>📍 重庆特色烧烤</div>
-      <div>🍽️ 堂食 · 桌号 3</div>
-      <div>🍢 烤羊肉串×2（大份·微辣）</div>
-      <div>🍗 烤鸡翅×4</div>
-      <div style="margin-top:8px;font-weight:600;color:var(--text-primary)">合计：<span style="color:var(--brand)">¥66.00</span></div>
-    </div>
-  </div>
-
-  <div style="padding:16px">
-    <div class="order-status-bar">
-      <div class="status-step">
-        <div class="status-dot done">✓</div>
-        <span class="status-text done">待接单</span>
+    <section class="section" id="admin">
+      <div class="section-head">
+        <div>
+          <h3>管理端静态界面</h3>
+          <p>平台端以审核、配置、统计为主，减少装饰，保留密集筛选和批量操作空间。</p>
+        </div>
       </div>
-      <div class="status-line done"></div>
-      <div class="status-step">
-        <div class="status-dot active">2</div>
-        <span class="status-text active">制作中</span>
+
+      <div class="screen-grid">
+        <div class="screen-block">
+          <div class="screen-title"><h4>11. 商家管理</h4><span>/admin/merchants</span></div>
+          <div class="desktop admin-wide">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>Admin</div><nav class="desk-nav"><span class="active">商家管理</span><span>系统配置</span><span>平台统计</span><span>操作日志</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>商家管理</h5><div class="desk-actions"><button class="btn">导出</button><button class="btn primary">新增商家</button></div></header>
+                <div class="desk-content">
+                  <div class="filter-row"><div class="field">搜索手机号、门店名</div><button class="btn">状态</button><button class="btn">行业</button></div>
+                  <section class="work-panel"><div class="table-row"><b>商家</b><b>门店码</b><b>状态</b><b>操作</b></div><div class="table-row"><span>重庆老灶烧烤</span><span>000001</span><span class="status">正常</span><span>查看</span></div><div class="table-row"><span>江北小面</span><span>00002A</span><span class="status warn">待审核</span><span>审核</span></div><div class="table-row"><span>南岸咖啡</span><span>00002B</span><span>已停用</span><span>恢复</span></div></section>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen-block">
+          <div class="screen-title"><h4>12. 系统配置与模板</h4><span>/admin/configs</span></div>
+          <div class="desktop admin-wide">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>Admin</div><nav class="desk-nav"><span>商家管理</span><span class="active">系统配置</span><span>平台统计</span><span>操作日志</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>系统配置</h5><div class="desk-actions"><button class="btn primary">保存配置</button></div></header>
+                <div class="desk-content">
+                  <div class="work-grid">
+                    <section class="work-panel"><h6>行业分类</h6><div class="table-row"><span>餐饮</span><span>烧烤</span><span class="status">启用</span><span>编辑</span></div><div class="table-row"><span>饮品</span><span>咖啡茶饮</span><span class="status">启用</span><span>编辑</span></div><div class="table-row"><span>快餐</span><span>小吃简餐</span><span class="status">启用</span><span>编辑</span></div></section>
+                    <aside class="work-panel"><h6>菜品模板</h6><div class="summary-line"><span>烧烤门店模板</span><b>已用 16 次</b></div><div class="summary-line"><span>小面快餐模板</span><b>已用 9 次</b></div><div class="summary-line"><span>茶饮模板</span><b>已用 6 次</b></div><button class="btn" style="width:100%;margin-top:10px">新建模板</button></aside>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+
+        <div class="screen-block">
+          <div class="screen-title"><h4>13. 平台统计</h4><span>/admin/stats</span></div>
+          <div class="desktop admin-wide">
+            <div class="desktop-shell">
+              <aside class="desktop-side"><div class="desk-logo"><i></i>Admin</div><nav class="desk-nav"><span>商家管理</span><span>系统配置</span><span class="active">平台统计</span><span>操作日志</span></nav></aside>
+              <main class="desktop-main">
+                <header class="desk-top"><h5>平台统计</h5><div class="desk-actions"><span class="pill active">本月</span><span class="pill">季度</span></div></header>
+                <div class="desk-content">
+                  <div class="kpi-grid"><div class="kpi"><span>活跃门店</span><strong>128</strong></div><div class="kpi"><span>平台订单</span><strong>18,260</strong></div><div class="kpi"><span>交易额</span><strong>¥892k</strong></div><div class="kpi"><span>新增商家</span><strong>24</strong></div></div>
+                  <div class="work-grid"><section class="work-panel"><h6>订单趋势</h6><div class="chart"><b style="height:30%"></b><b style="height:42%"></b><b style="height:38%"></b><b style="height:58%"></b><b style="height:46%"></b><b style="height:78%"></b><b style="height:82%"></b><b style="height:72%"></b><b style="height:64%"></b><b style="height:88%"></b><b style="height:76%"></b><b style="height:94%"></b></div></section><aside class="work-panel"><h6>行业分布</h6><div class="summary-line"><span>烧烤夜宵</span><b>38%</b></div><div class="summary-line"><span>小吃快餐</span><b>31%</b></div><div class="summary-line"><span>茶饮咖啡</span><b>19%</b></div><div class="summary-line"><span>其他</span><b>12%</b></div></aside></div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="status-line"></div>
-      <div class="status-step">
-        <div class="status-dot">3</div>
-        <span class="status-text">待取餐</span>
+    </section>
+
+    <section class="section" id="login">
+      <div class="section-head">
+        <div>
+          <h3>入口与登录</h3>
+          <p>商家和管理员登录保持同一模板，只换角色文案；首页不做营销页，优先给出扫码点餐和后台入口。</p>
+        </div>
       </div>
-      <div class="status-line"></div>
-      <div class="status-step">
-        <div class="status-dot">4</div>
-        <span class="status-text">已完成</span>
+      <div class="screen-grid">
+        <div class="screen-block">
+          <div class="screen-title"><h4>14. 商家/管理员登录</h4><span>/login 与 /admin/login</span></div>
+          <div class="login-screen">
+            <div class="login-art"><span class="eyebrow" style="color:#fff;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28)">ByteBite Workbench</span><h4>把订单、菜品和门店经营放在一个清爽工作台。</h4><p>登录后默认进入订单工作台，减少跳转；异常状态、未处理订单和今日数据在第一屏完成判断。</p></div>
+            <div class="login-card"><h5>商家登录</h5><div class="sample-stack"><div class="field">手机号</div><div class="field">密码</div><button class="btn primary" style="width:100%">登录</button><button class="btn" style="width:100%">注册新商家</button></div></div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <div class="divider"></div>
-
-  <!-- ========== 6. 商家端 - 订单管理 ========== -->
-  <div class="section-header" style="position:relative">
-    <h2>📱 商家端 · 订单管理</h2>
-    <p>新订单提醒与处理</p>
-  </div>
-
-  <div class="order-card new">
-    <div class="order-card-header">
-      <span class="order-id">#20260520001 <span class="order-tag new-tag">🔔 新订单</span></span>
-      <span class="order-time">刚刚</span>
-    </div>
-    <div class="order-items">
-      烤羊肉串×2（大份·微辣）<br>
-      烤鸡翅×4<br>
-      雪花啤酒×2（瓶装）
-    </div>
-    <div class="order-footer">
-      <div>
-        <span class="order-amount"><span class="symbol">¥</span>66.00</span>
-        <div class="order-meta">堂食 · 桌号3</div>
+    <section class="section" id="coverage">
+      <div class="section-head">
+        <div>
+          <h3>界面覆盖清单</h3>
+          <p>本 HTML 已把当前系统主要页面都画成静态样式，下一步可以按你选中的方向落到 Vue 页面。</p>
+        </div>
       </div>
-      <div class="order-actions">
-        <button class="btn btn-sm btn-secondary">拒单</button>
-        <button class="btn btn-sm btn-primary">接单</button>
+      <div class="screen-index">
+        <div class="index-item"><b>顾客端</b>点餐首页、菜品详情、购物车、我的订单、订单详情。</div>
+        <div class="index-item"><b>商家端</b>订单、菜品、门店信息、优惠活动、经营数据。</div>
+        <div class="index-item"><b>管理端</b>商家管理、系统配置、平台统计。</div>
+        <div class="index-item"><b>入口</b>商家登录、管理员登录、后台入口统一模板。</div>
+        <div class="index-item"><b>组件</b>按钮、输入、筛选、状态、表格、订单卡、取餐码。</div>
+        <div class="index-item"><b>主题</b>竹绿主色、珊瑚价格、蓝色数据、金色优惠、低圆角。</div>
       </div>
-    </div>
-  </div>
-
-  <div class="order-card processing">
-    <div class="order-card-header">
-      <span class="order-id">#20260520002 <span class="order-tag processing-tag">制作中</span></span>
-      <span class="order-time">5分钟前</span>
-    </div>
-    <div class="order-items">
-      烤鱼×1（整条·中辣）<br>
-      烤茄子×1
-    </div>
-    <div class="order-footer">
-      <div>
-        <span class="order-amount"><span class="symbol">¥</span>60.00</span>
-        <div class="order-meta">打包</div>
-      </div>
-      <div class="order-actions">
-        <button class="btn btn-sm btn-green">备餐完毕</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="order-card ready">
-    <div class="order-card-header">
-      <span class="order-id">#20260520003 <span class="order-tag ready-tag">待取餐</span></span>
-      <span class="order-time">12分钟前</span>
-    </div>
-    <div class="order-items">
-      烤韭菜×2 · 烤金针菇×1 · 可乐×1
-    </div>
-    <div class="order-footer">
-      <div>
-        <span class="order-amount"><span class="symbol">¥</span>29.00</span>
-        <div class="order-meta">取货码 <b style="color:var(--brand)">B7K1</b></div>
-      </div>
-      <div class="order-actions">
-        <button class="btn btn-sm btn-primary">确认核销</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- ========== 7. 标签与徽章 ========== -->
-  <div class="section-header" style="position:relative">
-    <h2>🏷️ 标签与徽章</h2>
-    <p>分类类型标记</p>
-  </div>
-  <div class="badge-row">
-    <span class="badge badge-hot">🔥 热销</span>
-    <span class="badge badge-welfare">🎁 进店福利</span>
-    <span class="badge badge-combo">🍱 套餐</span>
-    <span class="badge badge-new">✨ 新品</span>
-    <span class="badge badge-sold-out">已售罄</span>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- ========== 8. 按钮样式 ========== -->
-  <div class="section-header" style="position:relative">
-    <h2>🔘 按钮样式</h2>
-    <p>全场景按钮变体</p>
-  </div>
-  <div class="btn-section">
-    <div class="btn-row">
-      <button class="btn btn-primary">主要按钮</button>
-      <button class="btn btn-secondary">次要按钮</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-green">确认按钮</button>
-      <button class="btn btn-danger">危险按钮</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-outline">描边按钮</button>
-      <button class="btn btn-primary" disabled>禁用状态</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-sm btn-primary">小按钮</button>
-      <button class="btn btn-sm btn-secondary">小按钮</button>
-      <button class="btn btn-sm btn-outline">小按钮</button>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- ========== 9. 空状态 ========== -->
-  <div class="section-header" style="position:relative">
-    <h2>📭 空状态</h2>
-    <p>无数据时的友好提示</p>
-  </div>
-  <div class="empty-state">
-    <div class="empty-icon">🛒</div>
-    <div class="empty-title">购物车是空的</div>
-    <div class="empty-desc">快去挑选心仪的美食吧</div>
-    <button class="btn btn-primary" style="margin-top:16px;width:160px">去点单</button>
-  </div>
-
-  <div style="height:40px"></div>
-
+    </section>
+  </main>
 </div>
-
 </body>
 </html>

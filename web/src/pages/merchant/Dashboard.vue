@@ -34,10 +34,10 @@ const statusLabel = (status: string) => {
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
-    pending: '#FF6B6B', accepted: '#52C41A', preparing: '#FF9800',
-    ready: '#1890FF', completed: '#8C8C8C', cancelled: '#8C8C8C'
+    pending: '#087E6B', accepted: '#259D63', preparing: '#F7B731',
+    ready: '#346AC3', completed: '#687872', cancelled: '#687872'
   }
-  return map[status] || '#8C8C8C'
+  return map[status] || '#687872'
 }
 
 const formatTime = (dateStr: string) => {
@@ -150,17 +150,19 @@ onMounted(fetchAllData)
 <style scoped lang="scss">
 .dashboard-page {
   min-height: 100vh;
-  background: #F7F7F7;
+  background: #F6F7F3;
 }
 
 .page-header {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  background: #fff;
   padding: 16px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
 
-  .page-title { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
+  .page-title { margin: 0; font-size: 18px; font-weight: 800; color: #1F2A26; }
 }
 
-.loading-state { text-align: center; padding: 80px 0; color: #8C8C8C; }
+.loading-state { text-align: center; padding: 80px 0; color: #687872; }
 
 .dashboard-content { padding: 12px; }
 
@@ -173,69 +175,72 @@ onMounted(fetchAllData)
 
 .overview-card {
   background: #FFFFFF;
-  border-radius: 14px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 
   &.highlight {
-    background: linear-gradient(135deg, #FFF1F0, #FFE4E1);
-    border: 1px solid #FFCCC7;
+    background: linear-gradient(135deg, #E7F4EF, #FFE4E1);
+    border: 1px solid #BFE5DA;
   }
 
-  .overview-label { font-size: 13px; color: #8C8C8C; margin-bottom: 8px; }
-  .overview-value { font-size: 28px; font-weight: 800; color: #1A1A2E; margin-bottom: 4px; }
-  .overview-value.revenue { color: #FF6B6B; }
-  .overview-hint { font-size: 12px; color: #FF6B6B; }
+  .overview-label { font-size: 13px; color: #687872; margin-bottom: 8px; }
+  .overview-value { font-size: 28px; font-weight: 800; color: #1F2A26; margin-bottom: 4px; }
+  .overview-value.revenue { color: #087E6B; }
+  .overview-hint { font-size: 12px; color: #087E6B; }
 }
 
 .chart-section {
   background: #FFFFFF;
-  border-radius: 14px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 
-  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1A1A2E; }
+  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1F2A26; }
 }
 
 .chart-placeholder {
   text-align: center;
   padding: 40px 0;
-  background: #FAFAFA;
+  background: #FAFCFA;
   border-radius: 10px;
-  border: 2px dashed #E8E8E8;
+  border: 2px dashed #DCE6E1;
 
   .chart-icon { font-size: 36px; margin-bottom: 8px; }
-  p { margin: 4px 0; color: #8C8C8C; font-size: 14px; }
+  p { margin: 4px 0; color: #687872; font-size: 14px; }
   .chart-hint { font-size: 12px; color: #D9D9D9; }
 }
 
 .recent-section {
   background: #FFFFFF;
-  border-radius: 14px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 
-  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1A1A2E; }
+  .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1F2A26; }
 }
 
-.empty-state { text-align: center; padding: 40px 0; color: #8C8C8C; font-size: 14px; }
+.empty-state { text-align: center; padding: 40px 0; color: #687872; font-size: 14px; }
 
 .recent-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid #E2E8E3;
 
   &:last-child { border-bottom: none; }
 }
 
 .recent-left { display: flex; align-items: center; gap: 8px; }
-.recent-code { font-size: 16px; font-weight: 700; color: #FF6B6B; }
-.recent-time { font-size: 12px; color: #8C8C8C; }
+.recent-code { font-size: 16px; font-weight: 700; color: #087E6B; }
+.recent-time { font-size: 12px; color: #687872; }
 .recent-right { display: flex; align-items: center; gap: 8px; }
-.recent-amount { font-size: 14px; font-weight: 600; color: #1A1A2E; }
+.recent-amount { font-size: 14px; font-weight: 600; color: #1F2A26; }
 .recent-status { font-size: 13px; font-weight: 600; }
 </style>

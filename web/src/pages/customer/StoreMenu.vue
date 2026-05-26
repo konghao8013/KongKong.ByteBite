@@ -22,13 +22,14 @@ onMounted(async () => {
     const data = await customerApi.getStoreMenuByCode(storeCode)
     menuData.value = data
     if (data.storeId) localStorage.setItem('current_store_id', data.storeId)
+    if (data.storeName) localStorage.setItem('current_store_name', data.storeName)
     if (menuData.value?.categories?.length) {
       activeCategory.value = menuData.value.categories[0].id
     }
     const sid = menuData.value?.storeId || storeCode
     cartStore.loadFromLocalStorage(sid)
   } catch {
-    error.value = '加载菜单失败，请稍后重试'
+    error.value = '菜单加载失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -81,34 +82,36 @@ const handleDecrease = (productId: string) => {
 
 <template>
   <div class="store-menu">
-    <!-- 顶部店铺信息 -->
-    <div class="store-header">
-      <div class="store-info">
-        <h1 class="store-name">{{ menuData?.storeName || '加载中...' }}</h1>
-        <p v-if="menuData?.description" class="store-desc">{{ menuData.description }}</p>
+    <header class="store-header">
+      <div class="store-title-row">
+        <div>
+          <h1 class="store-name">{{ menuData?.storeName || '加载中...' }}</h1>
+          <p v-if="menuData?.description" class="store-desc">{{ menuData.description }}</p>
+        </div>
+        <button class="order-link" @click="goToOrders">我的订单</button>
       </div>
-      <span class="order-link" @click="goToOrders">我的订单</span>
-    </div>
+      <div class="store-meta">
+        <span :class="{ muted: !menuData?.canOrder }">{{ menuData?.canOrder ? '营业中' : '休息中' }}</span>
+        <span>堂食</span>
+        <span>外带</span>
+        <span v-if="menuData?.diningMode?.includes('delivery')">配送</span>
+      </div>
+      <div class="menu-search">搜索菜品、套餐、饮品</div>
+    </header>
 
-    <!-- 商家休息中提示 -->
     <div v-if="menuData && !menuData.canOrder" class="closed-banner">
-      <span>💤</span>
       <span>商家休息中，暂不可下单</span>
     </div>
 
-    <!-- 加载状态 -->
     <LoadingSpinner v-if="loading" text="加载菜单中..." />
 
-    <!-- 错误状态 -->
-    <EmptyState v-else-if="error" :description="error" icon="😔">
-      <button @click="loading = true; error = ''">重新加载</button>
+    <EmptyState v-else-if="error" :description="error" icon="!">
+      <button class="retry-btn" @click="loading = true; error = ''">重新加载</button>
     </EmptyState>
 
-    <!-- 菜单主体 -->
     <div v-else-if="menuData" class="menu-body">
-      <!-- 左侧分类列表 -->
-      <div class="category-sidebar">
-        <div
+      <aside class="category-sidebar">
+        <button
           v-for="category in menuData.categories"
           :key="category.id"
           class="category-item"
@@ -116,35 +119,36 @@ const handleDecrease = (productId: string) => {
           @click="selectCategory(category)"
         >
           <span class="category-name">{{ category.name }}</span>
-          <span v-if="category.items.length" class="category-count">{{ category.items.length }}</span>
-        </div>
-      </div>
+          <span v-if="category.items.length" class="category-count">{{ category.items.length }} 件</span>
+        </button>
+      </aside>
 
-      <!-- 右侧商品列表 -->
-      <div class="product-list">
-        <div
+      <main class="product-list">
+        <section
           v-for="category in menuData.categories"
           :id="`cat-${category.id}`"
           :key="category.id"
           class="product-section"
         >
-          <div class="section-title">{{ category.name }}</div>
-          <div
+          <h2 class="section-title">{{ category.name }}</h2>
+          <article
             v-for="item in category.items"
             :key="item.id"
             class="product-card"
           >
             <div class="product-image-wrapper">
               <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="product-image" />
-              <div v-else class="product-image-placeholder">🍽️</div>
+              <div v-else class="product-image-placeholder">餐</div>
               <span v-if="item.status === 'sold_out'" class="sold-out-badge">售罄</span>
             </div>
             <div class="product-info">
-              <h3 class="product-name">{{ item.name }}</h3>
-              <p v-if="item.description" class="product-desc">{{ item.description }}</p>
+              <div>
+                <h3 class="product-name">{{ item.name }}</h3>
+                <p v-if="item.description" class="product-desc">{{ item.description }}</p>
+              </div>
               <div class="product-meta">
-                <span v-if="item.monthlySales > 0" class="monthly-sales">月售{{ item.monthlySales }}份</span>
-                <el-tag v-if="item.isCombo" size="small" type="warning" class="combo-tag">套餐</el-tag>
+                <span v-if="item.monthlySales > 0" class="monthly-sales">月售 {{ item.monthlySales }} 份</span>
+                <span v-if="item.isCombo" class="combo-tag">套餐</span>
               </div>
               <div class="product-bottom">
                 <div class="product-price">
@@ -155,7 +159,7 @@ const handleDecrease = (productId: string) => {
                 <div class="product-action">
                   <template v-if="item.status !== 'sold_out'">
                     <div v-if="getItemCartQuantity(item.id) > 0" class="quantity-control">
-                      <button class="qty-btn minus" @click.stop="handleDecrease(item.id)">−</button>
+                      <button class="qty-btn minus" @click.stop="handleDecrease(item.id)">-</button>
                       <span class="qty-num">{{ getItemCartQuantity(item.id) }}</span>
                       <button class="qty-btn plus" @click.stop="addToCart(item)">+</button>
                     </div>
@@ -171,22 +175,24 @@ const handleDecrease = (productId: string) => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </article>
+        </section>
         <div class="list-bottom-spacer" />
-      </div>
+      </main>
     </div>
 
-    <!-- 底部购物车栏 -->
     <div v-if="cartStore.totalCount > 0" class="cart-bar" @click="goToCart">
       <div class="cart-bar-left">
         <div class="cart-icon-wrapper">
-          <span class="cart-icon">🛒</span>
+          <span class="cart-icon">购</span>
           <span class="cart-badge">{{ cartStore.totalCount }}</span>
         </div>
-        <div class="cart-price">
-          <span class="price-symbol">¥</span>
-          <span class="price-value">{{ cartStore.totalPrice.toFixed(2) }}</span>
+        <div>
+          <div class="cart-price">
+            <span class="price-symbol">¥</span>
+            <span class="price-value">{{ cartStore.totalPrice.toFixed(2) }}</span>
+          </div>
+          <span class="cart-hint">已选 {{ cartStore.totalCount }} 件</span>
         </div>
       </div>
       <div class="cart-bar-right" :class="{ disabled: !menuData?.canOrder }">
@@ -200,147 +206,215 @@ const handleDecrease = (productId: string) => {
 .store-menu {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: calc(100dvh - 58px - env(safe-area-inset-bottom));
+  min-height: 0;
+  overflow: hidden;
+  background: #F6F7F3;
 }
 
-/* 顶部店铺信息 */
 .store-header {
-  background: $primary-color;
-  padding: 12px 16px;
+  flex-shrink: 0;
+  padding: 16px 16px 12px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #E2E8E3;
+  z-index: 5;
+}
+
+.store-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .store-name {
-  font-size: 18px;
-  font-weight: 700;
+  margin: 0;
+  color: #1F2A26;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .store-desc {
+  max-width: 520px;
+  margin: 5px 0 0;
+  color: #687872;
   font-size: 12px;
-  color: #666;
-  margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 240px;
 }
 
 .order-link {
-  font-size: 14px;
-  color: $brand-color;
-  cursor: pointer;
-  font-weight: 500;
   flex-shrink: 0;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid #E2E8E3;
+  border-radius: 6px;
+  color: #087E6B;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-/* 商家休息中提示 */
+.store-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+
+  span {
+    padding: 4px 8px;
+    border-radius: 999px;
+    color: #087E6B;
+    background: #E7F4EF;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .muted {
+    color: #687872;
+    background: #F1F4F2;
+  }
+}
+
+.menu-search {
+  height: 34px;
+  margin-top: 10px;
+  padding: 0 12px;
+  border: 1px solid #E2E8E3;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  color: #9AA9A3;
+  background: #FAFCFA;
+  font-size: 12px;
+}
+
 .closed-banner {
-  background: #fff3e0;
+  flex-shrink: 0;
   padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  color: #e65100;
+  color: #9A6A00;
+  background: #FFF6DB;
+  border-bottom: 1px solid #F5E2A8;
+  font-size: 13px;
 }
 
-/* 菜单主体 */
+.retry-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 6px;
+  color: #fff;
+  background: #087E6B;
+  font-weight: 700;
+}
+
 .menu-body {
   flex: 1;
-  display: flex;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
   overflow: hidden;
 }
 
-/* 左侧分类 */
 .category-sidebar {
-  width: 88px;
-  flex-shrink: 0;
-  background: #f7f7f7;
+  min-height: 0;
+  height: 100%;
+  background: #EFF4F1;
+  border-right: 1px solid #E2E8E3;
+  overscroll-behavior: contain;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .category-item {
-  padding: 14px 8px;
-  font-size: 13px;
-  color: #666;
-  text-align: center;
+  width: 100%;
+  min-height: 54px;
+  padding: 9px 8px 8px 12px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  color: #687872;
+  text-align: left;
   position: relative;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+}
 
-  &.active {
-    background: #fff;
-    color: $text-color;
-    font-weight: 600;
+.category-item.active {
+  background: #fff;
+  color: #087E6B;
+  font-weight: 800;
+}
 
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 20px;
-      background: $brand-color;
-      border-radius: 0 2px 2px 0;
-    }
-  }
+.category-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 13px;
+  bottom: 13px;
+  width: 3px;
+  border-radius: 0 99px 99px 0;
+  background: #087E6B;
 }
 
 .category-name {
-  line-height: 1.3;
+  font-size: 12px;
+  line-height: 1.25;
 }
 
 .category-count {
+  color: #9AA9A3;
   font-size: 10px;
-  color: #bbb;
 }
 
-/* 右侧商品列表 */
 .product-list {
-  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 0 12px;
+  padding: 0 10px;
 }
 
 .product-section {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
+  margin: 0;
   padding: 12px 0 8px;
   position: sticky;
   top: 0;
-  background: $bg-color;
+  color: #1F2A26;
+  background: #F6F7F3;
   z-index: 1;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .product-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
   gap: 10px;
-  background: #fff;
-  border-radius: 8px;
   padding: 10px;
   margin-bottom: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 }
 
 .product-image-wrapper {
-  width: 90px;
-  height: 90px;
-  flex-shrink: 0;
+  width: 78px;
+  height: 78px;
   border-radius: 6px;
   overflow: hidden;
   position: relative;
+  background: #F1F4F2;
 }
 
 .product-image {
@@ -352,43 +426,48 @@ const handleDecrease = (productId: string) => {
 .product-image-placeholder {
   width: 100%;
   height: 100%;
-  background: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
+  display: grid;
+  place-items: center;
+  color: #087E6B;
+  background:
+    radial-gradient(circle at 34% 38%, rgba(255, 255, 255, 0.8) 0 12%, transparent 13%),
+    radial-gradient(circle at 64% 60%, rgba(31, 42, 38, 0.12) 0 12%, transparent 13%),
+    linear-gradient(135deg, #E7F4EF, #BFE5DA);
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .sold-out-badge {
   position: absolute;
   top: 0;
   left: 0;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 11px;
   padding: 2px 8px;
   border-radius: 0 0 6px 0;
+  color: #fff;
+  background: rgba(31, 42, 38, 0.64);
+  font-size: 11px;
 }
 
 .product-info {
-  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
 }
 
 .product-name {
+  margin: 0;
+  color: #1F2A26;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .product-desc {
+  margin: 4px 0 0;
+  color: #687872;
   font-size: 12px;
-  color: $text-secondary;
-  margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -398,29 +477,35 @@ const handleDecrease = (productId: string) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .monthly-sales {
+  color: #9AA9A3;
   font-size: 11px;
-  color: #bbb;
 }
 
 .combo-tag {
-  transform: scale(0.85);
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #9A6A00;
+  background: #FFF6DB;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .product-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-top: auto;
   padding-top: 6px;
 }
 
 .product-price {
-  color: $brand-color;
-  font-weight: 700;
+  color: #FF6B4A;
+  font-weight: 900;
 }
 
 .price-symbol {
@@ -432,9 +517,9 @@ const handleDecrease = (productId: string) => {
 }
 
 .price-from {
-  font-size: 11px;
-  color: $text-secondary;
   margin-left: 2px;
+  color: #687872;
+  font-size: 11px;
 }
 
 .product-action {
@@ -442,23 +527,23 @@ const handleDecrease = (productId: string) => {
 }
 
 .add-btn {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: $brand-color;
+  display: grid;
+  place-items: center;
   color: #fff;
+  background: #087E6B;
   font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-weight: 800;
   line-height: 1;
+}
 
-  &.has-spec {
-    width: auto;
-    border-radius: 14px;
-    padding: 0 12px;
-    font-size: 12px;
-  }
+.add-btn.has-spec {
+  width: auto;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12px;
 }
 
 .quantity-control {
@@ -468,116 +553,123 @@ const handleDecrease = (productId: string) => {
 }
 
 .qty-btn {
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
+  display: grid;
+  place-items: center;
   font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   line-height: 1;
+}
 
-  &.minus {
-    background: #fff;
-    border: 1px solid #ddd;
-    color: #999;
-  }
+.qty-btn.minus {
+  border: 1px solid #DCE6E1;
+  color: #687872;
+  background: #fff;
+}
 
-  &.plus {
-    background: $brand-color;
-    color: #fff;
-  }
+.qty-btn.plus {
+  color: #fff;
+  background: #087E6B;
 }
 
 .qty-num {
-  font-size: 14px;
-  font-weight: 600;
   min-width: 16px;
   text-align: center;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .list-bottom-spacer {
-  height: 70px;
+  height: 94px;
 }
 
-/* 底部购物车栏 */
 .cart-bar {
   position: fixed;
-  bottom: calc(50px + env(safe-area-inset-bottom));
-  left: 0;
-  right: 0;
-  height: 56px;
-  background: $dark-bar;
+  left: 50%;
+  right: auto;
+  bottom: calc(66px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  max-width: 722px;
+  height: 48px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  z-index: 100;
+  color: #fff;
+  background: #202522;
+  box-shadow: 0 10px 24px rgba(31, 42, 38, 0.2);
+  z-index: 101;
   cursor: pointer;
 }
 
 .cart-bar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .cart-icon-wrapper {
   position: relative;
-  width: 44px;
-  height: 44px;
-  background: #3a3a3a;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: -14px;
-}
-
-.cart-icon {
-  font-size: 22px;
+  display: grid;
+  place-items: center;
+  color: #087E6B;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .cart-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  background: $brand-color;
-  color: #fff;
-  font-size: 11px;
+  top: -5px;
+  right: -5px;
   min-width: 18px;
   height: 18px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #FF6B4A;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .cart-price {
   color: #fff;
-  font-weight: 700;
-
-  .price-symbol {
-    font-size: 12px;
-  }
+  font-weight: 900;
 
   .price-value {
     font-size: 20px;
   }
 }
 
-.cart-bar-right {
-  background: $brand-color;
-  color: #fff;
-  padding: 10px 24px;
-  border-radius: 20px;
-  font-size: 15px;
-  font-weight: 600;
+.cart-hint {
+  display: block;
+  margin-top: -2px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 10px;
+}
 
-  &.disabled {
-    background: #666;
-    cursor: not-allowed;
-  }
+.cart-bar-right {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #087E6B;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.cart-bar-right.disabled {
+  background: #687872;
+  cursor: not-allowed;
 }
 </style>

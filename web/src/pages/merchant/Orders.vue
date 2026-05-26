@@ -35,10 +35,10 @@ const statusLabel = (status: string) => {
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
-    pending: '#FF6B6B', accepted: '#52C41A', preparing: '#FF9800',
-    ready: '#1890FF', completed: '#8C8C8C', cancelled: '#8C8C8C', rejected: '#FF4D4F'
+    pending: '#087E6B', accepted: '#259D63', preparing: '#F7B731',
+    ready: '#346AC3', completed: '#687872', cancelled: '#687872', rejected: '#D94C4C'
   }
-  return map[status] || '#8C8C8C'
+  return map[status] || '#687872'
 }
 
 const diningModeLabel = (mode: string) => {
@@ -373,9 +373,9 @@ onUnmounted(async () => {
 <style scoped lang="scss">
 .orders-page {
   padding: 16px;
-  background: #F7F7F7;
+  background: #F6F7F3;
   min-height: 100vh;
-  color: #1A1A2E;
+  color: #1F2A26;
 }
 
 .orders-header {
@@ -384,10 +384,10 @@ onUnmounted(async () => {
   justify-content: space-between;
   margin-bottom: 16px;
 
-  h2 { font-size: 20px; font-weight: 700; margin: 0; color: #1A1A2E; }
+  h2 { font-size: 20px; font-weight: 700; margin: 0; color: #1F2A26; }
 
   .pending-badge {
-    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    background: linear-gradient(135deg, #087E6B, #0EA389);
     color: #fff;
     padding: 5px 14px;
     border-radius: 16px;
@@ -402,8 +402,9 @@ onUnmounted(async () => {
   margin-bottom: 16px;
   background: #FFFFFF;
   padding: 6px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 }
 
 .status-tab {
@@ -414,14 +415,14 @@ onUnmounted(async () => {
   padding: 8px 4px;
   border-radius: 8px;
   font-size: 12px;
-  color: #8C8C8C;
+  color: #687872;
   transition: all 0.25s;
   position: relative;
 
   &.active {
-    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    background: #087E6B;
     color: #fff;
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+    box-shadow: 0 2px 8px rgba(8, 126, 107, 0.22);
   }
 
   .tab-icon { font-size: 16px; }
@@ -430,7 +431,7 @@ onUnmounted(async () => {
     position: absolute;
     top: 2px;
     right: 2px;
-    background: #FF6B6B;
+    background: #087E6B;
     color: #fff;
     font-size: 10px;
     padding: 1px 5px;
@@ -442,7 +443,7 @@ onUnmounted(async () => {
 .loading-state, .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #8C8C8C;
+  color: #687872;
 
   .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
 }
@@ -455,10 +456,11 @@ onUnmounted(async () => {
 
 .order-card {
   background: #FFFFFF;
-  border-radius: 12px;
+  border: 1px solid #E2E8E3;
+  border-left: 4px solid #087E6B;
+  border-radius: 8px;
   padding: 16px;
-  border-left: 4px solid #FF6B6B;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
   cursor: pointer;
   transition: box-shadow 0.2s;
 
@@ -473,21 +475,21 @@ onUnmounted(async () => {
 
   .order-info { display: flex; align-items: center; gap: 8px; }
 
-  .order-no { font-size: 18px; font-weight: 700; color: #FF6B6B; }
+  .order-no { font-size: 18px; font-weight: 800; color: #1F2A26; }
 
   .order-mode {
     font-size: 12px;
     padding: 2px 8px;
     border-radius: 4px;
-    background: #FFF1F0;
-    color: #FF6B6B;
+    background: #E7F4EF;
+    color: #087E6B;
   }
 
-  .order-table { font-size: 12px; color: #1890FF; font-weight: 500; }
+  .order-table { font-size: 12px; color: #346AC3; font-weight: 500; }
   .order-status { font-size: 14px; font-weight: 600; }
 }
 
-.order-time { font-size: 12px; color: #8C8C8C; margin-bottom: 8px; }
+.order-time { font-size: 12px; color: #687872; margin-bottom: 8px; }
 
 .order-items {
   margin-bottom: 12px;
@@ -500,11 +502,11 @@ onUnmounted(async () => {
     color: #333;
 
     .item-name { flex: 1; }
-    .item-qty { color: #8C8C8C; margin-right: 8px; }
-    .item-price { color: #FF6B6B; font-weight: 500; }
+    .item-qty { color: #687872; margin-right: 8px; }
+    .item-price { color: #FF6B4A; font-weight: 600; }
   }
 
-  .item-more { font-size: 12px; color: #BFBFBF; padding-top: 2px; }
+  .item-more { font-size: 12px; color: #9AA9A3; padding-top: 2px; }
 }
 
 .order-footer {
@@ -512,12 +514,12 @@ onUnmounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid #F0F0F0;
+  border-top: 1px solid #E2E8E3;
 
   .order-amount {
-    .amount-label { font-size: 12px; color: #8C8C8C; }
-    .amount-value { font-size: 18px; font-weight: 700; color: #FF6B6B; }
-    .discount-info { font-size: 12px; color: #52C41A; margin-left: 8px; }
+    .amount-label { font-size: 12px; color: #687872; }
+    .amount-value { font-size: 18px; font-weight: 700; color: #087E6B; }
+    .discount-info { font-size: 12px; color: #259D63; margin-left: 8px; }
   }
 
   .order-actions { display: flex; gap: 8px; }
@@ -532,20 +534,20 @@ onUnmounted(async () => {
   cursor: pointer;
 }
 
-.btn-detail { background: #F7F7F7; color: #1A1A2E; }
-.btn-accept { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
-.btn-reject { background: #FFF1F0; color: #FF4D4F; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
-.btn-prepare { background: #FFF7E6; color: #FF9800; }
-.btn-ready { background: #E6F7FF; color: #1890FF; }
-.btn-complete { background: linear-gradient(135deg, #FFBE0B, #FF6B6B); color: #fff; }
+.btn-detail { background: #F6F7F3; color: #1F2A26; }
+.btn-accept { background: #087E6B; color: #fff; }
+.btn-reject { background: #E7F4EF; color: #D94C4C; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+.btn-prepare { background: #FFF6DB; color: #F7B731; }
+.btn-ready { background: #EAF1FF; color: #346AC3; }
+.btn-complete { background: #087E6B; color: #fff; }
 
 .order-remark {
   margin-top: 8px;
   padding: 8px 12px;
-  background: #FFF7E6;
+  background: #FFF6DB;
   border-radius: 8px;
   font-size: 13px;
-  color: #FF9800;
+  color: #F7B731;
 }
 
 /* 详情弹窗 */
@@ -574,7 +576,7 @@ onUnmounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 20px 12px;
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid #E2E8E3;
   position: sticky;
   top: 0;
   background: #FFFFFF;
@@ -582,17 +584,17 @@ onUnmounted(async () => {
   z-index: 1;
 
   .detail-title-row { display: flex; align-items: center; gap: 10px; }
-  .detail-pickup-code { font-size: 22px; font-weight: 800; color: #FF6B6B; }
+  .detail-pickup-code { font-size: 22px; font-weight: 800; color: #087E6B; }
   .detail-status { font-size: 15px; font-weight: 600; }
 
   .detail-close {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #F7F7F7;
+    background: #F6F7F3;
     border: none;
     font-size: 16px;
-    color: #8C8C8C;
+    color: #687872;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -606,7 +608,7 @@ onUnmounted(async () => {
   .section-title {
     font-size: 14px;
     font-weight: 600;
-    color: #1A1A2E;
+    color: #1F2A26;
     margin-bottom: 10px;
   }
 }
@@ -622,19 +624,19 @@ onUnmounted(async () => {
     border-radius: 12px;
     font-size: 13px;
     font-weight: 600;
-    background: #FFF1F0;
-    color: #FF6B6B;
+    background: #E7F4EF;
+    color: #087E6B;
   }
 
   .dining-detail {
     font-size: 13px;
-    color: #1A1A2E;
+    color: #1F2A26;
   }
 }
 
 .delivery-section {
   .delivery-card {
-    background: #FFF7E6;
+    background: #FFF6DB;
     border-radius: 12px;
     padding: 14px;
     border: 1px solid #FFE0B2;
@@ -651,7 +653,7 @@ onUnmounted(async () => {
 
   .delivery-label {
     font-size: 13px;
-    color: #8C8C8C;
+    color: #687872;
     white-space: nowrap;
     min-width: 60px;
   }
@@ -659,13 +661,13 @@ onUnmounted(async () => {
   .delivery-value {
     font-size: 14px;
     font-weight: 600;
-    color: #1A1A2E;
+    color: #1F2A26;
   }
 
   .delivery-phone {
     font-size: 14px;
     font-weight: 600;
-    color: #FF6B6B;
+    color: #087E6B;
     text-decoration: none;
   }
 }
@@ -676,7 +678,7 @@ onUnmounted(async () => {
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid #FAFAFA;
+    border-bottom: 1px solid #FAFCFA;
 
     &:last-child { border-bottom: none; }
   }
@@ -688,15 +690,15 @@ onUnmounted(async () => {
     gap: 4px;
   }
 
-  .detail-item-name { font-size: 14px; color: #1A1A2E; font-weight: 500; }
-  .detail-item-spec { font-size: 12px; color: #8C8C8C; }
+  .detail-item-name { font-size: 14px; color: #1F2A26; font-weight: 500; }
+  .detail-item-spec { font-size: 12px; color: #687872; }
   .detail-item-right { display: flex; align-items: center; gap: 12px; }
-  .detail-item-qty { font-size: 13px; color: #8C8C8C; }
-  .detail-item-price { font-size: 14px; color: #FF6B6B; font-weight: 600; min-width: 60px; text-align: right; }
+  .detail-item-qty { font-size: 13px; color: #687872; }
+  .detail-item-price { font-size: 14px; color: #087E6B; font-weight: 600; min-width: 60px; text-align: right; }
 }
 
 .amount-rows {
-  background: #FAFAFA;
+  background: #FAFCFA;
   border-radius: 10px;
   padding: 12px;
 
@@ -707,26 +709,26 @@ onUnmounted(async () => {
     font-size: 14px;
     color: #595959;
 
-    &.discount { color: #52C41A; }
-    &.total { font-size: 16px; font-weight: 700; color: #FF6B6B; border-top: 1px solid #E8E8E8; padding-top: 10px; margin-top: 4px; }
+    &.discount { color: #259D63; }
+    &.total { font-size: 16px; font-weight: 700; color: #087E6B; border-top: 1px solid #DCE6E1; padding-top: 10px; margin-top: 4px; }
   }
 }
 
 .detail-remark {
-  background: #FFF7E6;
+  background: #FFF6DB;
   border-radius: 10px;
   padding: 12px;
   font-size: 14px;
-  color: #FF9800;
+  color: #F7B731;
   line-height: 1.6;
 }
 
 .detail-reject {
-  background: #FFF1F0;
+  background: #E7F4EF;
   border-radius: 10px;
   padding: 12px;
   font-size: 14px;
-  color: #FF4D4F;
+  color: #D94C4C;
   line-height: 1.6;
 }
 
@@ -737,7 +739,7 @@ onUnmounted(async () => {
     padding: 5px 0;
     font-size: 13px;
 
-    .timeline-label { color: #8C8C8C; }
+    .timeline-label { color: #687872; }
     .timeline-value { color: #595959; }
   }
 }

@@ -171,7 +171,7 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  background: linear-gradient(135deg, #087E6B 0%, #0EA389 100%);
   padding: 24px;
 }
 
@@ -181,7 +181,7 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   background: #fff;
   border-radius: 20px;
   padding: 40px 32px;
-  box-shadow: 0 12px 40px rgba(255, 107, 107, 0.2);
+  box-shadow: 0 12px 40px rgba(8, 126, 107, 0.16);
 }
 
 .login-header {
@@ -190,30 +190,30 @@ const switchMode = () => { isRegister.value = !isRegister.value }
 
   .login-icon { font-size: 48px; display: block; margin-bottom: 12px; }
 
-  h2 { font-size: 24px; font-weight: 700; color: #1A1A2E; margin: 0 0 8px; }
-  p { font-size: 14px; color: #8C8C8C; margin: 0; }
+  h2 { font-size: 24px; font-weight: 700; color: #1F2A26; margin: 0 0 8px; }
+  p { font-size: 14px; color: #687872; margin: 0; }
 }
 
 .login-form {
   .form-group {
     margin-bottom: 20px;
 
-    label { display: block; font-size: 14px; font-weight: 500; color: #1A1A2E; margin-bottom: 8px; }
+    label { display: block; font-size: 14px; font-weight: 500; color: #1F2A26; margin-bottom: 8px; }
 
     input {
       width: 100%;
       height: 44px;
       padding: 0 16px;
-      border: 1px solid #E8E8E8;
+      border: 1px solid #DCE6E1;
       border-radius: 10px;
       font-size: 15px;
       outline: none;
       transition: border-color 0.2s;
       box-sizing: border-box;
-      background: #FAFAFA;
+      background: #FAFCFA;
 
-      &:focus { border-color: #FF6B6B; box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1); background: #fff; }
-      &::placeholder { color: #BFBFBF; }
+      &:focus { border-color: #087E6B; box-shadow: 0 0 0 3px rgba(8, 126, 107, 0.08); background: #fff; }
+      &::placeholder { color: #9AA9A3; }
     }
   }
 }
@@ -223,17 +223,17 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   gap: 16px;
   margin-bottom: 20px;
   padding: 10px 14px;
-  background: #FFF1F0;
+  background: #E7F4EF;
   border-radius: 10px;
-  border: 1px solid #FFCCC7;
+  border: 1px solid #BFE5DA;
 
-  .hint-item { font-size: 12px; color: #FF6B6B; }
+  .hint-item { font-size: 12px; color: #087E6B; }
 }
 
 .login-btn {
   width: 100%;
   height: 48px;
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  background: linear-gradient(135deg, #087E6B, #0EA389);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
@@ -241,7 +241,7 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   border-radius: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 4px 12px rgba(8, 126, 107, 0.22);
 
   &:hover { opacity: 0.9; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -251,8 +251,8 @@ const switchMode = () => { isRegister.value = !isRegister.value }
   text-align: center;
   margin-top: 20px;
   font-size: 14px;
-  color: #8C8C8C;
+  color: #687872;
 
-  span { color: #FF6B6B; cursor: pointer; font-weight: 500; &:hover { text-decoration: underline; } }
+  span { color: #087E6B; cursor: pointer; font-weight: 500; &:hover { text-decoration: underline; } }
 }
 </style>

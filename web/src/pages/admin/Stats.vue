@@ -115,14 +115,16 @@ onMounted(loadStats)
 <style scoped lang="scss">
 .stats-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #f6f7f3;
 }
 
 .page-header {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  background: #fff;
   padding: 16px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
 
-  h2 { margin: 0; font-size: 18px; font-weight: 700; color: #333; }
+  h2 { margin: 0; font-size: 18px; font-weight: 800; color: #1F2A26; }
 }
 
 .loading-state { text-align: center; padding: 80px 0; color: #999; }
@@ -146,14 +148,15 @@ onMounted(loadStats)
 
 .stat-card {
   background: #fff;
-  border-radius: 12px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
   padding: 16px 12px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 
   &.active { border-top: 3px solid #4CAF50; }
-  &.warning { border-top: 3px solid #FF9800; }
-  &.highlight { border-top: 3px solid #FF6B6B; }
+  &.warning { border-top: 3px solid #F7B731; }
+  &.highlight { border-top: 3px solid #087E6B; }
 
   .stat-value {
     font-size: 24px;
@@ -161,7 +164,7 @@ onMounted(loadStats)
     color: #333;
     margin-bottom: 4px;
 
-    &.revenue { color: #FF6B6B; }
+    &.revenue { color: #087E6B; }
   }
 
   .stat-label {

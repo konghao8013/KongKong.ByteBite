@@ -55,13 +55,13 @@ onUnmounted(async () => {
 })
 
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {
-  pending: { label: '待接单', color: '#FF6B6B', icon: '⏳' },
+  pending: { label: '待接单', color: '#087E6B', icon: '⏳' },
   accepted: { label: '已接单', color: '#1890ff', icon: '✅' },
-  preparing: { label: '制作中', color: '#fa8c16', icon: '👨‍🍳' },
+  preparing: { label: '制作中', color: '#F7B731', icon: '👨‍🍳' },
   ready: { label: '备餐完毕', color: '#52c41a', icon: '🔔' },
   completed: { label: '已完成', color: '#999', icon: '🎉' },
-  cancelled: { label: '已取消', color: '#ff4d4f', icon: '❌' },
-  rejected: { label: '已拒单', color: '#ff4d4f', icon: '❌' }
+  cancelled: { label: '已取消', color: '#D94C4C', icon: '❌' },
+  rejected: { label: '已拒单', color: '#D94C4C', icon: '❌' }
 }
 
 const currentStatus = computed(() => {
@@ -229,7 +229,7 @@ const goBack = () => {
 }
 
 .page-header {
-  background: $primary-color;
+  background: rgba(255, 255, 255, 0.96);
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -237,6 +237,8 @@ const goBack = () => {
   position: sticky;
   top: 0;
   z-index: 10;
+  border-bottom: 1px solid $border-color;
+  backdrop-filter: blur(12px);
 }
 
 .back-btn {
@@ -247,7 +249,8 @@ const goBack = () => {
 
 .page-title {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 800;
+  color: $text-color;
 }
 
 .pickup-section {
@@ -258,6 +261,8 @@ const goBack = () => {
   background: #fff;
   padding: 16px;
   margin-bottom: 10px;
+  border-top: 1px solid $border-color;
+  border-bottom: 1px solid $border-color;
 }
 
 .current-status {
@@ -302,7 +307,7 @@ const goBack = () => {
   }
 
   .timeline-step.current & {
-    box-shadow: 0 0 0 4px rgba(255, 102, 51, 0.2);
+    box-shadow: 0 0 0 4px rgba(8, 126, 107, 0.14);
   }
 }
 
@@ -337,6 +342,8 @@ const goBack = () => {
   background: #fff;
   padding: 14px 16px;
   margin-bottom: 10px;
+  border-top: 1px solid $border-color;
+  border-bottom: 1px solid $border-color;
 }
 
 .info-row {
@@ -366,6 +373,8 @@ const goBack = () => {
   background: #fff;
   padding: 14px 16px;
   margin-bottom: 10px;
+  border-top: 1px solid $border-color;
+  border-bottom: 1px solid $border-color;
 }
 
 .section-title {

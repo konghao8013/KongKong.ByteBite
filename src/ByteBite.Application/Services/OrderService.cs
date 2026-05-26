@@ -139,6 +139,37 @@ public class OrderService
         return await query.OrderByDescending(o => o.CreatedAt).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(ct);
     }
 
+    public async Task<List<Order>> GetCustomerOrdersAsync(Guid storeId, string? deviceId, Guid? customerId, int pageSize, CancellationToken ct = default)
+    {
+        if (customerId == null && string.IsNullOrWhiteSpace(deviceId))
+            throw new BusinessException(400, "缺少顾客身份信息");
+
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = _db.Orders
+            .Include(o => o.OrderItems)
+            .Include(o => o.Store)
+            .Where(o => o.StoreId == storeId);
+
+        if (customerId != null && !string.IsNullOrWhiteSpace(deviceId))
+        {
+            query = query.Where(o => o.CustomerId == customerId || o.DeviceId == deviceId);
+        }
+        else if (customerId != null)
+        {
+            query = query.Where(o => o.CustomerId == customerId);
+        }
+        else
+        {
+            query = query.Where(o => o.DeviceId == deviceId);
+        }
+
+        return await query
+            .OrderByDescending(o => o.CreatedAt)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
     public async Task<Order> AcceptOrderAsync(Guid orderId, CancellationToken ct = default)
     {
         var order = await _db.Orders.FindAsync([orderId], ct) ?? throw new BusinessException(404, "订单不存在");

@@ -399,7 +399,7 @@ onMounted(loadData)
 <style scoped lang="scss">
 .menu-page {
   min-height: 100vh;
-  background: #f7f7f7;
+  background: #f6f7f3;
   color: #1a1a2e;
 }
 
@@ -439,7 +439,7 @@ onMounted(loadData)
 }
 
 .primary-button {
-  background: #ff6b6b;
+  background: #087e6b;
   color: #fff;
 
   &:disabled {
@@ -449,12 +449,12 @@ onMounted(loadData)
 }
 
 .ghost-button {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: #e7f4ef;
+  color: #D94C4C;
 }
 
 .danger-button {
-  background: #fff1f0;
+  background: #e7f4ef;
   color: #d9363e;
 }
 
@@ -499,15 +499,15 @@ onMounted(loadData)
   padding: 8px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: #f7f7f7;
+  background: #f6f7f3;
   color: #666;
   text-align: center;
   cursor: pointer;
 
   &.active {
-    border-color: #ff6b6b;
-    background: #fff1f0;
-    color: #ff4d4f;
+    border-color: #087e6b;
+    background: #e7f4ef;
+    color: #D94C4C;
   }
 }
 
@@ -576,7 +576,7 @@ onMounted(loadData)
   }
 
   &.sold_out {
-    background: #fff7e6;
+    background: #FFF6DB;
     color: #d46b08;
   }
 }
@@ -602,7 +602,7 @@ onMounted(loadData)
   span {
     padding: 3px 8px;
     border-radius: 6px;
-    background: #f7f7f7;
+    background: #f6f7f3;
   }
 }
 
@@ -681,7 +681,7 @@ textarea {
   margin-bottom: 10px;
   border: 1px solid #eee;
   border-radius: 8px;
-  background: #fafafa;
+  background: #fafcfa;
 }
 
 .spec-group-head,

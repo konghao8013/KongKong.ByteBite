@@ -4,6 +4,9 @@ export const orderApi = {
   getByStoreId: (storeId: string, params?: { status?: string; pageIndex?: number; pageSize?: number }) =>
     request.get<any[]>(`/stores/${storeId}/orders`, { params }),
 
+  getCustomerOrders: (storeId: string, params: { deviceId?: string; customerId?: string; pageSize?: number }) =>
+    request.get<any[]>(`/stores/${storeId}/customer-orders`, { params }),
+
   getByPickupCode: (pickupCode: string, storeId: string) =>
     request.get<any>(`/orders/pickup/${pickupCode}/store/${storeId}`),
 

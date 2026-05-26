@@ -4,8 +4,8 @@ import type { OrderDto } from '@/types/models/order'
 
 interface CachedOrderData {
   storeId: string
-  activeOrders: string[]
-  orderHistory: string[]
+  activeOrders: OrderDto[]
+  orderHistory: OrderDto[]
   updatedAt: string
 }
 
@@ -21,6 +21,13 @@ export const useOrderStore = defineStore('order', () => {
     if (!exists) {
       activeOrders.value.unshift(order)
     }
+    saveToLocalStorage()
+  }
+
+  const setOrders = (orders: OrderDto[]) => {
+    const historyStatuses = new Set(['completed', 'cancelled', 'rejected'])
+    activeOrders.value = orders.filter(o => !historyStatuses.has(o.status))
+    orderHistory.value = orders.filter(o => historyStatuses.has(o.status))
     saveToLocalStorage()
   }
 
@@ -52,8 +59,8 @@ export const useOrderStore = defineStore('order', () => {
     const cacheKey = `kongkong_bytebite_orders_${currentStoreId.value}`
     const data: CachedOrderData = {
       storeId: currentStoreId.value,
-      activeOrders: activeOrders.value.map(o => o.id),
-      orderHistory: orderHistory.value.map(o => o.id),
+      activeOrders: activeOrders.value,
+      orderHistory: orderHistory.value,
       updatedAt: new Date().toISOString(),
     }
     localStorage.setItem(cacheKey, JSON.stringify(data))
@@ -67,6 +74,8 @@ export const useOrderStore = defineStore('order', () => {
       try {
         const data: CachedOrderData = JSON.parse(cached)
         if (Date.now() - new Date(data.updatedAt).getTime() < 7 * 24 * 60 * 60 * 1000) {
+          activeOrders.value = (data.activeOrders || []).filter((o): o is OrderDto => typeof o === 'object' && !!o?.id)
+          orderHistory.value = (data.orderHistory || []).filter((o): o is OrderDto => typeof o === 'object' && !!o?.id)
           return data
         }
       } catch {
@@ -90,7 +99,7 @@ export const useOrderStore = defineStore('order', () => {
   return {
     activeOrders, orderHistory, currentStoreId,
     hasActiveOrders, getPickupCodes,
-    addActiveOrder, moveToHistory, updateOrderStatus,
+    addActiveOrder, setOrders, moveToHistory, updateOrderStatus,
     loadFromLocalStorage, clearOrders,
   }
 })

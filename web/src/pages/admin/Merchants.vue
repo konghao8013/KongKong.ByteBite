@@ -32,7 +32,7 @@ const statusLabel = (status: string) => {
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
-    active: '#4CAF50', pending: '#FF9800', suspended: '#F44336', rejected: '#999'
+    active: '#4CAF50', pending: '#F7B731', suspended: '#F44336', rejected: '#999'
   }
   return map[status] || '#999'
 }
@@ -157,21 +157,25 @@ onMounted(loadMerchants)
 
 <style scoped lang="scss">
 .merchants-page {
-  background: #f5f5f5;
+  background: #f6f7f3;
   min-height: 100vh;
 }
 
 .page-header {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  background: #fff;
   padding: 16px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px 8px 0 0;
 
-  h2 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
+  h2 { margin: 0; font-size: 18px; font-weight: 800; color: #1F2A26; }
 }
 
 .filter-bar {
   padding: 12px 16px;
   background: #fff;
-  border-bottom: 1px solid #eee;
+  border: 1px solid #E2E8E3;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
 }
 
 .search-input {
@@ -184,7 +188,7 @@ onMounted(loadMerchants)
   margin-bottom: 8px;
   box-sizing: border-box;
 
-  &:focus { border-color: #FF6B6B; }
+  &:focus { border-color: #087E6B; }
 }
 
 .status-filters {
@@ -194,14 +198,14 @@ onMounted(loadMerchants)
 
 .filter-tag {
   padding: 4px 12px;
-  border-radius: 16px;
+  border-radius: 999px;
   font-size: 13px;
   color: #666;
-  background: #f0f0f0;
+  background: #e2e8e3;
   cursor: pointer;
   transition: all 0.2s;
 
-  &.active { background: #FF6B6B; color: #fff; }
+  &.active { background: #087E6B; color: #fff; }
 }
 
 .loading-state, .empty-state {
@@ -221,9 +225,10 @@ onMounted(loadMerchants)
 
 .merchant-card {
   background: #fff;
-  border-radius: 12px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 }
 
 .merchant-header {
@@ -237,7 +242,7 @@ onMounted(loadMerchants)
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  background: linear-gradient(135deg, #087E6B, #0EA389);
   color: #fff;
   display: flex;
   align-items: center;
@@ -251,7 +256,7 @@ onMounted(loadMerchants)
   flex: 1;
   min-width: 0;
 
-  .merchant-name { font-size: 16px; font-weight: 600; color: #333; }
+  .merchant-name { font-size: 16px; font-weight: 700; color: #1F2A26; }
   .merchant-phone { font-size: 13px; color: #999; }
 }
 
@@ -275,20 +280,20 @@ onMounted(loadMerchants)
   display: flex;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #e2e8e3;
 
   button {
     flex: 1;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 14px;
     font-weight: 600;
     border: none;
     cursor: pointer;
   }
 
-  .btn-approve { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
-  .btn-suspend { background: #FFF1F0; color: #FF4D4F; }
-  .btn-activate { background: #E6F7FF; color: #1890FF; }
+  .btn-approve { background: #087E6B; color: #fff; }
+  .btn-suspend { background: #E7F4EF; color: #D94C4C; }
+  .btn-activate { background: #EAF1FF; color: #346AC3; }
 }
 </style>
