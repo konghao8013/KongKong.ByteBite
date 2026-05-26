@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { formatPrice, formatDate } from '@/utils/format'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const router = useRouter()
+const route = useRoute()
 const orderStore = useOrderStore()
+const storeCode = route.params.code as string
 
 const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
   pending: { label: '待接单', color: '#FF6B6B', bgColor: '#fff5f0' },
@@ -26,11 +28,11 @@ const goBack = () => {
 }
 
 const goToDetail = (orderId: string) => {
-  router.push({ name: 'OrderDetail', params: { orderId } })
+  router.push({ name: 'OrderDetail', params: { code: storeCode, orderId } })
 }
 
 const goToMenu = () => {
-  router.push({ name: 'StoreMenu' })
+  router.push({ name: 'StoreMenu', params: { code: storeCode } })
 }
 
 const hasOrders = computed(() =>

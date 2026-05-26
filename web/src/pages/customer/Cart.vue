@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/modules/useCartStore'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { customerApi } from '@/api/modules/customer'
 import { formatPrice } from '@/utils/format'
+import { useDeviceId } from '@/composables/useDeviceId'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { CreateOrderData } from '@/types/models/customer'
 
+const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
-const storeId = localStorage.getItem('current_store_id') || ''
+const { getDeviceId } = useDeviceId()
+const storeCode = route.params.code as string
+const storeId = ref(localStorage.getItem('current_store_id') || '')
 
 const diningMode = ref<string>('dine_in')
 const tableNo = ref('')
@@ -28,12 +32,24 @@ const diningModeOptions = [
 
 const isEmpty = computed(() => cartStore.items.length === 0)
 
+onMounted(async () => {
+  if (storeId.value) return
+  try {
+    const menu = await customerApi.getStoreMenuByCode(storeCode)
+    if (menu.storeId) {
+      storeId.value = menu.storeId
+      localStorage.setItem('current_store_id', menu.storeId)
+    }
+  } catch {
+  }
+})
+
 const goBack = () => {
   router.back()
 }
 
 const goToMenu = () => {
-  router.push({ name: 'StoreMenu' })
+  router.push({ name: 'StoreMenu', params: { code: storeCode } })
 }
 
 const decreaseQuantity = (index: number) => {
@@ -50,11 +66,14 @@ const removeItem = (index: number) => {
 
 const submitOrder = async () => {
   if (isEmpty.value || submitting.value) return
+  if (!storeId.value) return
 
   submitting.value = true
   try {
     const data: CreateOrderData = {
-      storeId,
+      storeId: storeId.value,
+      customerId: localStorage.getItem('customer_id') || undefined,
+      deviceId: getDeviceId(),
       items: cartStore.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -71,7 +90,7 @@ const submitOrder = async () => {
     const orderData = await customerApi.createOrder(data)
     orderStore.addActiveOrder(orderData)
     cartStore.clearCart()
-    router.push({ name: 'OrderDetail', params: { orderId: orderData.id } })
+    router.push({ name: 'OrderDetail', params: { code: storeCode, orderId: orderData.id } })
   } catch {
   } finally {
     submitting.value = false

@@ -47,16 +47,36 @@ public class MerchantService
     /// <param name="ct">取消令牌</param>
     /// <returns>新注册的商家实体</returns>
     /// <exception cref="BusinessException">400-该手机号已注册</exception>
-    public async Task<Merchant> RegisterAsync(string phone, string password, string? nickname, CancellationToken ct = default)
+    public async Task<Merchant> RegisterAsync(string phone, string password, string? nickname, string? storeName = null, CancellationToken ct = default)
     {
         if (await _db.Merchants.AnyAsync(m => m.Phone == phone, ct))
             throw new BusinessException(400, "该手机号已注册");
+        var now = DateTime.UtcNow;
         var merchant = new Merchant
         {
             Id = Guid.NewGuid(), Phone = phone, PasswordHash = PasswordHasher.HashPassword(password),
-            Nickname = nickname, Status = "pending", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            Nickname = nickname, Status = "active", CreatedAt = now, UpdatedAt = now
         };
         _db.Merchants.Add(merchant);
+
+        var normalizedStoreName = string.IsNullOrWhiteSpace(storeName)
+            ? (string.IsNullOrWhiteSpace(nickname) ? $"{phone}的店铺" : $"{nickname}的店铺")
+            : storeName.Trim();
+        _db.Stores.Add(new Store
+        {
+            Id = Guid.NewGuid(),
+            MerchantId = merchant.Id,
+            Name = normalizedStoreName,
+            StoreCode = await GenerateUniqueStoreCodeAsync(ct),
+            BusinessStatus = "open",
+            DiningMode = "dine_in,takeaway",
+            DeliveryMinAmount = 0,
+            PackingFee = 0,
+            MonthlySales = 0,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
         await _db.SaveChangesAsync(ct);
         return merchant;
     }
@@ -89,5 +109,17 @@ public class MerchantService
     {
         var merchant = await _db.Merchants.FindAsync([merchantId], ct);
         if (merchant != null) { merchant.Token = null; await _db.SaveChangesAsync(ct); }
+    }
+
+    private async Task<string> GenerateUniqueStoreCodeAsync(CancellationToken ct)
+    {
+        var seed = await _db.Stores.CountAsync(ct) + 1;
+        string code;
+        do
+        {
+            code = Base36Encoder.Encode(seed++);
+        }
+        while (await _db.Stores.AnyAsync(s => s.StoreCode == code, ct));
+        return code;
     }
 }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { orderApi } from '@/api/modules/order'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { formatPrice, formatDate } from '@/utils/format'
+import { useSignalR } from '@/composables/useSignalR'
 import PickupCodeDisplay from '@/components/common/PickupCodeDisplay.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { OrderDto } from '@/types/models/order'
@@ -11,6 +12,7 @@ import type { OrderDto } from '@/types/models/order'
 const route = useRoute()
 const router = useRouter()
 const orderStore = useOrderStore()
+const { connection, connect, disconnect } = useSignalR('/hubs/order')
 const orderId = route.params.orderId as string
 
 const order = ref<OrderDto | null>(null)
@@ -26,7 +28,30 @@ onMounted(async () => {
     }
   } catch {
   }
+  try {
+    await connect()
+    connection.value?.on('OrderStatusChanged', (payload: { orderId: string; status: string }) => {
+      if (payload.orderId !== orderId || !order.value) return
+      order.value.status = payload.status
+      orderStore.updateOrderStatus(orderId, payload.status)
+    })
+    connection.value?.on('OrderCancelled', (payload: { orderId: string }) => {
+      if (payload.orderId !== orderId || !order.value) return
+      order.value.status = 'cancelled'
+      orderStore.updateOrderStatus(orderId, 'cancelled')
+    })
+    await connection.value?.invoke('SubscribeOrder', orderId)
+  } catch {
+  }
   loading.value = false
+})
+
+onUnmounted(async () => {
+  try {
+    await connection.value?.invoke('UnsubscribeOrder', orderId)
+  } catch {
+  }
+  await disconnect()
 })
 
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {

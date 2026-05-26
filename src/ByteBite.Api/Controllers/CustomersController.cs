@@ -18,6 +18,9 @@ public class CustomersController : ControllerBase
     [HttpPost("login")]
     public async Task<Customer> Login([FromBody] CustomerLoginRequest request) => await _customerService.LoginAsync(request.Phone, request.Password);
 
+    [HttpPost("anonymous")]
+    public async Task<Customer> EnsureAnonymous([FromQuery] string deviceId) => await _customerService.EnsureAnonymousAsync(deviceId);
+
     [HttpGet("{id:guid}")]
     public async Task<Customer> GetById(Guid id) => await _customerService.GetByIdAsync(id);
 

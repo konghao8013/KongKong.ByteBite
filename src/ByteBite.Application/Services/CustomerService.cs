@@ -69,6 +69,26 @@ public class CustomerService
     public async Task<Customer> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await _db.Customers.FindAsync([id], ct) ?? throw new BusinessException(404, "用户不存在");
 
+    public async Task<Customer> EnsureAnonymousAsync(string deviceId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId)) throw new BusinessException(400, "设备标识不能为空");
+        var normalizedDeviceId = deviceId.Trim();
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.DeviceId == normalizedDeviceId && !c.IsRegistered, ct);
+        if (customer != null) return customer;
+
+        customer = new Customer
+        {
+            Id = Guid.NewGuid(),
+            DeviceId = normalizedDeviceId,
+            IsRegistered = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        _db.Customers.Add(customer);
+        await _db.SaveChangesAsync(ct);
+        return customer;
+    }
+
     /// <summary>
     /// 合并匿名数据 - 将设备ID关联的订单合并到注册顾客账号
     /// </summary>

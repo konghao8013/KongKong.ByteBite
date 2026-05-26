@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { orderApi } from '@/api/modules/order'
+import { useSignalR } from '@/composables/useSignalR'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
+const { connection, connect, disconnect } = useSignalR('/hubs/store')
 const loading = ref(false)
 const orders = ref<any[]>([])
 const activeTab = ref('pending')
@@ -124,12 +126,33 @@ const handleComplete = async (order: any) => {
 }
 
 let refreshTimer: any = null
-onMounted(() => {
-  loadOrders()
+onMounted(async () => {
+  await loadOrders()
+  try {
+    await connect()
+    connection.value?.on('NewOrder', (order: any) => {
+      if (!orders.value.some(o => o.id === order.id)) orders.value.unshift(order)
+    })
+    connection.value?.on('OrderStatusUpdated', (payload: { orderId: string; status: string }) => {
+      const target = orders.value.find(o => o.id === payload.orderId)
+      if (target) target.status = payload.status
+    })
+    connection.value?.on('OrderCancelled', (payload: { orderId: string }) => {
+      const target = orders.value.find(o => o.id === payload.orderId)
+      if (target) target.status = 'cancelled'
+    })
+    if (storeId) await connection.value?.invoke('SubscribeStore', storeId)
+  } catch {
+  }
   refreshTimer = setInterval(loadOrders, 15000)
 })
-onUnmounted(() => {
+onUnmounted(async () => {
   if (refreshTimer) clearInterval(refreshTimer)
+  try {
+    if (storeId) await connection.value?.invoke('UnsubscribeStore', storeId)
+  } catch {
+  }
+  await disconnect()
 })
 </script>
 

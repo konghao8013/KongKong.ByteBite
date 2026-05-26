@@ -47,6 +47,15 @@ public class DiscountRuleService
         return entity;
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var entity = await _db.DiscountRules.FindAsync([id], ct) ?? throw new BusinessException(404, "优惠规则不存在");
+        entity.DeletedAt = DateTime.UtcNow;
+        entity.Status = "inactive";
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+    }
+
     /// <summary>
     /// 获取店铺所有优惠规则 - 按创建时间倒序
     /// </summary>
@@ -54,7 +63,7 @@ public class DiscountRuleService
     /// <param name="ct">取消令牌</param>
     /// <returns>优惠规则列表</returns>
     public async Task<List<DiscountRule>> GetByStoreIdAsync(Guid storeId, CancellationToken ct = default)
-        => await _db.DiscountRules.Where(d => d.StoreId == storeId).OrderByDescending(d => d.CreatedAt).ToListAsync(ct);
+        => await _db.DiscountRules.Where(d => d.StoreId == storeId && d.DeletedAt == null).OrderByDescending(d => d.CreatedAt).ToListAsync(ct);
 
     /// <summary>
     /// 获取店铺当前生效的优惠规则 - 状态为active且在有效期内的
@@ -63,5 +72,5 @@ public class DiscountRuleService
     /// <param name="ct">取消令牌</param>
     /// <returns>生效中的优惠规则列表</returns>
     public async Task<List<DiscountRule>> GetActiveByStoreIdAsync(Guid storeId, CancellationToken ct = default)
-        => await _db.DiscountRules.Where(d => d.StoreId == storeId && d.Status == "active" && d.StartTime <= DateTime.UtcNow && d.EndTime >= DateTime.UtcNow).ToListAsync(ct);
+        => await _db.DiscountRules.Where(d => d.StoreId == storeId && d.DeletedAt == null && d.Status == "active" && d.StartTime <= DateTime.UtcNow && d.EndTime >= DateTime.UtcNow).ToListAsync(ct);
 }

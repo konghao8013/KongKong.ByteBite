@@ -95,9 +95,22 @@ file class StoreMenuSeeder : IDataSeeder
         var db = scope.ServiceProvider.GetRequiredService<ByteBiteDbContext>();
 
         var merchant = await db.Merchants.FirstOrDefaultAsync(m => m.Phone == "18523978013");
-        if (merchant == null) return;
-
-        if (merchant.Status != "active")
+        if (merchant == null)
+        {
+            merchant = new Merchant
+            {
+                Id = Guid.NewGuid(),
+                Phone = "18523978013",
+                PasswordHash = PasswordHasher.HashPassword("123456"),
+                Nickname = "演示商家",
+                Status = "active",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            db.Merchants.Add(merchant);
+            await db.SaveChangesAsync();
+        }
+        else if (merchant.Status != "active")
         {
             merchant.Status = "active";
             await db.SaveChangesAsync();

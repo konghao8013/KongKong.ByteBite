@@ -16,7 +16,7 @@ public class MerchantsController : ControllerBase
     public async Task<Merchant> Login([FromBody] LoginRequest request) => await _merchantService.LoginAsync(request.Phone, request.Password);
 
     [HttpPost("register")]
-    public async Task<Merchant> Register([FromBody] RegisterMerchantRequest request) => await _merchantService.RegisterAsync(request.Phone, request.Password, request.Nickname);
+    public async Task<Merchant> Register([FromBody] RegisterMerchantRequest request) => await _merchantService.RegisterAsync(request.Phone, request.Password, request.Nickname, request.StoreName);
 
     [HttpGet("{id:guid}")]
     public async Task<Merchant> GetById(Guid id) => await _merchantService.GetByIdAsync(id);
@@ -29,4 +29,4 @@ public class MerchantsController : ControllerBase
 }
 
 public class LoginRequest { public string Phone { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
-public class RegisterMerchantRequest { public string Phone { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? Nickname { get; set; } }
+public class RegisterMerchantRequest { public string Phone { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string? Nickname { get; set; } public string? StoreName { get; set; } }

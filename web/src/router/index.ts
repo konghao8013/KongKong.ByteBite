@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { storeApi } from '@/api/modules/store'
 
 const customerRoutes: RouteRecordRaw[] = [
   { path: '', name: 'StoreMenu', component: () => import('@/pages/customer/StoreMenu.vue') },
@@ -64,8 +65,18 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/store/:storeId',
-    redirect: (to) => {
-      return { path: `/A/${to.params.storeId}` }
+    component: { render: () => null },
+    beforeEnter: async (to) => {
+      const storeId = String(to.params.storeId || '')
+      if (/^[0-9a-fA-F-]{36}$/.test(storeId)) {
+        try {
+          const store = await storeApi.getById(storeId)
+          return { path: `/A/${store.storeCode || storeId}` }
+        } catch {
+          return { path: `/A/${storeId}` }
+        }
+      }
+      return { path: `/A/${storeId}` }
     },
   },
 ]

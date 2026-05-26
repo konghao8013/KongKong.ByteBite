@@ -19,7 +19,5 @@ public class StoresController : ControllerBase
     public async Task<List<Store>> GetByMerchantId(Guid merchantId) => await _storeService.GetByMerchantIdAsync(merchantId);
 
     [HttpPut("{id:guid}")]
-    public async Task<Store> Update(Guid id, [FromBody] UpdateStoreRequest request) => await _storeService.UpdateAsync(id, request.Name, request.Description, request.CoverImageUrl, request.BusinessStatus);
+    public async Task<Store> Update(Guid id, [FromBody] UpdateStoreInput request) => await _storeService.UpdateAsync(id, request);
 }
-
-public class UpdateStoreRequest { public string? Name { get; set; } public string? Description { get; set; } public string? CoverImageUrl { get; set; } public string? BusinessStatus { get; set; } }

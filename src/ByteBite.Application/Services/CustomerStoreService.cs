@@ -55,17 +55,24 @@ public class CustomerStoreService
             CanOrder = store.BusinessStatus == "open",
             store.DiningMode,
             PackingFee = store.PackingFee ?? 0m,
-            Categories = categories.Select(category => new
-            {
-                category.Id,
-                category.Name,
-                category.Icon,
-                category.CategoryType,
-                category.SortOrder,
-                Items = productsByCategory.TryGetValue(category.Id, out var categoryProducts)
-                    ? categoryProducts.Select(ToMenuItem).ToList()
-                    : new List<object>()
-            }).ToList()
+            Categories = categories
+                .Select(category =>
+                {
+                    var items = productsByCategory.TryGetValue(category.Id, out var categoryProducts)
+                        ? categoryProducts.Select(ToMenuItem).ToList()
+                        : new List<object>();
+                    return new
+                    {
+                        category.Id,
+                        category.Name,
+                        category.Icon,
+                        category.CategoryType,
+                        category.SortOrder,
+                        Items = items
+                    };
+                })
+                .Where(category => category.Items.Count > 0)
+                .ToList()
         };
     }
 

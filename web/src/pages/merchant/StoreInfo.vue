@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { storeApi } from '@/api/modules/store'
 import StoreShareDialog from '@/components/common/StoreShareDialog.vue'
 
@@ -9,45 +9,96 @@ const saving = ref(false)
 const store = ref<any>(null)
 const editMode = ref(false)
 const shareVisible = ref(false)
-const form = ref({ name: '', description: '', coverImageUrl: '' })
+
+const form = reactive({
+  name: '',
+  description: '',
+  coverImageUrl: '',
+  businessHoursStart: '09:00',
+  businessHoursEnd: '23:00',
+  dineIn: true,
+  takeaway: true,
+  delivery: false,
+  deliveryMinAmount: 0,
+  packingFee: 0,
+})
+
+const parseTime = (value?: string) => {
+  if (!value) return ''
+  return value.slice(0, 5)
+}
+
+const toApiTime = (value: string) => {
+  if (!value) return undefined
+  return value.length === 5 ? `${value}:00` : value
+}
 
 const loadStore = async () => {
   if (!storeId) return
   loading.value = true
   try {
     store.value = await storeApi.getById(storeId)
-    form.value = {
-      name: store.value.name || '',
-      description: store.value.description || '',
-      coverImageUrl: store.value.coverImageUrl || '',
-    }
-  } catch (e) { console.error('加载店铺信息失败', e) }
-  finally { loading.value = false }
+    const modes = String(store.value.diningMode || 'dine_in,takeaway').split(',')
+    form.name = store.value.name || ''
+    form.description = store.value.description || ''
+    form.coverImageUrl = store.value.coverImageUrl || ''
+    form.businessHoursStart = parseTime(store.value.businessHoursStart) || '09:00'
+    form.businessHoursEnd = parseTime(store.value.businessHoursEnd) || '23:00'
+    form.dineIn = modes.includes('dine_in')
+    form.takeaway = modes.includes('takeaway')
+    form.delivery = modes.includes('delivery')
+    form.deliveryMinAmount = Number(store.value.deliveryMinAmount || 0)
+    form.packingFee = Number(store.value.packingFee || 0)
+  } finally {
+    loading.value = false
+  }
+}
+
+const buildDiningMode = () => {
+  const modes: string[] = []
+  if (form.dineIn) modes.push('dine_in')
+  if (form.takeaway) modes.push('takeaway')
+  if (form.delivery) modes.push('delivery')
+  return modes.length ? modes.join(',') : 'dine_in'
 }
 
 const handleSave = async () => {
   if (!storeId) return
   saving.value = true
   try {
-    await storeApi.update(storeId, form.value)
+    await storeApi.update(storeId, {
+      name: form.name,
+      description: form.description,
+      coverImageUrl: form.coverImageUrl,
+      businessHoursStart: toApiTime(form.businessHoursStart),
+      businessHoursEnd: toApiTime(form.businessHoursEnd),
+      diningMode: buildDiningMode(),
+      deliveryMinAmount: Number(form.deliveryMinAmount || 0),
+      packingFee: Number(form.packingFee || 0),
+    })
     editMode.value = false
     await loadStore()
-  } catch (e) { console.error('保存失败', e) }
-  finally { saving.value = false }
+  } finally {
+    saving.value = false
+  }
 }
 
 const toggleBusiness = async () => {
   if (!store.value) return
-  const newStatus = store.value.businessStatus === 'open' ? 'closed' : 'open'
-  try {
-    await storeApi.update(storeId, { businessStatus: newStatus })
-    store.value.businessStatus = newStatus
-  } catch (e) { console.error('操作失败', e) }
+  const businessStatus = store.value.businessStatus === 'open' ? 'closed' : 'open'
+  await storeApi.update(storeId, { businessStatus })
+  store.value.businessStatus = businessStatus
 }
 
-const businessStatusLabel = (status: string) => {
-  const map: Record<string, string> = { open: '营业中', closed: '已打烊' }
-  return map[status] || status
+const businessStatusLabel = (status: string) => status === 'open' ? '营业中' : '休息中'
+
+const diningModeText = (value: string) => {
+  const modes = String(value || '').split(',')
+  const labels: string[] = []
+  if (modes.includes('dine_in')) labels.push('堂食')
+  if (modes.includes('takeaway')) labels.push('打包')
+  if (modes.includes('delivery')) labels.push('外卖')
+  return labels.join('、') || '堂食'
 }
 
 onMounted(loadStore)
@@ -55,91 +106,121 @@ onMounted(loadStore)
 
 <template>
   <div class="store-page">
-    <div class="store-header">
-      <h2>店铺信息</h2>
+    <header class="store-header">
+      <h2>店铺设置</h2>
       <div class="header-actions">
-        <button v-if="!editMode" class="btn-share" @click="shareVisible = true">分享</button>
-        <button v-if="!editMode" class="btn-edit" @click="editMode = true">编辑</button>
+        <button v-if="!editMode" class="ghost-button" @click="shareVisible = true">分享</button>
+        <button v-if="!editMode" class="primary-button" @click="editMode = true">编辑</button>
       </div>
-    </div>
+    </header>
 
     <div v-if="loading" class="loading-state">加载中...</div>
 
-    <div v-else-if="store" class="store-content">
-      <div class="store-banner">
+    <main v-else-if="store" class="store-content">
+      <section class="store-banner">
         <div v-if="store.coverImageUrl" class="banner-img" :style="{ backgroundImage: `url(${store.coverImageUrl})` }"></div>
-        <div v-else class="banner-placeholder">🏪</div>
-        <div class="store-status-badge" :class="store.businessStatus">
-          {{ businessStatusLabel(store.businessStatus) }}
-        </div>
-      </div>
+        <div v-else class="banner-placeholder">{{ store.name?.slice(0, 1) || '店' }}</div>
+        <span class="status-badge" :class="store.businessStatus">{{ businessStatusLabel(store.businessStatus) }}</span>
+      </section>
 
-      <div class="store-info-card">
-        <div v-if="!editMode">
+      <section class="info-panel">
+        <template v-if="!editMode">
           <div class="info-row">
-            <span class="info-label">店铺名称</span>
-            <span class="info-value">{{ store.name }}</span>
+            <span>店铺名称</span>
+            <strong>{{ store.name }}</strong>
           </div>
           <div class="info-row">
-            <span class="info-label">店铺描述</span>
-            <span class="info-value">{{ store.description || '暂无描述' }}</span>
+            <span>店铺码</span>
+            <strong>{{ store.storeCode }}</strong>
           </div>
           <div class="info-row">
-            <span class="info-label">营业时间</span>
-            <span class="info-value">{{ store.businessHoursStart || '00:00' }} - {{ store.businessHoursEnd || '23:59' }}</span>
+            <span>店铺描述</span>
+            <strong>{{ store.description || '暂无描述' }}</strong>
           </div>
           <div class="info-row">
-            <span class="info-label">用餐模式</span>
-            <span class="info-value">{{ store.diningMode === 'dine_in' ? '堂食' : store.diningMode === 'takeaway' ? '打包' : '堂食+打包' }}</span>
+            <span>营业时间</span>
+            <strong>{{ parseTime(store.businessHoursStart) || '00:00' }} - {{ parseTime(store.businessHoursEnd) || '23:59' }}</strong>
           </div>
           <div class="info-row">
-            <span class="info-label">月销量</span>
-            <span class="info-value">{{ store.monthlySales || 0 }} 单</span>
+            <span>就餐方式</span>
+            <strong>{{ diningModeText(store.diningMode) }}</strong>
           </div>
-        </div>
+          <div class="info-row">
+            <span>外卖起送</span>
+            <strong>￥{{ Number(store.deliveryMinAmount || 0).toFixed(2) }}</strong>
+          </div>
+          <div class="info-row">
+            <span>打包费</span>
+            <strong>￥{{ Number(store.packingFee || 0).toFixed(2) }}</strong>
+          </div>
+        </template>
 
-        <div v-else class="edit-form">
-          <div class="form-group">
-            <label>店铺名称</label>
-            <input v-model="form.name" placeholder="输入店铺名称" />
+        <template v-else>
+          <label>
+            店铺名称
+            <input v-model="form.name" />
+          </label>
+          <label>
+            店铺描述
+            <textarea v-model="form.description" rows="3"></textarea>
+          </label>
+          <label>
+            封面图 URL
+            <input v-model="form.coverImageUrl" />
+          </label>
+          <div class="form-grid">
+            <label>
+              营业开始
+              <input v-model="form.businessHoursStart" type="time" />
+            </label>
+            <label>
+              营业结束
+              <input v-model="form.businessHoursEnd" type="time" />
+            </label>
+            <label>
+              外卖起送
+              <input v-model.number="form.deliveryMinAmount" type="number" min="0" step="0.01" />
+            </label>
+            <label>
+              打包费
+              <input v-model.number="form.packingFee" type="number" min="0" step="0.01" />
+            </label>
           </div>
-          <div class="form-group">
-            <label>店铺描述</label>
-            <textarea v-model="form.description" placeholder="输入店铺描述" rows="3"></textarea>
-          </div>
-          <div class="form-group">
-            <label>封面图片URL</label>
-            <input v-model="form.coverImageUrl" placeholder="输入图片URL" />
+          <div class="mode-group">
+            <label class="check-card">
+              <input v-model="form.dineIn" type="checkbox" />
+              堂食
+            </label>
+            <label class="check-card">
+              <input v-model="form.takeaway" type="checkbox" />
+              打包
+            </label>
+            <label class="check-card">
+              <input v-model="form.delivery" type="checkbox" />
+              外卖
+            </label>
           </div>
           <div class="form-actions">
-            <button class="btn-cancel" @click="editMode = false; loadStore()">取消</button>
-            <button class="btn-save" :disabled="saving" @click="handleSave">
+            <button class="ghost-button" @click="editMode = false; loadStore()">取消</button>
+            <button class="primary-button" :disabled="saving" @click="handleSave">
               {{ saving ? '保存中...' : '保存' }}
             </button>
           </div>
-        </div>
-      </div>
+        </template>
+      </section>
 
-      <div class="business-toggle">
-        <div class="toggle-info">
-          <span class="toggle-label">营业状态</span>
-          <span class="toggle-status" :class="store.businessStatus">
-            {{ businessStatusLabel(store.businessStatus) }}
-          </span>
+      <section class="business-panel">
+        <div>
+          <span>营业状态</span>
+          <strong :class="store.businessStatus">{{ businessStatusLabel(store.businessStatus) }}</strong>
         </div>
-        <button
-          class="btn-toggle"
-          :class="store.businessStatus"
-          @click="toggleBusiness"
-        >
+        <button class="ghost-button" @click="toggleBusiness">
           {{ store.businessStatus === 'open' ? '打烊休息' : '开始营业' }}
         </button>
-      </div>
+      </section>
 
-      <div class="share-section">
-        <button class="btn-share-store" @click="shareVisible = true">🔗 分享店铺</button>
-      </div>
-    </div>
+      <button class="share-button" @click="shareVisible = true">分享店铺二维码和短链</button>
+    </main>
 
     <StoreShareDialog
       v-if="shareVisible"
@@ -153,9 +234,9 @@ onMounted(loadStore)
 
 <style scoped lang="scss">
 .store-page {
-  background: #F7F7F7;
   min-height: 100vh;
-  color: #1A1A2E;
+  background: #f7f7f7;
+  color: #1a1a2e;
 }
 
 .store-header {
@@ -163,180 +244,203 @@ onMounted(loadStore)
   align-items: center;
   justify-content: space-between;
   padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #ececec;
 
-  h2 { font-size: 20px; font-weight: 700; margin: 0; }
-
-  .header-actions { display: flex; gap: 8px; }
-
-  .btn-edit {
-    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-    color: #fff;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .btn-share {
-    background: #FFF1F0;
-    color: #FF6B6B;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+  h2 {
+    margin: 0;
+    font-size: 20px;
   }
 }
 
-.loading-state { text-align: center; padding: 60px; color: #8C8C8C; }
+.header-actions,
+.form-actions,
+.mode-group {
+  display: flex;
+  gap: 8px;
+}
+
+.primary-button,
+.ghost-button,
+.share-button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary-button,
+.share-button {
+  background: #ff6b6b;
+  color: #fff;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.ghost-button {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+.loading-state {
+  padding: 60px 0;
+  text-align: center;
+  color: #777;
+}
 
 .store-banner {
   position: relative;
-  height: 160px;
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  height: 168px;
+  background: #303846;
   overflow: hidden;
+}
 
-  .banner-img {
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-  }
+.banner-img {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+}
 
-  .banner-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 64px;
-  }
+.banner-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  font-size: 56px;
+  font-weight: 900;
+}
 
-  .store-status-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    padding: 4px 14px;
-    border-radius: 16px;
-    font-size: 13px;
-    font-weight: 600;
+.status-badge {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.52);
+  color: #fff;
+  font-size: 13px;
 
-    &.open { background: #52C41A; color: #fff; }
-    &.closed { background: rgba(0, 0, 0, 0.4); color: #fff; }
+  &.open {
+    background: #389e0d;
   }
 }
 
-.store-info-card {
-  margin: -20px 16px 16px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  padding: 20px;
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+.info-panel,
+.business-panel {
+  margin: 12px 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid #f0f0f0;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 
-  .info-label { font-size: 14px; color: #8C8C8C; }
-  .info-value { font-size: 14px; font-weight: 500; color: #1A1A2E; }
-}
+  span {
+    color: #777;
+  }
 
-.edit-form {
-  .form-group {
-    margin-bottom: 16px;
-
-    label { display: block; font-size: 14px; color: #8C8C8C; margin-bottom: 6px; }
-
-    input, textarea {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid #E8E8E8;
-      border-radius: 10px;
-      font-size: 15px;
-      background: #F7F7F7;
-      color: #1A1A2E;
-      outline: none;
-
-      &:focus { border-color: #FF6B6B; box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1); }
-    }
-
-    textarea { resize: vertical; }
+  strong {
+    text-align: right;
   }
 }
 
-.form-actions {
-  display: flex;
-  gap: 12px;
-
-  button {
-    flex: 1;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-  }
-  .btn-cancel { background: #F7F7F7; color: #8C8C8C; }
-  .btn-save { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: #fff; }
+label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: #666;
+  font-size: 13px;
 }
 
-.business-toggle {
-  margin: 0 16px 16px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  padding: 16px;
+input,
+textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #1a1a2e;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mode-group {
+  margin-bottom: 14px;
+}
+
+.check-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fafafa;
 
-  .toggle-info { display: flex; align-items: center; gap: 8px; }
-  .toggle-label { font-size: 14px; color: #8C8C8C; }
-  .toggle-status {
-    font-size: 14px;
-    font-weight: 600;
-    &.open { color: #52C41A; }
-    &.closed { color: #8C8C8C; }
-  }
-
-  .btn-toggle {
-    padding: 8px 18px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-
-    &.open { background: #FFF1F0; color: #FF6B6B; }
-    &.closed { background: #F6FFED; color: #52C41A; }
+  input {
+    width: auto;
+    min-height: auto;
   }
 }
 
-.share-section {
-  margin: 0 16px 16px;
+.business-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-  .btn-share-store {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-    color: #FFFFFF;
-    border: none;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  div {
+    display: grid;
+    gap: 4px;
+  }
+
+  span {
+    color: #777;
+    font-size: 13px;
+  }
+
+  strong.open {
+    color: #389e0d;
+  }
+}
+
+.share-button {
+  width: calc(100% - 32px);
+  margin: 0 16px 20px;
+}
+
+@media (max-width: 560px) {
+  .form-grid,
+  .mode-group {
+    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 </style>

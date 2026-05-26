@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using ByteBite.Api.Data;
 using ByteBite.Api.Filters;
 using ByteBite.Api.Hubs;
+using ByteBite.Api.Services;
 using ByteBite.Application.Services;
 using ByteBite.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,10 @@ using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 builder.Services.AddControllers(options =>
 {
@@ -37,6 +42,7 @@ builder.Services.AddScoped<DiscountRuleService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<OrderNotificationService>();
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -57,7 +63,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.MapControllers();
 app.MapHub<OrderHub>("/hubs/order");
 app.MapHub<StoreHub>("/hubs/store");

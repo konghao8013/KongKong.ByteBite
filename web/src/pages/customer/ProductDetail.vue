@@ -9,6 +9,7 @@ const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const storeId = localStorage.getItem('current_store_id') || ''
+const storeCode = route.params.code as string
 const productId = route.params.productId as string
 
 const product = ref<StoreMenuItemDto | null>(null)
@@ -18,8 +19,11 @@ const selectedSpecs = ref<Record<string, string>>({})
 
 onMounted(async () => {
   try {
-    const menuData = await customerApi.getStoreMenu(storeId)
+    const menuData = storeId
+      ? await customerApi.getStoreMenu(storeId)
+      : await customerApi.getStoreMenuByCode(storeCode)
     if (menuData) {
+      if (menuData.storeId) localStorage.setItem('current_store_id', menuData.storeId)
       for (const category of menuData.categories) {
         const found = category.items.find((item) => item.id === productId)
         if (found) {

@@ -5,96 +5,186 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ByteBite.Application.Services;
 
-/// <summary>
-/// 商品服务 - 处理商品的增删改查，包含规格组及规格选项的级联创建
-/// </summary>
 public class ProductService
 {
     private readonly ByteBiteDbContext _db;
 
     public ProductService(ByteBiteDbContext db) { _db = db; }
 
-    /// <summary>
-    /// 创建商品 - 同时级联创建规格组和规格选项
-    /// </summary>
-    /// <param name="product">商品实体（含SpecGroups和SpecOptions）</param>
-    /// <param name="ct">取消令牌</param>
-    /// <returns>新创建的商品实体</returns>
-    public async Task<Product> CreateAsync(Product product, CancellationToken ct = default)
+    public async Task<Product> CreateAsync(UpsertProductInput input, CancellationToken ct = default)
     {
-        product.Id = Guid.NewGuid(); product.CreatedAt = DateTime.UtcNow; product.UpdatedAt = DateTime.UtcNow;
-        // 级联初始化规格组和规格选项的ID及关联关系
-        if (product.SpecGroups != null) foreach (var sg in product.SpecGroups) { sg.Id = Guid.NewGuid(); sg.ProductId = product.Id; sg.CreatedAt = DateTime.UtcNow; if (sg.SpecOptions != null) foreach (var so in sg.SpecOptions) { so.Id = Guid.NewGuid(); so.SpecGroupId = sg.Id; } }
+        if (!input.StoreId.HasValue) throw new BusinessException(400, "店铺ID不能为空");
+        if (!input.CategoryId.HasValue) throw new BusinessException(400, "分类ID不能为空");
+        if (string.IsNullOrWhiteSpace(input.Name)) throw new BusinessException(400, "商品名称不能为空");
+
+        var categoryExists = await _db.Categories.AnyAsync(c => c.Id == input.CategoryId && c.StoreId == input.StoreId && c.DeletedAt == null, ct);
+        if (!categoryExists) throw new BusinessException(404, "分类不存在");
+
+        var now = DateTime.UtcNow;
+        var product = new Product
+        {
+            Id = Guid.NewGuid(),
+            StoreId = input.StoreId.Value,
+            CategoryId = input.CategoryId.Value,
+            Name = input.Name,
+            Description = input.Description,
+            BasePrice = input.BasePrice ?? input.Price ?? 0m,
+            ImageUrl = input.ImageUrl,
+            Status = string.IsNullOrWhiteSpace(input.Status) ? "on" : input.Status,
+            SortOrder = input.SortOrder ?? await _db.Products.CountAsync(p => p.CategoryId == input.CategoryId && p.DeletedAt == null, ct) + 1,
+            MinOrderQty = Math.Max(1, input.MinOrderQty ?? 1),
+            IsCombo = input.IsCombo.GetValueOrDefault(),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        AddSpecGroups(product, input.SpecGroups, now);
         _db.Products.Add(product);
         await _db.SaveChangesAsync(ct);
-        return product;
+        return await GetByIdAsync(product.Id, ct);
     }
 
-    /// <summary>
-    /// 更新商品基本信息 - 支持部分字段更新，不含规格
-    /// </summary>
-    /// <param name="id">商品ID</param>
-    /// <param name="name">商品名称（可选）</param>
-    /// <param name="description">描述（可选）</param>
-    /// <param name="price">基础价格（可选）</param>
-    /// <param name="imageUrl">图片URL（可选）</param>
-    /// <param name="status">状态（可选）</param>
-    /// <param name="sortOrder">排序权重（可选）</param>
-    /// <param name="ct">取消令牌</param>
-    /// <returns>更新后的商品实体</returns>
-    /// <exception cref="BusinessException">404-商品不存在</exception>
-    public async Task<Product> UpdateAsync(Guid id, string? name, string? description, decimal? price, string? imageUrl, string? status, int? sortOrder, CancellationToken ct = default)
+    public async Task<Product> UpdateAsync(Guid id, UpsertProductInput input, CancellationToken ct = default)
     {
-        var entity = await _db.Products.FindAsync([id], ct) ?? throw new BusinessException(404, "商品不存在");
-        if (name != null) entity.Name = name;
-        if (description != null) entity.Description = description;
-        if (price != null) entity.BasePrice = price.Value;
-        if (imageUrl != null) entity.ImageUrl = imageUrl;
-        if (status != null) entity.Status = status;
-        if (sortOrder != null) entity.SortOrder = sortOrder.Value;
-        entity.UpdatedAt = DateTime.UtcNow;
+        var product = await _db.Products
+            .Include(p => p.SpecGroups)
+            .ThenInclude(sg => sg.SpecOptions)
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null, ct)
+            ?? throw new BusinessException(404, "商品不存在");
+
+        if (input.CategoryId.HasValue)
+        {
+            var categoryExists = await _db.Categories.AnyAsync(c => c.Id == input.CategoryId && c.StoreId == product.StoreId && c.DeletedAt == null, ct);
+            if (!categoryExists) throw new BusinessException(404, "分类不存在");
+            product.CategoryId = input.CategoryId.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.Name)) product.Name = input.Name;
+        if (input.Description != null) product.Description = input.Description;
+        if (input.BasePrice.HasValue || input.Price.HasValue) product.BasePrice = input.BasePrice ?? input.Price!.Value;
+        if (input.ImageUrl != null) product.ImageUrl = input.ImageUrl;
+        if (input.Status != null) product.Status = input.Status;
+        if (input.SortOrder.HasValue) product.SortOrder = input.SortOrder.Value;
+        if (input.MinOrderQty.HasValue) product.MinOrderQty = Math.Max(1, input.MinOrderQty.Value);
+        if (input.IsCombo.HasValue) product.IsCombo = input.IsCombo.Value;
+        product.UpdatedAt = DateTime.UtcNow;
+
+        if (input.SpecGroups != null)
+        {
+            _db.SpecOptions.RemoveRange(product.SpecGroups.SelectMany(g => g.SpecOptions));
+            _db.SpecGroups.RemoveRange(product.SpecGroups);
+            product.SpecGroups.Clear();
+            AddSpecGroups(product, input.SpecGroups, product.UpdatedAt);
+        }
+
         await _db.SaveChangesAsync(ct);
-        return entity;
+        return await GetByIdAsync(product.Id, ct);
     }
 
-    /// <summary>
-    /// 删除商品 - 物理删除
-    /// </summary>
-    /// <param name="id">商品ID</param>
-    /// <param name="ct">取消令牌</param>
-    /// <exception cref="BusinessException">404-商品不存在</exception>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var entity = await _db.Products.FindAsync([id], ct) ?? throw new BusinessException(404, "商品不存在");
-        _db.Products.Remove(entity);
+        entity.DeletedAt = DateTime.UtcNow;
+        entity.Status = "off";
+        entity.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
     }
 
-    /// <summary>
-    /// 根据ID获取商品详情 - 包含规格组和规格选项
-    /// </summary>
-    /// <param name="id">商品ID</param>
-    /// <param name="ct">取消令牌</param>
-    /// <returns>商品实体（含规格）</returns>
-    /// <exception cref="BusinessException">404-商品不存在</exception>
     public async Task<Product> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.Products.Include(p => p.SpecGroups).ThenInclude(sg => sg.SpecOptions).FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw new BusinessException(404, "商品不存在");
+        => await _db.Products
+            .Include(p => p.SpecGroups)
+            .ThenInclude(sg => sg.SpecOptions)
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null, ct)
+            ?? throw new BusinessException(404, "商品不存在");
 
-    /// <summary>
-    /// 获取分类下的所有商品 - 包含规格，按排序权重排列
-    /// </summary>
-    /// <param name="categoryId">分类ID</param>
-    /// <param name="ct">取消令牌</param>
-    /// <returns>商品列表</returns>
     public async Task<List<Product>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default)
-        => await _db.Products.Include(p => p.SpecGroups).ThenInclude(sg => sg.SpecOptions).Where(p => p.CategoryId == categoryId).OrderBy(p => p.SortOrder).ToListAsync(ct);
+        => await _db.Products
+            .Include(p => p.SpecGroups)
+            .ThenInclude(sg => sg.SpecOptions)
+            .Where(p => p.CategoryId == categoryId && p.DeletedAt == null)
+            .OrderBy(p => p.SortOrder)
+            .ToListAsync(ct);
 
-    /// <summary>
-    /// 获取店铺下的所有商品 - 包含规格，按排序权重排列
-    /// </summary>
-    /// <param name="storeId">店铺ID</param>
-    /// <param name="ct">取消令牌</param>
-    /// <returns>商品列表</returns>
     public async Task<List<Product>> GetByStoreIdAsync(Guid storeId, CancellationToken ct = default)
-        => await _db.Products.Include(p => p.SpecGroups).ThenInclude(sg => sg.SpecOptions).Where(p => p.StoreId == storeId).OrderBy(p => p.SortOrder).ToListAsync(ct);
+        => await _db.Products
+            .Include(p => p.SpecGroups)
+            .ThenInclude(sg => sg.SpecOptions)
+            .Where(p => p.StoreId == storeId && p.DeletedAt == null)
+            .OrderBy(p => p.SortOrder)
+            .ToListAsync(ct);
+
+    private static void AddSpecGroups(Product product, List<ProductSpecGroupInput>? specGroups, DateTime now)
+    {
+        if (specGroups == null) return;
+
+        foreach (var groupInput in specGroups)
+        {
+            if (string.IsNullOrWhiteSpace(groupInput.Name)) continue;
+            var group = new SpecGroup
+            {
+                Id = Guid.NewGuid(),
+                ProductId = product.Id,
+                Name = groupInput.Name,
+                IsRequired = groupInput.IsRequired,
+                SortOrder = groupInput.SortOrder,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            foreach (var optionInput in groupInput.GetOptions())
+            {
+                if (string.IsNullOrWhiteSpace(optionInput.Name)) continue;
+                group.SpecOptions.Add(new SpecOption
+                {
+                    Id = Guid.NewGuid(),
+                    SpecGroupId = group.Id,
+                    Name = optionInput.Name,
+                    ExtraPrice = optionInput.ExtraPrice,
+                    Stock = optionInput.Stock,
+                    SortOrder = optionInput.SortOrder,
+                    IsDefault = optionInput.IsDefault,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+
+            product.SpecGroups.Add(group);
+        }
+    }
+}
+
+public sealed class UpsertProductInput
+{
+    public Guid? StoreId { get; set; }
+    public Guid? CategoryId { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public decimal? BasePrice { get; set; }
+    public decimal? Price { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? Status { get; set; }
+    public int? SortOrder { get; set; }
+    public int? MinOrderQty { get; set; }
+    public bool? IsCombo { get; set; }
+    public List<ProductSpecGroupInput>? SpecGroups { get; set; }
+}
+
+public sealed class ProductSpecGroupInput
+{
+    public string Name { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
+    public bool IsRequired { get; set; } = true;
+    public List<ProductSpecOptionInput>? Options { get; set; }
+    public List<ProductSpecOptionInput>? SpecOptions { get; set; }
+
+    public IEnumerable<ProductSpecOptionInput> GetOptions() => Options ?? SpecOptions ?? [];
+}
+
+public sealed class ProductSpecOptionInput
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal ExtraPrice { get; set; }
+    public int? Stock { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsDefault { get; set; }
 }

@@ -192,6 +192,10 @@ export interface CartItem {
 export interface CreateOrderData {
   /** 店铺ID */
   storeId: string
+  /** 顾客ID */
+  customerId?: string
+  /** 匿名设备标识 */
+  deviceId?: string
   /** 订单项列表 */
   items: {
     /** 商品ID */
