@@ -87,6 +87,10 @@ file class TemplateSeeder : IDataSeeder
 
 file class StoreMenuSeeder : IDataSeeder
 {
+    private const string DemoMerchantName = "演示商家";
+    private const string DemoStoreName = "重庆老灶烧烤（观音桥店）";
+    private const string DemoStoreDescription = "正宗重庆风味烧烤，麻辣鲜香，烟火气十足！";
+
     public int Order => 40;
 
     public async Task SeedAsync(IServiceProvider services)
@@ -102,7 +106,7 @@ file class StoreMenuSeeder : IDataSeeder
                 Id = Guid.NewGuid(),
                 Phone = "18523978013",
                 PasswordHash = PasswordHasher.HashPassword("123456"),
-                Nickname = "演示商家",
+                Nickname = DemoMerchantName,
                 Status = "active",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -121,9 +125,9 @@ file class StoreMenuSeeder : IDataSeeder
         {
             store = new Store
             {
-                Id = Guid.NewGuid(), MerchantId = merchant.Id, Name = "重庆老灶烧烤（观音桥店）",
+                Id = Guid.NewGuid(), MerchantId = merchant.Id, Name = DemoStoreName,
                 StoreCode = Base36Encoder.Encode(1),
-                Description = "正宗重庆风味烧烤，麻辣鲜香，烟火气十足！",
+                Description = DemoStoreDescription,
                 BusinessStatus = "open", BusinessHoursStart = new TimeOnly(17, 0), BusinessHoursEnd = new TimeOnly(2, 0),
                 IndustryCategoryId = Guid.Parse("a0000000-0000-0000-0000-000000000003"),
                 DiningMode = "dine_in,takeaway,delivery", DeliveryMinAmount = 30, PackingFee = 1,
@@ -133,8 +137,8 @@ file class StoreMenuSeeder : IDataSeeder
         }
         else if (!await db.Categories.AnyAsync(c => c.StoreId == store.Id))
         {
-            store.Name = "重庆老灶烧烤（观音桥店）";
-            store.Description = "正宗重庆风味烧烤，麻辣鲜香，烟火气十足！";
+            store.Name = DemoStoreName;
+            store.Description = DemoStoreDescription;
             store.BusinessStatus = "open";
             store.BusinessHoursStart = new TimeOnly(17, 0);
             store.BusinessHoursEnd = new TimeOnly(2, 0);
@@ -146,6 +150,8 @@ file class StoreMenuSeeder : IDataSeeder
         }
         else
         {
+            RepairDemoStoreMetadata(merchant, store);
+            await db.SaveChangesAsync();
             return;
         }
 
@@ -270,6 +276,57 @@ file class StoreMenuSeeder : IDataSeeder
         );
 
         await db.SaveChangesAsync();
+    }
+
+    private static void RepairDemoStoreMetadata(Merchant merchant, Store store)
+    {
+        var changed = false;
+
+        if (IsBrokenText(merchant.Nickname))
+        {
+            merchant.Nickname = DemoMerchantName;
+            changed = true;
+        }
+
+        if (IsBrokenText(store.Name))
+        {
+            store.Name = DemoStoreName;
+            changed = true;
+        }
+
+        if (IsBrokenText(store.Description))
+        {
+            store.Description = DemoStoreDescription;
+            changed = true;
+        }
+
+        if (store.StoreCode == "000001")
+        {
+            store.BusinessStatus = "open";
+            store.DiningMode = string.IsNullOrWhiteSpace(store.DiningMode) ? "dine_in,takeaway,delivery" : store.DiningMode;
+            store.BusinessHoursStart ??= new TimeOnly(17, 0);
+            store.BusinessHoursEnd ??= new TimeOnly(2, 0);
+            store.DeliveryMinAmount ??= 30;
+            store.PackingFee ??= 1;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            merchant.UpdatedAt = DateTime.UtcNow;
+            store.UpdatedAt = DateTime.UtcNow;
+        }
+    }
+
+    private static bool IsBrokenText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        return value.Contains('?')
+            || value.Contains('\uFFFD')
+            || value.Contains("锛")
+            || value.Contains("閲嶅簡")
+            || value.Contains("姝ｅ畻")
+            || value.Contains("婕旂ず");
     }
 }
 
