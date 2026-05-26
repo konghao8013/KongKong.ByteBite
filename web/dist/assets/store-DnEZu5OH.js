@@ -1,0 +1,1 @@
+import{t as e}from"./api-CWfxSfP8.js";var t={getById:t=>e.get(`/stores/${t}`),getByMerchantId:t=>e.get(`/stores/merchant/${t}`),update:(t,n)=>e.put(`/stores/${t}`,n)};export{t};

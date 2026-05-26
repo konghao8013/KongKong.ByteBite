@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-const storeId = computed(() => route.params.storeId as string)
+const storeCode = computed(() => route.params.code as string)
 
 const activeTab = computed(() => {
   const path = route.path
@@ -21,7 +21,7 @@ const tabs = [
 ]
 
 const switchTab = (tab: typeof tabs[0]) => {
-  router.push({ name: tab.routeName, params: { storeId: storeId.value } })
+  router.push({ name: tab.routeName, params: { code: storeCode.value } })
 }
 </script>
 

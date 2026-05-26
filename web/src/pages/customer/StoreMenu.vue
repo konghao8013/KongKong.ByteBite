@@ -59,11 +59,11 @@ const addToCart = (item: StoreMenuItemDto) => {
 }
 
 const goToCart = () => {
-  router.push({ name: 'Cart' })
+  router.push({ name: 'Cart', params: { code: storeCode } })
 }
 
 const goToOrders = () => {
-  router.push({ name: 'MyOrders' })
+  router.push({ name: 'MyOrders', params: { code: storeCode } })
 }
 
 const getItemCartQuantity = (productId: string) => {
