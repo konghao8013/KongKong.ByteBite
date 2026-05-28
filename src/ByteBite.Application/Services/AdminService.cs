@@ -3,6 +3,7 @@ using ByteBite.Infrastructure.Persistence;
 using ByteBite.Infrastructure.Persistence.Entities;
 using ByteBite.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace ByteBite.Application.Services;
 
@@ -68,13 +69,26 @@ public class AdminService
         merchant.Status = status; merchant.UpdatedAt = DateTime.UtcNow;
         try
         {
-            // 记录状态变更审计日志
-            _db.MerchantAuditLogs.Add(new MerchantAuditLog
+            if (await _db.Admins.AnyAsync(a => a.Id == operatorId, ct))
             {
-                Id = Guid.NewGuid(), MerchantId = merchantId, AdminId = operatorId, Action = $"status_change:{oldStatus}->{status}",
-                Reason = reason, PreviousStatus = oldStatus, NewStatus = status,
-                CreatedAt = DateTime.UtcNow
-            });
+                // 记录状态变更审计日志
+                _db.MerchantAuditLogs.Add(new MerchantAuditLog
+                {
+                    Id = Guid.NewGuid(), MerchantId = merchantId, AdminId = operatorId, Action = $"status_change:{oldStatus}->{status}",
+                    Reason = reason, PreviousStatus = oldStatus, NewStatus = status,
+                    CreatedAt = DateTime.UtcNow
+                });
+                _db.AdminOperationLogs.Add(new AdminOperationLog
+                {
+                    Id = Guid.NewGuid(),
+                    AdminId = operatorId,
+                    Operation = "merchant_status_change",
+                    TargetType = "merchant",
+                    TargetId = merchantId,
+                    Detail = JsonSerializer.Serialize(new { oldStatus, newStatus = status, reason }),
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
             await _db.SaveChangesAsync(ct);
         }
         catch
@@ -82,6 +96,8 @@ public class AdminService
             // 审计日志写入失败时回滚该条记录，确保商家状态更新不受影响
             var entry = _db.ChangeTracker.Entries<MerchantAuditLog>().FirstOrDefault(e => e.State == EntityState.Added);
             if (entry != null) _db.MerchantAuditLogs.Remove(entry.Entity);
+            var operationEntry = _db.ChangeTracker.Entries<AdminOperationLog>().FirstOrDefault(e => e.State == EntityState.Added);
+            if (operationEntry != null) _db.AdminOperationLogs.Remove(operationEntry.Entity);
             await _db.SaveChangesAsync(ct);
         }
         return merchant;
@@ -153,23 +169,179 @@ public class AdminService
         var totalMerchants = await _db.Merchants.CountAsync(ct);
         var activeMerchants = await _db.Merchants.CountAsync(m => m.Status == "active", ct);
         var pendingMerchants = await _db.Merchants.CountAsync(m => m.Status == "pending", ct);
+        var suspendedMerchants = await _db.Merchants.CountAsync(m => m.Status == "suspended", ct);
         var totalStores = await _db.Stores.CountAsync(ct);
         var openStores = await _db.Stores.CountAsync(s => s.BusinessStatus == "open", ct);
+        var closedStores = await _db.Stores.CountAsync(s => s.BusinessStatus != "open", ct);
         var totalOrders = await _db.Orders.CountAsync(ct);
         var completedOrders = await _db.Orders.CountAsync(o => o.Status == "completed", ct);
+        var pendingOrders = await _db.Orders.CountAsync(o => o.Status == "pending", ct);
         var totalRevenue = await _db.Orders.Where(o => o.Status == "completed").SumAsync(o => o.ActualAmount, ct);
         var today = DateTime.UtcNow.Date;
         var todayOrders = await _db.Orders.CountAsync(o => o.CreatedAt.Date == today, ct);
         var todayRevenue = await _db.Orders.Where(o => o.Status == "completed" && o.CompletedAt.HasValue && o.CompletedAt.Value.Date == today).SumAsync(o => o.ActualAmount, ct);
         var totalProducts = await _db.Products.CountAsync(ct);
+        var onProducts = await _db.Products.CountAsync(p => p.Status == "on" && p.DeletedAt == null, ct);
         var totalCategories = await _db.Categories.CountAsync(ct);
+        var registeredCustomers = await _db.Customers.CountAsync(c => c.IsRegistered, ct);
+        var anonymousCustomers = await _db.Customers.CountAsync(c => !c.IsRegistered, ct);
+        var activeDiscounts = await _db.DiscountRules.CountAsync(d => d.Status == "active" && d.DeletedAt == null && d.StartTime <= DateTime.UtcNow && d.EndTime >= DateTime.UtcNow, ct);
+        var last7DaysOrders = await _db.Orders
+            .Where(o => o.CreatedAt >= today.AddDays(-6))
+            .GroupBy(o => o.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Orders = g.Count(), Revenue = g.Where(o => o.Status == "completed").Sum(o => o.ActualAmount) })
+            .OrderBy(x => x.Date)
+            .ToListAsync(ct);
+
         return new
         {
-            TotalMerchants = totalMerchants, ActiveMerchants = activeMerchants, PendingMerchants = pendingMerchants,
-            TotalStores = totalStores, OpenStores = openStores,
-            TotalOrders = totalOrders, CompletedOrders = completedOrders, TotalRevenue = totalRevenue,
-            TodayOrders = todayOrders, TodayRevenue = todayRevenue,
-            TotalProducts = totalProducts, TotalCategories = totalCategories
+            TotalMerchants = totalMerchants,
+            ActiveMerchants = activeMerchants,
+            PendingMerchants = pendingMerchants,
+            SuspendedMerchants = suspendedMerchants,
+            TotalStores = totalStores,
+            OpenStores = openStores,
+            ClosedStores = closedStores,
+            TotalOrders = totalOrders,
+            CompletedOrders = completedOrders,
+            PendingOrders = pendingOrders,
+            CompletionRate = totalOrders == 0 ? 0 : Math.Round(completedOrders * 100m / totalOrders, 2),
+            TotalRevenue = totalRevenue,
+            TodayOrders = todayOrders,
+            TodayRevenue = todayRevenue,
+            AverageOrderAmount = completedOrders == 0 ? 0 : Math.Round(totalRevenue / completedOrders, 2),
+            TotalProducts = totalProducts,
+            OnProducts = onProducts,
+            TotalCategories = totalCategories,
+            RegisteredCustomers = registeredCustomers,
+            AnonymousCustomers = anonymousCustomers,
+            ActiveDiscounts = activeDiscounts,
+            Last7DaysOrders = last7DaysOrders
         };
     }
+
+    public async Task<List<SystemConfig>> GetSystemConfigsAsync(bool publicOnly = false, CancellationToken ct = default)
+    {
+        await EnsureDefaultConfigsAsync(ct);
+        var query = _db.SystemConfigs.AsQueryable();
+        if (publicOnly) query = query.Where(c => c.IsPublic);
+        return await query.OrderBy(c => c.ConfigKey).ToListAsync(ct);
+    }
+
+    public async Task<SystemConfig> UpsertSystemConfigAsync(UpsertSystemConfigInput input, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(input.ConfigKey)) throw new BusinessException(400, "配置键不能为空");
+        if (input.ConfigType is not ("string" or "number" or "boolean" or "json")) throw new BusinessException(400, "配置类型不正确");
+        ValidateConfigValue(input.ConfigType!, input.ConfigValue ?? string.Empty);
+
+        var now = DateTime.UtcNow;
+        var config = await _db.SystemConfigs.FirstOrDefaultAsync(c => c.ConfigKey == input.ConfigKey.Trim(), ct);
+        if (config == null)
+        {
+            config = new SystemConfig
+            {
+                Id = Guid.NewGuid(),
+                ConfigKey = input.ConfigKey.Trim(),
+                ConfigValue = input.ConfigValue ?? string.Empty,
+                ConfigType = input.ConfigType!,
+                Description = input.Description,
+                IsPublic = input.IsPublic,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            _db.SystemConfigs.Add(config);
+        }
+        else
+        {
+            config.ConfigValue = input.ConfigValue ?? string.Empty;
+            config.ConfigType = input.ConfigType!;
+            config.Description = input.Description;
+            config.IsPublic = input.IsPublic;
+            config.UpdatedAt = now;
+        }
+
+        if (input.OperatorId.HasValue)
+        {
+            _db.AdminOperationLogs.Add(new AdminOperationLog
+            {
+                Id = Guid.NewGuid(),
+                AdminId = input.OperatorId.Value,
+                Operation = "config_upsert",
+                TargetType = "config",
+                TargetId = config.Id,
+                Detail = JsonSerializer.Serialize(new { config.ConfigKey, config.ConfigValue, config.ConfigType, config.IsPublic }),
+                CreatedAt = now
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return config;
+    }
+
+    public async Task DeleteSystemConfigAsync(Guid id, Guid? operatorId = null, CancellationToken ct = default)
+    {
+        var config = await _db.SystemConfigs.FindAsync([id], ct) ?? throw new BusinessException(404, "系统配置不存在");
+        _db.SystemConfigs.Remove(config);
+        if (operatorId.HasValue)
+        {
+            _db.AdminOperationLogs.Add(new AdminOperationLog
+            {
+                Id = Guid.NewGuid(),
+                AdminId = operatorId.Value,
+                Operation = "config_delete",
+                TargetType = "config",
+                TargetId = id,
+                Detail = JsonSerializer.Serialize(new { config.ConfigKey }),
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private async Task EnsureDefaultConfigsAsync(CancellationToken ct)
+    {
+        if (await _db.SystemConfigs.AnyAsync(ct)) return;
+        var now = DateTime.UtcNow;
+        _db.SystemConfigs.AddRange(
+            NewConfig("site.name", "ByteBite", "string", "系统名称", true, now),
+            NewConfig("pickup.code.length", "6", "number", "取货码展示长度", true, now),
+            NewConfig("upload.max_mb", "5", "number", "单文件上传大小上限 MB", false, now),
+            NewConfig("sms.enabled", "false", "boolean", "短信能力开关，第三方付费服务未接入时保持关闭", false, now)
+        );
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private static SystemConfig NewConfig(string key, string value, string type, string description, bool isPublic, DateTime now)
+        => new()
+        {
+            Id = Guid.NewGuid(),
+            ConfigKey = key,
+            ConfigValue = value,
+            ConfigType = type,
+            Description = description,
+            IsPublic = isPublic,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+    private static void ValidateConfigValue(string type, string value)
+    {
+        if (type == "number" && !decimal.TryParse(value, out _)) throw new BusinessException(400, "数字配置值格式不正确");
+        if (type == "boolean" && !bool.TryParse(value, out _)) throw new BusinessException(400, "布尔配置值需要为 true 或 false");
+        if (type == "json")
+        {
+            try { JsonDocument.Parse(value); }
+            catch { throw new BusinessException(400, "JSON配置值格式不正确"); }
+        }
+    }
+}
+
+public sealed class UpsertSystemConfigInput
+{
+    public string? ConfigKey { get; set; }
+    public string? ConfigValue { get; set; }
+    public string? ConfigType { get; set; }
+    public string? Description { get; set; }
+    public bool IsPublic { get; set; }
+    public Guid? OperatorId { get; set; }
 }

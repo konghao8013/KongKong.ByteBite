@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { orderApi } from '@/api/modules/order'
+import { conversationApi } from '@/api/modules/conversation'
 import { useSignalR } from '@/composables/useSignalR'
+import type { ConversationDto, ConversationMessageDto } from '@/types/models/conversation'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const { connection, connect, disconnect } = useSignalR('/hubs/store')
@@ -10,6 +12,14 @@ const orders = ref<any[]>([])
 const activeTab = ref('pending')
 const selectedOrder = ref<any>(null)
 const showDetail = ref(false)
+const pickupKeyword = ref('')
+const pickupResult = ref<any>(null)
+const pickupLoading = ref(false)
+const conversations = ref<ConversationDto[]>([])
+const selectedConversation = ref<ConversationDto | null>(null)
+const conversationMessages = ref<ConversationMessageDto[]>([])
+const replyText = ref('')
+const replySending = ref(false)
 const tabs = [
   { key: 'pending', label: '待接单', icon: '🔔' },
   { key: 'accepted', label: '已接单', icon: '✅' },
@@ -86,6 +96,65 @@ const loadOrders = async () => {
   }
 }
 
+const loadConversations = async () => {
+  if (!storeId) return
+  try {
+    conversations.value = await conversationApi.getByStore(storeId)
+  } catch {
+  }
+}
+
+const lookupPickupCode = async () => {
+  const code = pickupKeyword.value.trim()
+  if (!code || !storeId || pickupLoading.value) return
+  pickupLoading.value = true
+  pickupResult.value = null
+  try {
+    pickupResult.value = await orderApi.getByPickupCode(code, storeId)
+  } finally {
+    pickupLoading.value = false
+  }
+}
+
+const completePickupResult = async () => {
+  if (!pickupResult.value || pickupResult.value.status !== 'ready') return
+  const updated = await orderApi.completeOrder(pickupResult.value.id)
+  pickupResult.value = updated
+  const target = orders.value.find(o => o.id === updated.id)
+  if (target) target.status = updated.status
+}
+
+const openConversation = async (conversation: ConversationDto) => {
+  selectedConversation.value = conversation
+  conversationMessages.value = await conversationApi.getMessages(conversation.id)
+  await conversationApi.markRead(conversation.id, 'merchant')
+  conversation.merchantUnreadCount = 0
+}
+
+const sendReply = async () => {
+  const content = replyText.value.trim()
+  if (!selectedConversation.value || !content || replySending.value) return
+  replySending.value = true
+  try {
+    const message = await conversationApi.sendMessage(selectedConversation.value.id, {
+      senderType: 'merchant',
+      content,
+      storeId,
+      orderId: selectedConversation.value.orderId,
+    })
+    conversationMessages.value.push(message)
+    replyText.value = ''
+  } finally {
+    replySending.value = false
+  }
+}
+
+const openConversationOrder = () => {
+  const orderId = selectedConversation.value?.orderId
+  const target = orders.value.find(o => o.id === orderId)
+  if (target) openDetail(target)
+}
+
 const handleAccept = async (order: any) => {
   try {
     await orderApi.acceptOrder(order.id)
@@ -128,6 +197,7 @@ const handleComplete = async (order: any) => {
 let refreshTimer: any = null
 onMounted(async () => {
   await loadOrders()
+  await loadConversations()
   try {
     await connect()
     connection.value?.on('NewOrder', (order: any) => {
@@ -140,6 +210,9 @@ onMounted(async () => {
     connection.value?.on('OrderCancelled', (payload: { orderId: string }) => {
       const target = orders.value.find(o => o.id === payload.orderId)
       if (target) target.status = 'cancelled'
+    })
+    connection.value?.on('CustomerMessageReceived', () => {
+      loadConversations()
     })
     if (storeId) await connection.value?.invoke('SubscribeStore', storeId)
   } catch {
@@ -162,6 +235,60 @@ onUnmounted(async () => {
       <h2>订单管理</h2>
       <div v-if="pendingCount > 0" class="pending-badge">{{ pendingCount }} 待接单</div>
     </div>
+
+    <section class="pickup-verify-panel">
+      <div class="verify-input-row">
+        <input v-model="pickupKeyword" placeholder="输入顾客取货码" @keyup.enter="lookupPickupCode" />
+        <button :disabled="pickupLoading" @click="lookupPickupCode">
+          {{ pickupLoading ? '查询中' : '查询' }}
+        </button>
+      </div>
+      <div v-if="pickupResult" class="verify-result">
+        <div>
+          <strong>#{{ pickupResult.pickupCode }}</strong>
+          <span>{{ statusLabel(pickupResult.status) }} · ¥{{ pickupResult.actualAmount }}</span>
+        </div>
+        <button :disabled="pickupResult.status !== 'ready'" @click="completePickupResult">
+          {{ pickupResult.status === 'ready' ? '确认核销' : '暂不可核销' }}
+        </button>
+      </div>
+    </section>
+
+    <section v-if="conversations.length" class="conversation-panel">
+      <div class="panel-title">顾客消息</div>
+      <div class="conversation-list">
+        <button
+          v-for="item in conversations"
+          :key="item.id"
+          class="conversation-item"
+          :class="{ active: selectedConversation?.id === item.id }"
+          @click="openConversation(item)"
+        >
+          <span>#{{ item.order?.pickupCode || item.orderId.slice(0, 6) }}</span>
+          <small v-if="item.merchantUnreadCount">{{ item.merchantUnreadCount }} 条未读</small>
+        </button>
+      </div>
+      <div v-if="selectedConversation" class="conversation-detail">
+        <div class="conversation-order">
+          <span>关联订单 #{{ selectedConversation.order?.pickupCode }}</span>
+          <button @click="openConversationOrder">打开订单</button>
+        </div>
+        <div class="conversation-messages">
+          <div
+            v-for="message in conversationMessages"
+            :key="message.id"
+            class="conversation-message"
+            :class="{ mine: message.senderType === 'merchant' }"
+          >
+            {{ message.content }}
+          </div>
+        </div>
+        <div class="reply-row">
+          <input v-model="replyText" placeholder="回复顾客" @keyup.enter="sendReply" />
+          <button :disabled="replySending" @click="sendReply">回复</button>
+        </div>
+      </div>
+    </section>
 
     <div class="status-tabs">
       <div
@@ -393,6 +520,154 @@ onUnmounted(async () => {
     border-radius: 16px;
     font-size: 13px;
     font-weight: 600;
+  }
+}
+
+.pickup-verify-panel,
+.conversation-panel {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
+}
+
+.verify-input-row,
+.reply-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 8px;
+
+  input {
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #DCE6E1;
+    border-radius: 6px;
+    outline: 0;
+  }
+
+  button {
+    border-radius: 6px;
+    color: #fff;
+    background: #087E6B;
+    font-weight: 800;
+
+    &:disabled {
+      background: #9AA9A3;
+    }
+  }
+}
+
+.verify-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #E2E8E3;
+
+  strong {
+    display: block;
+    color: #087E6B;
+    font-size: 20px;
+  }
+
+  span {
+    color: #687872;
+    font-size: 13px;
+  }
+
+  button {
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 6px;
+    color: #fff;
+    background: #087E6B;
+    font-weight: 800;
+
+    &:disabled {
+      background: #9AA9A3;
+    }
+  }
+}
+
+.panel-title {
+  margin-bottom: 8px;
+  color: #1F2A26;
+  font-weight: 900;
+}
+
+.conversation-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.conversation-item {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border: 1px solid #DCE6E1;
+  border-radius: 6px;
+  display: grid;
+  gap: 2px;
+  color: #1F2A26;
+  background: #FAFCFA;
+  text-align: left;
+
+  &.active {
+    border-color: #087E6B;
+    background: #E7F4EF;
+  }
+
+  small {
+    color: #D94C4C;
+    font-size: 11px;
+  }
+}
+
+.conversation-detail {
+  border-top: 1px solid #E2E8E3;
+  padding-top: 10px;
+}
+
+.conversation-order {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #687872;
+  font-size: 13px;
+
+  button {
+    color: #087E6B;
+    font-weight: 800;
+  }
+}
+
+.conversation-messages {
+  display: grid;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.conversation-message {
+  max-width: 82%;
+  justify-self: start;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #1F2A26;
+  background: #F1F4F2;
+  font-size: 13px;
+
+  &.mine {
+    justify-self: end;
+    color: #fff;
+    background: #087E6B;
   }
 }
 

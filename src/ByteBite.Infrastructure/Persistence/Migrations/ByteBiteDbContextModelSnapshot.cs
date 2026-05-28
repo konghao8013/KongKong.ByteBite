@@ -297,6 +297,136 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.Conversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<int>("CustomerUnreadCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("customer_unread_count");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTime>("LastMessageAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_message_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("MerchantUnreadCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("merchant_unread_count");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id")
+                        .HasName("conversations_pkey");
+
+                    b.HasIndex(new[] { "CustomerId", "LastMessageAt" }, "ix_conversations_customer_last_message");
+
+                    b.HasIndex(new[] { "DeviceId" }, "ix_conversations_device_id");
+
+                    b.HasIndex(new[] { "StoreId", "LastMessageAt" }, "ix_conversations_store_last_message");
+
+                    b.HasIndex(new[] { "OrderId" }, "uq_conversations_order_id")
+                        .IsUnique();
+
+                    b.ToTable("conversations", null, t =>
+                        {
+                            t.HasComment("订单会话表");
+                        });
+                });
+
+            modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.ConversationMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("content");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("MessageType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("message_type")
+                        .HasDefaultValueSql("'text'::character varying");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<Guid?>("SenderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sender_id");
+
+                    b.Property<string>("SenderType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("sender_type");
+
+                    b.HasKey("Id")
+                        .HasName("conversation_messages_pkey");
+
+                    b.HasIndex(new[] { "ConversationId", "CreatedAt" }, "ix_conversation_messages_conversation_created");
+
+                    b.ToTable("conversation_messages", null, t =>
+                        {
+                            t.HasComment("订单会话消息表");
+                        });
+                });
+
             modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -361,6 +491,12 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_at")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<string>("Username")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("username")
+                        .HasComment("顾客账号名");
+
                     b.HasKey("Id")
                         .HasName("customers_pkey");
 
@@ -370,6 +506,10 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
 
                     b.HasIndex(new[] { "Phone" }, "uq_customers_phone")
                         .IsUnique();
+
+                    b.HasIndex(new[] { "Username" }, "uq_customers_username")
+                        .IsUnique()
+                        .HasFilter("username IS NOT NULL");
 
                     b.ToTable("customers", null, t =>
                         {
@@ -561,6 +701,70 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                     b.ToTable("customer_sessions", null, t =>
                         {
                             t.HasComment("顾客会话表");
+                        });
+                });
+
+            modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.CustomerStoreVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTime?>("LastOrderedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_ordered_at");
+
+                    b.Property<DateTime>("LastVisitedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_visited_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("store_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id")
+                        .HasName("customer_store_visits_pkey");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex(new[] { "LastVisitedAt" }, "ix_customer_store_visits_last_visited");
+
+                    b.HasIndex(new[] { "CustomerId", "StoreId" }, "uq_customer_store_visits_customer_store")
+                        .IsUnique()
+                        .HasFilter("customer_id IS NOT NULL");
+
+                    b.HasIndex(new[] { "DeviceId", "StoreId" }, "uq_customer_store_visits_device_store")
+                        .IsUnique()
+                        .HasFilter("device_id IS NOT NULL");
+
+                    b.ToTable("customer_store_visits", null, t =>
+                        {
+                            t.HasComment("顾客最近访问店铺表");
                         });
                 });
 
@@ -1431,12 +1635,12 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("packing_fee");
 
-                    b.Property<string>("PickupCode")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("pickup_code")
-                        .HasComment("取货码（4-6位字母数字）");
+                    b.Property<int>("PickupCodeValue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("pickup_code_value")
+                        .HasComment("取货码整数码值，页面以6位Base36展示");
 
                     b.Property<DateTime?>("PreparingAt")
                         .HasColumnType("timestamp with time zone")
@@ -1495,16 +1699,17 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
 
                     b.HasIndex(new[] { "CustomerId" }, "ix_orders_customer_id");
 
-                    b.HasIndex(new[] { "PickupCode", "StoreId" }, "ix_orders_pickup_code");
-
                     b.HasIndex(new[] { "StoreId", "Status" }, "ix_orders_status");
 
                     b.HasIndex(new[] { "StoreId" }, "ix_orders_store_id");
 
-                    b.HasIndex(new[] { "OrderNo" }, "uq_orders_order_no")
-                        .IsUnique();
+                    b.HasIndex(new[] { "StoreId", "PickupCodeValue" }, "ix_orders_store_pickup_code_value");
 
-                    b.HasIndex(new[] { "PickupCode", "StoreId" }, "uq_orders_pickup_code_store")
+                    b.HasIndex(new[] { "StoreId", "PickupCodeValue" }, "uq_orders_active_pickup_code_value")
+                        .IsUnique()
+                        .HasFilter("status NOT IN ('completed','cancelled','rejected')");
+
+                    b.HasIndex(new[] { "OrderNo" }, "uq_orders_order_no")
                         .IsUnique();
 
                     b.ToTable("orders", null, t =>
@@ -2715,6 +2920,43 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.Conversation", b =>
+                {
+                    b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Order", "Order")
+                        .WithOne()
+                        .HasForeignKey("ByteBite.Infrastructure.Persistence.Entities.Conversation", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.ConversationMessage", b =>
+                {
+                    b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Conversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+                });
+
             modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.CustomerConsumptionStat", b =>
                 {
                     b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Customer", "Customer")
@@ -2744,6 +2986,24 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                         .HasConstraintName("customer_sessions_customer_id_fkey");
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.CustomerStoreVisit", b =>
+                {
+                    b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.DailyStoreStat", b =>
@@ -2991,11 +3251,19 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.Store", b =>
                 {
+                    b.HasOne("ByteBite.Infrastructure.Persistence.Entities.IndustryCategory", "IndustryCategory")
+                        .WithMany("Stores")
+                        .HasForeignKey("IndustryCategoryId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("stores_industry_category_id_fkey");
+
                     b.HasOne("ByteBite.Infrastructure.Persistence.Entities.Merchant", "Merchant")
                         .WithMany("Stores")
                         .HasForeignKey("MerchantId")
                         .IsRequired()
                         .HasConstraintName("stores_merchant_id_fkey");
+
+                    b.Navigation("IndustryCategory");
 
                     b.Navigation("Merchant");
                 });
@@ -3104,6 +3372,11 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                     b.Navigation("Products");
                 });
 
+            modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.Conversation", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
             modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.Customer", b =>
                 {
                     b.Navigation("CustomerConsumptionStats");
@@ -3129,6 +3402,8 @@ namespace ByteBite.Infrastructure.Persistence.Migrations
                     b.Navigation("InverseParent");
 
                     b.Navigation("StoreTemplates");
+
+                    b.Navigation("Stores");
                 });
 
             modelBuilder.Entity("ByteBite.Infrastructure.Persistence.Entities.Merchant", b =>

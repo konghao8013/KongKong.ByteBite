@@ -13,10 +13,10 @@ public class DiscountRulesController : ControllerBase
     public DiscountRulesController(DiscountRuleService discountRuleService) { _discountRuleService = discountRuleService; }
 
     [HttpPost]
-    public async Task<DiscountRule> Create([FromBody] DiscountRule entity) => await _discountRuleService.CreateAsync(entity);
+    public async Task<DiscountRule> Create([FromBody] UpsertDiscountRuleInput request) => await _discountRuleService.CreateAsync(request);
 
     [HttpPut("{id:guid}")]
-    public async Task<DiscountRule> Update(Guid id, [FromBody] UpdateDiscountRuleRequest request) => await _discountRuleService.UpdateAsync(id, request.Name, request.Status);
+    public async Task<DiscountRule> Update(Guid id, [FromBody] UpsertDiscountRuleInput request) => await _discountRuleService.UpdateAsync(id, request);
 
     [HttpDelete("{id:guid}")]
     public async Task<object> Delete(Guid id) { await _discountRuleService.DeleteAsync(id); return new { }; }
@@ -27,5 +27,3 @@ public class DiscountRulesController : ControllerBase
     [HttpGet("store/{storeId:guid}/active")]
     public async Task<List<DiscountRule>> GetActiveByStoreId(Guid storeId) => await _discountRuleService.GetActiveByStoreIdAsync(storeId);
 }
-
-public class UpdateDiscountRuleRequest { public string? Name { get; set; } public string? Status { get; set; } }

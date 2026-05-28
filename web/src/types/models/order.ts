@@ -50,6 +50,8 @@ export interface OrderDto {
   orderNo: string
   /** 店铺ID */
   storeId: string
+  /** 店铺码 */
+  storeCode?: string
   /** 店铺名称 */
   storeName: string
   /** 取货码 */
@@ -58,6 +60,10 @@ export interface OrderDto {
   diningMode: string
   /** 桌号 */
   tableNo?: string
+  /** 外卖配送地址 */
+  deliveryAddress?: string
+  /** 外卖联系电话 */
+  deliveryPhone?: string
   /** 商品合计金额 */
   totalAmount: number
   /** 优惠减免金额 */
@@ -70,6 +76,13 @@ export interface OrderDto {
   remark?: string
   /** 状态 */
   status: string
+  /** 拒单原因 */
+  rejectReason?: string
+  acceptedAt?: string
+  preparingAt?: string
+  readyAt?: string
+  completedAt?: string
+  cancelledAt?: string
   /** 订单项列表 */
   items: OrderItemDto[]
   /** 创建时间 */

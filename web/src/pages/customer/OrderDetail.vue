@@ -2,22 +2,47 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { orderApi } from '@/api/modules/order'
+import { conversationApi } from '@/api/modules/conversation'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { formatPrice, formatDate } from '@/utils/format'
 import { useSignalR } from '@/composables/useSignalR'
+import { useDeviceId } from '@/composables/useDeviceId'
+import { normalizeCustomerOrder } from '@/utils/order'
+import QrcodeVue from 'qrcode.vue'
 import PickupCodeDisplay from '@/components/common/PickupCodeDisplay.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { OrderDto } from '@/types/models/order'
+import type { ConversationDto, ConversationMessageDto } from '@/types/models/conversation'
 
 const route = useRoute()
 const router = useRouter()
 const orderStore = useOrderStore()
 const { connection, connect, disconnect } = useSignalR('/hubs/order')
+const {
+  connection: conversationConnection,
+  connect: connectConversation,
+  disconnect: disconnectConversation,
+} = useSignalR('/hubs/conversation')
+const { getDeviceId } = useDeviceId()
 const orderId = route.params.orderId as string
 
 const order = ref<OrderDto | null>(null)
 const loading = ref(true)
 const cancelling = ref(false)
+const conversation = ref<ConversationDto | null>(null)
+const messages = ref<ConversationMessageDto[]>([])
+const messageText = ref('')
+const conversationLoading = ref(false)
+const sendingMessage = ref(false)
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
+const refreshOrder = async () => {
+  const fresh = await orderApi.getById(orderId, {
+    customerId: localStorage.getItem('customer_id') || undefined,
+    deviceId: getDeviceId(),
+  })
+  order.value = normalizeCustomerOrder(fresh, order.value?.storeName || '')
+}
 
 onMounted(async () => {
   try {
@@ -26,6 +51,7 @@ onMounted(async () => {
     if (cached) {
       order.value = cached
     }
+    await refreshOrder()
   } catch {
   }
   try {
@@ -43,15 +69,23 @@ onMounted(async () => {
     await connection.value?.invoke('SubscribeOrder', orderId)
   } catch {
   }
+  refreshTimer = setInterval(() => {
+    refreshOrder().catch(() => {})
+  }, 15000)
   loading.value = false
 })
 
 onUnmounted(async () => {
+  if (refreshTimer) clearInterval(refreshTimer)
   try {
     await connection.value?.invoke('UnsubscribeOrder', orderId)
+    if (conversation.value) {
+      await conversationConnection.value?.invoke('UnsubscribeConversation', conversation.value.id)
+    }
   } catch {
   }
   await disconnect()
+  await disconnectConversation()
 })
 
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {
@@ -88,7 +122,18 @@ const diningModeLabel = computed(() => {
 })
 
 const canCancel = computed(() => {
-  return order.value && (order.value.status === 'pending' || order.value.status === 'accepted')
+  return order.value && order.value.status === 'pending'
+})
+
+const verifyUrl = computed(() => {
+  if (!order.value) return ''
+  const code = order.value.storeCode || localStorage.getItem('current_store_code') || String(route.params.code || '')
+  const params = new URLSearchParams({
+    storeCode: code,
+    pickupCode: order.value.pickupCode,
+    orderId,
+  })
+  return `${window.location.origin}/merchant/verify?${params.toString()}`
 })
 
 const cancelOrder = async () => {
@@ -109,6 +154,50 @@ const cancelOrder = async () => {
 const goBack = () => {
   router.back()
 }
+
+const openConversation = async () => {
+  if (!order.value || conversationLoading.value) return
+  if (conversation.value) return
+  conversationLoading.value = true
+  try {
+    const customerId = localStorage.getItem('customer_id') || undefined
+    conversation.value = await conversationApi.startByOrder(orderId, {
+      customerId,
+      deviceId: getDeviceId(),
+    })
+    messages.value = await conversationApi.getMessages(conversation.value.id)
+    await connectConversation()
+    conversationConnection.value?.on('ConversationMessageReceived', (payload: { conversationId: string; message: ConversationMessageDto }) => {
+      if (payload.conversationId !== conversation.value?.id) return
+      if (!messages.value.some((message) => message.id === payload.message.id)) {
+        messages.value.push(payload.message)
+      }
+    })
+    await conversationConnection.value?.invoke('SubscribeConversation', conversation.value.id)
+    await conversationApi.markRead(conversation.value.id, 'customer')
+  } finally {
+    conversationLoading.value = false
+  }
+}
+
+const sendMessage = async () => {
+  const content = messageText.value.trim()
+  if (!conversation.value || !order.value || !content || sendingMessage.value) return
+  sendingMessage.value = true
+  try {
+    const message = await conversationApi.sendMessage(conversation.value.id, {
+      senderType: 'customer',
+      senderId: localStorage.getItem('customer_id') || undefined,
+      content,
+      storeId: order.value.storeId,
+      orderId,
+    })
+    if (!messages.value.some((item) => item.id === message.id)) messages.value.push(message)
+    messageText.value = ''
+  } finally {
+    sendingMessage.value = false
+  }
+}
 </script>
 
 <template>
@@ -126,6 +215,10 @@ const goBack = () => {
       <!-- 取货码区域 -->
       <div class="pickup-section">
         <PickupCodeDisplay :code="order.pickupCode" :status="order.status" />
+        <div class="pickup-qrcode">
+          <QrcodeVue v-if="verifyUrl" :value="verifyUrl" :size="152" level="M" />
+          <p>向商家出示二维码可快速核销</p>
+        </div>
       </div>
 
       <!-- 订单状态 -->
@@ -213,6 +306,30 @@ const goBack = () => {
         </div>
       </div>
 
+      <div class="conversation-section">
+        <div class="section-title">联系商家</div>
+        <button v-if="!conversation" class="chat-open-btn" :disabled="conversationLoading" @click="openConversation">
+          {{ conversationLoading ? '打开中...' : '发起消息' }}
+        </button>
+        <template v-else>
+          <div class="message-list">
+            <div
+              v-for="message in messages"
+              :key="message.id"
+              class="message-bubble"
+              :class="{ mine: message.senderType === 'customer' }"
+            >
+              <span>{{ message.content }}</span>
+              <small>{{ formatDate(message.createdAt) }}</small>
+            </div>
+          </div>
+          <div class="message-input-row">
+            <input v-model="messageText" placeholder="输入要和商家沟通的内容" @keyup.enter="sendMessage" />
+            <button :disabled="sendingMessage" @click="sendMessage">发送</button>
+          </div>
+        </template>
+      </div>
+
       <!-- 取消订单 -->
       <div v-if="canCancel" class="cancel-section">
         <button class="cancel-btn" :class="{ disabled: cancelling }" @click="cancelOrder">
@@ -255,6 +372,23 @@ const goBack = () => {
 
 .pickup-section {
   padding: 16px;
+}
+
+.pickup-qrcode {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  background: #fff;
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+    font-size: 12px;
+  }
 }
 
 .status-section {
@@ -490,6 +624,85 @@ const goBack = () => {
   color: $brand-color;
   font-size: 18px;
   font-weight: 700;
+}
+
+.conversation-section {
+  margin-bottom: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid $border-color;
+  border-bottom: 1px solid $border-color;
+  background: #fff;
+}
+
+.chat-open-btn {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  color: #fff;
+  background: $primary-color;
+  font-weight: 800;
+
+  &:disabled {
+    opacity: 0.65;
+  }
+}
+
+.message-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 0 12px;
+}
+
+.message-bubble {
+  max-width: 82%;
+  justify-self: start;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #1F2A26;
+  background: #F1F4F2;
+
+  &.mine {
+    justify-self: end;
+    color: #fff;
+    background: $primary-color;
+  }
+
+  span {
+    display: block;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  small {
+    display: block;
+    margin-top: 4px;
+    opacity: 0.72;
+    font-size: 10px;
+  }
+}
+
+.message-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  gap: 8px;
+
+  input {
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    outline: 0;
+    background: #FAFCFA;
+  }
+
+  button {
+    border-radius: 8px;
+    color: #fff;
+    background: $primary-color;
+    font-weight: 800;
+  }
 }
 
 .cancel-section {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue'
 import { storeApi } from '@/api/modules/store'
+import { fileApi } from '@/api/modules/file'
 import StoreShareDialog from '@/components/common/StoreShareDialog.vue'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
@@ -81,6 +82,15 @@ const handleSave = async () => {
   } finally {
     saving.value = false
   }
+}
+
+const uploadCover = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const result = await fileApi.upload(file)
+  form.coverImageUrl = result.url
+  input.value = ''
 }
 
 const toggleBusiness = async () => {
@@ -167,6 +177,10 @@ onMounted(loadStore)
           <label>
             封面图 URL
             <input v-model="form.coverImageUrl" />
+          </label>
+          <label>
+            上传封面图
+            <input type="file" accept="image/*" @change="uploadCover" />
           </label>
           <div class="form-grid">
             <label>

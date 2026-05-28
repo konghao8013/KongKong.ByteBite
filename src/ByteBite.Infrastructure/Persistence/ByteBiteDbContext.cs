@@ -442,15 +442,11 @@ public partial class ByteBiteDbContext : DbContext
 
             entity.HasIndex(e => e.CustomerId, "ix_orders_customer_id");
 
-            entity.HasIndex(e => new { e.PickupCode, e.StoreId }, "ix_orders_pickup_code");
-
             entity.HasIndex(e => new { e.StoreId, e.Status }, "ix_orders_status");
 
             entity.HasIndex(e => e.StoreId, "ix_orders_store_id");
 
             entity.HasIndex(e => e.OrderNo, "uq_orders_order_no").IsUnique();
-
-            entity.HasIndex(e => new { e.PickupCode, e.StoreId }, "uq_orders_pickup_code_store").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
@@ -492,10 +488,6 @@ public partial class ByteBiteDbContext : DbContext
             entity.Property(e => e.PackingFee)
                 .HasPrecision(18, 2)
                 .HasColumnName("packing_fee");
-            entity.Property(e => e.PickupCode)
-                .HasMaxLength(10)
-                .HasComment("取货码（4-6位字母数字）")
-                .HasColumnName("pickup_code");
             entity.Property(e => e.PreparingAt).HasColumnName("preparing_at");
             entity.Property(e => e.ReadyAt).HasColumnName("ready_at");
             entity.Property(e => e.RejectReason)

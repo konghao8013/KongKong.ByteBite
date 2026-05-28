@@ -21,4 +21,20 @@ export const adminApi = {
 
   getPlatformStats: () =>
     request.get<any>('/admin/platform-stats'),
+
+  getConfigs: (publicOnly = false) =>
+    request.get<any[]>('/admin/configs', { params: { publicOnly } }),
+
+  upsertConfig: (data: {
+    configKey: string
+    configValue: string
+    configType: string
+    description?: string
+    isPublic: boolean
+    operatorId?: string
+  }) =>
+    request.put<any>('/admin/configs', data),
+
+  deleteConfig: (id: string, operatorId?: string) =>
+    request.delete<any>(`/admin/configs/${id}`, { params: operatorId ? { operatorId } : {} }),
 }

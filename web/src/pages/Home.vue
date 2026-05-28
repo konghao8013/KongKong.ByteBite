@@ -10,6 +10,10 @@ const goToMerchant = () => {
 const goToAdmin = () => {
   router.push('/login')
 }
+
+const goToStoreSearch = () => {
+  router.push('/stores/search')
+}
 </script>
 
 <template>
@@ -22,6 +26,15 @@ const goToAdmin = () => {
     </div>
 
     <div class="home-actions">
+      <div class="action-card" @click="goToStoreSearch">
+        <span class="action-icon">⌕</span>
+        <div class="action-info">
+          <h3>搜索店铺</h3>
+          <p>按店铺名、店铺码或行业快速进入点单</p>
+        </div>
+        <span class="action-arrow">›</span>
+      </div>
+
       <div class="action-card" @click="goToMerchant">
         <span class="action-icon">🏪</span>
         <div class="action-info">

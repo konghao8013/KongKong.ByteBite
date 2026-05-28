@@ -9,8 +9,11 @@ const collapsed = ref(false)
 
 const menuItems = [
   { key: 'merchants', label: '商家管理', icon: '商', path: '/admin/merchants' },
+  { key: 'industries', label: '行业分类', icon: '类', path: '/admin/industries' },
+  { key: 'templates', label: '模板管理', icon: '模', path: '/admin/templates' },
   { key: 'configs', label: '系统配置', icon: '配', path: '/admin/configs' },
   { key: 'stats', label: '平台统计', icon: '数', path: '/admin/stats' },
+  { key: 'logs', label: '审计日志', icon: '志', path: '/admin/logs' },
 ]
 
 const handleLogout = async () => {

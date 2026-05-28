@@ -7,7 +7,7 @@ import { customerApi } from '@/api/modules/customer'
 import { formatPrice } from '@/utils/format'
 import { useDeviceId } from '@/composables/useDeviceId'
 import EmptyState from '@/components/common/EmptyState.vue'
-import type { CreateOrderData } from '@/types/models/customer'
+import type { CreateOrderData, StoreMenuDto } from '@/types/models/customer'
 import { normalizeCustomerOrder } from '@/utils/order'
 
 const route = useRoute()
@@ -24,6 +24,7 @@ const deliveryAddress = ref('')
 const deliveryPhone = ref('')
 const orderRemark = ref('')
 const submitting = ref(false)
+const activeDiscounts = ref<NonNullable<StoreMenuDto['activeDiscounts']>>([])
 
 const diningModeOptions = [
   { label: '堂食', value: 'dine_in', icon: '🪑' },
@@ -33,14 +34,41 @@ const diningModeOptions = [
 
 const isEmpty = computed(() => cartStore.items.length === 0)
 
+const bestFullReduction = computed(() =>
+  activeDiscounts.value
+    .filter((rule) => rule.discountType === 'full_reduction' && rule.thresholdAmount && rule.discountAmount)
+    .sort((a, b) => Number(a.thresholdAmount) - Number(b.thresholdAmount))[0]
+)
+
+const discountHint = computed(() => {
+  const rule = bestFullReduction.value
+  if (!rule?.thresholdAmount || !rule.discountAmount) return ''
+  const diff = Number(rule.thresholdAmount) - cartStore.totalPrice
+  return diff > 0
+    ? `再买 ${diff.toFixed(2)} 元可享 ${rule.name}`
+    : `已满足 ${rule.name}，提交后自动按最优活动计算`
+})
+
 onMounted(async () => {
-  if (storeId.value) return
   try {
-    const menu = await customerApi.getStoreMenuByCode(storeCode)
+    activeDiscounts.value = JSON.parse(localStorage.getItem('current_store_discounts') || '[]')
+  } catch {
+    activeDiscounts.value = []
+  }
+  if (storeId.value && activeDiscounts.value.length) return
+  try {
+    const menu = await customerApi.getStoreMenuByCode(storeCode, {
+      customerId: localStorage.getItem('customer_id') || undefined,
+      deviceId: getDeviceId(),
+    })
     if (menu.storeId) {
       storeId.value = menu.storeId
       localStorage.setItem('current_store_id', menu.storeId)
     }
+    if (menu.storeName) localStorage.setItem('current_store_name', menu.storeName)
+    if (menu.storeCode) localStorage.setItem('current_store_code', menu.storeCode)
+    activeDiscounts.value = menu.activeDiscounts || []
+    localStorage.setItem('current_store_discounts', JSON.stringify(activeDiscounts.value))
   } catch {
   }
 })
@@ -148,6 +176,11 @@ const submitOrder = async () => {
         <el-input v-model="deliveryPhone" placeholder="联系电话" clearable class="delivery-input" />
       </div>
 
+      <div v-if="discountHint" class="discount-section">
+        <span class="discount-badge">活动</span>
+        <span>{{ discountHint }}</span>
+      </div>
+
       <!-- 商品列表 -->
       <div class="cart-items">
         <div
@@ -219,6 +252,7 @@ const submitOrder = async () => {
             </span>
           </div>
           <span class="footer-count">共{{ cartStore.totalCount }}件</span>
+          <span v-if="discountHint" class="footer-discount">{{ discountHint }}</span>
         </div>
         <button
           class="submit-btn"
@@ -334,6 +368,29 @@ const submitOrder = async () => {
 
     &:last-child { margin-bottom: 0; }
   }
+}
+
+.discount-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 10px;
+  padding: 10px 12px;
+  border: 1px solid #F5E2A8;
+  border-radius: 8px;
+  color: #9A6A00;
+  background: #FFF8E6;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.discount-badge {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  background: #FF6B4A;
+  font-size: 12px;
 }
 
 /* 商品列表 */
@@ -511,6 +568,16 @@ const submitOrder = async () => {
   font-size: 11px;
   color: #999;
   margin-top: 2px;
+}
+
+.footer-discount {
+  max-width: 220px;
+  margin-top: 2px;
+  color: #FFE08A;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .submit-btn {

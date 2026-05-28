@@ -18,7 +18,7 @@ public class TemplateService
 
     public async Task<List<StoreTemplate>> GetListAsync(Guid? industryCategoryId, CancellationToken ct = default)
     {
-        var query = TemplateDetails().Where(t => t.Status == "active" && t.DeletedAt == null);
+        var query = TemplateDetails().Where(t => t.DeletedAt == null);
         if (industryCategoryId != null) query = query.Where(t => t.IndustryCategoryId == industryCategoryId);
 
         return await query

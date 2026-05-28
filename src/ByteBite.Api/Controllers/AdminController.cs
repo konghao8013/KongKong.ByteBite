@@ -31,11 +31,33 @@ public class AdminController : ControllerBase
     [HttpGet("operation-logs")]
     public async Task<List<AdminOperationLog>> GetAdminOperationLogs([FromQuery] Guid? adminId) => await _adminService.GetAdminOperationLogsAsync(adminId);
 
+    [HttpGet("configs")]
+    public async Task<List<SystemConfig>> GetSystemConfigs([FromQuery] bool publicOnly = false)
+        => await _adminService.GetSystemConfigsAsync(publicOnly);
+
+    [HttpGet("configs/public")]
+    public async Task<List<SystemConfig>> GetPublicSystemConfigs()
+        => await _adminService.GetSystemConfigsAsync(publicOnly: true);
+
+    [HttpPut("configs")]
+    public async Task<SystemConfig> UpsertSystemConfig([FromBody] UpsertSystemConfigInput request)
+        => await _adminService.UpsertSystemConfigAsync(request);
+
+    [HttpDelete("configs/{id:guid}")]
+    public async Task<object> DeleteSystemConfig(Guid id, [FromQuery] Guid? operatorId)
+    {
+        await _adminService.DeleteSystemConfigAsync(id, operatorId);
+        return new { };
+    }
+
     [HttpPost("{id:guid}/logout")]
     public async Task<object> Logout(Guid id) { await _adminService.LogoutAsync(id); return new { }; }
 
     [HttpGet("platform-stats")]
     public async Task<object> GetPlatformStats() => await _adminService.GetPlatformStatsAsync();
+
+    [HttpGet("stats")]
+    public async Task<object> GetStats() => await _adminService.GetPlatformStatsAsync();
 }
 
 public class AdminLoginRequest { public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }

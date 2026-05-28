@@ -38,8 +38,9 @@ public class ProductService
             UpdatedAt = now
         };
 
-        AddSpecGroups(product, input.SpecGroups, now);
+        AddSpecGroups(product, NormalizeSpecGroups(input.SpecGroups), now);
         _db.Products.Add(product);
+        await UpsertComboItemsAsync(product, input.ComboItems, now, ct);
         await _db.SaveChangesAsync(ct);
         return await GetByIdAsync(product.Id, ct);
     }
@@ -49,6 +50,7 @@ public class ProductService
         var product = await _db.Products
             .Include(p => p.SpecGroups)
             .ThenInclude(sg => sg.SpecOptions)
+            .Include(p => p.ComboItemComboProducts)
             .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null, ct)
             ?? throw new BusinessException(404, "商品不存在");
 
@@ -74,7 +76,14 @@ public class ProductService
             _db.SpecOptions.RemoveRange(product.SpecGroups.SelectMany(g => g.SpecOptions));
             _db.SpecGroups.RemoveRange(product.SpecGroups);
             product.SpecGroups.Clear();
-            AddSpecGroups(product, input.SpecGroups, product.UpdatedAt);
+            AddSpecGroups(product, NormalizeSpecGroups(input.SpecGroups), product.UpdatedAt);
+        }
+
+        if (input.ComboItems != null || input.IsCombo.HasValue)
+        {
+            _db.ComboItems.RemoveRange(product.ComboItemComboProducts);
+            product.ComboItemComboProducts.Clear();
+            await UpsertComboItemsAsync(product, input.ComboItems, product.UpdatedAt, ct);
         }
 
         await _db.SaveChangesAsync(ct);
@@ -94,6 +103,8 @@ public class ProductService
         => await _db.Products
             .Include(p => p.SpecGroups)
             .ThenInclude(sg => sg.SpecOptions)
+            .Include(p => p.ComboItemComboProducts)
+            .ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null, ct)
             ?? throw new BusinessException(404, "商品不存在");
 
@@ -101,6 +112,8 @@ public class ProductService
         => await _db.Products
             .Include(p => p.SpecGroups)
             .ThenInclude(sg => sg.SpecOptions)
+            .Include(p => p.ComboItemComboProducts)
+            .ThenInclude(i => i.Product)
             .Where(p => p.CategoryId == categoryId && p.DeletedAt == null)
             .OrderBy(p => p.SortOrder)
             .ToListAsync(ct);
@@ -109,9 +122,106 @@ public class ProductService
         => await _db.Products
             .Include(p => p.SpecGroups)
             .ThenInclude(sg => sg.SpecOptions)
+            .Include(p => p.ComboItemComboProducts)
+            .ThenInclude(i => i.Product)
             .Where(p => p.StoreId == storeId && p.DeletedAt == null)
             .OrderBy(p => p.SortOrder)
             .ToListAsync(ct);
+
+    private async Task UpsertComboItemsAsync(Product product, List<ProductComboItemInput>? comboItems, DateTime now, CancellationToken ct)
+    {
+        if (!product.IsCombo)
+        {
+            if (comboItems?.Count > 0) throw new BusinessException(400, "普通商品不能配置套餐明细");
+            return;
+        }
+
+        var normalizedItems = (comboItems ?? [])
+            .Where(item => item.ProductId.HasValue)
+            .Select((item, index) => new ProductComboItemInput
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity <= 0 ? 1 : item.Quantity,
+                DefaultSpecOptionIds = item.DefaultSpecOptionIds,
+                AllowChangeSpec = item.AllowChangeSpec,
+                Remark = item.Remark,
+                SortOrder = item.SortOrder <= 0 ? index + 1 : item.SortOrder
+            })
+            .ToList();
+
+        if (normalizedItems.Count == 0) throw new BusinessException(400, "套餐商品至少需要配置一个子商品");
+        if (normalizedItems.Any(item => item.ProductId == product.Id)) throw new BusinessException(400, "套餐不能包含自身");
+
+        var childIds = normalizedItems.Select(i => i.ProductId!.Value).Distinct().ToList();
+        var childProducts = await _db.Products
+            .Where(p => childIds.Contains(p.Id) && p.StoreId == product.StoreId && p.DeletedAt == null)
+            .ToDictionaryAsync(p => p.Id, ct);
+
+        if (childProducts.Count != childIds.Count) throw new BusinessException(400, "套餐子商品必须来自当前店铺且不能已删除");
+        if (childProducts.Values.Any(p => p.IsCombo)) throw new BusinessException(400, "套餐子商品不能再选择套餐商品");
+
+        foreach (var item in normalizedItems)
+        {
+            product.ComboItemComboProducts.Add(new ComboItem
+            {
+                Id = Guid.NewGuid(),
+                ComboProductId = product.Id,
+                ProductId = item.ProductId!.Value,
+                Quantity = item.Quantity <= 0 ? 1 : item.Quantity,
+                DefaultSpecOptionIds = item.DefaultSpecOptionIds == null ? null : string.Join(",", item.DefaultSpecOptionIds.Distinct()),
+                AllowChangeSpec = item.AllowChangeSpec,
+                Remark = item.Remark,
+                SortOrder = item.SortOrder,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+    }
+
+    private static List<ProductSpecGroupInput>? NormalizeSpecGroups(List<ProductSpecGroupInput>? specGroups)
+    {
+        if (specGroups == null) return null;
+
+        var result = new List<ProductSpecGroupInput>();
+        foreach (var groupInput in specGroups.Where(g => !string.IsNullOrWhiteSpace(g.Name)))
+        {
+            var options = groupInput.GetOptions()
+                .Where(o => !string.IsNullOrWhiteSpace(o.Name))
+                .Select((option, index) => new ProductSpecOptionInput
+                {
+                    Name = option.Name.Trim(),
+                    ExtraPrice = option.ExtraPrice,
+                    Stock = option.Stock,
+                    SortOrder = option.SortOrder <= 0 ? index + 1 : option.SortOrder,
+                    IsDefault = option.IsDefault
+                })
+                .ToList();
+
+            if (options.Count == 0) throw new BusinessException(400, $"规格组「{groupInput.Name}」至少需要一个规格项");
+            if (options.Any(o => o.Stock.HasValue && o.Stock.Value < 0)) throw new BusinessException(400, "规格库存不能为负数");
+
+            var defaultOptions = options.Where(o => o.IsDefault).ToList();
+            if (defaultOptions.Count == 0)
+            {
+                options[0].IsDefault = true;
+            }
+            else if (defaultOptions.Count > 1)
+            {
+                var keep = defaultOptions[0];
+                foreach (var option in options) option.IsDefault = ReferenceEquals(option, keep);
+            }
+
+            result.Add(new ProductSpecGroupInput
+            {
+                Name = groupInput.Name.Trim(),
+                IsRequired = groupInput.IsRequired,
+                SortOrder = groupInput.SortOrder <= 0 ? result.Count + 1 : groupInput.SortOrder,
+                Options = options
+            });
+        }
+
+        return result;
+    }
 
     private static void AddSpecGroups(Product product, List<ProductSpecGroupInput>? specGroups, DateTime now)
     {
@@ -167,6 +277,7 @@ public sealed class UpsertProductInput
     public int? MinOrderQty { get; set; }
     public bool? IsCombo { get; set; }
     public List<ProductSpecGroupInput>? SpecGroups { get; set; }
+    public List<ProductComboItemInput>? ComboItems { get; set; }
 }
 
 public sealed class ProductSpecGroupInput
@@ -187,4 +298,14 @@ public sealed class ProductSpecOptionInput
     public int? Stock { get; set; }
     public int SortOrder { get; set; }
     public bool IsDefault { get; set; }
+}
+
+public sealed class ProductComboItemInput
+{
+    public Guid? ProductId { get; set; }
+    public int Quantity { get; set; } = 1;
+    public List<Guid>? DefaultSpecOptionIds { get; set; }
+    public bool AllowChangeSpec { get; set; } = true;
+    public string? Remark { get; set; }
+    public int SortOrder { get; set; }
 }

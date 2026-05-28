@@ -42,6 +42,8 @@ builder.Services.AddScoped<DiscountRuleService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<ConversationService>();
+builder.Services.AddScoped<StaffService>();
 builder.Services.AddScoped<OrderNotificationService>();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -67,9 +69,11 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.UseStaticFiles();
 app.MapControllers();
 app.MapHub<OrderHub>("/hubs/order");
 app.MapHub<StoreHub>("/hubs/store");
+app.MapHub<ConversationHub>("/hubs/conversation");
 
 app.Run();
 

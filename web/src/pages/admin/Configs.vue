@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { adminApi } from '@/api/modules/admin'
 
 const adminInfo = ref<any>(null)
-const auditLogs = ref<any[]>([])
+const configs = ref<any[]>([])
 const loading = ref(false)
+const saving = ref(false)
+const showEditor = ref(false)
+
+const form = reactive({
+  configKey: '',
+  configValue: '',
+  configType: 'string',
+  description: '',
+  isPublic: false,
+})
+
+const operatorId = () => localStorage.getItem('admin_id') || undefined
 
 const loadAdminInfo = () => {
   const info = localStorage.getItem('admin_info')
@@ -13,198 +25,159 @@ const loadAdminInfo = () => {
   }
 }
 
-const loadAuditLogs = async () => {
+const loadConfigs = async () => {
   loading.value = true
   try {
-    auditLogs.value = await adminApi.getAuditLogs() || []
-  } catch (e) { console.error('加载审计日志失败', e) }
-  finally { loading.value = false }
-}
-
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-}
-
-const actionLabel = (action: string) => {
-  if (action.startsWith('status_change:')) {
-    const parts = action.replace('status_change:', '').split('->')
-    const statusMap: Record<string, string> = { active: '正常', pending: '待审核', suspended: '已封禁', rejected: '已拒绝' }
-    return `状态变更: ${statusMap[parts[0]] || parts[0]} → ${statusMap[parts[1]] || parts[1]}`
+    configs.value = await adminApi.getConfigs() || []
+  } finally {
+    loading.value = false
   }
-  return action
+}
+
+const openCreator = () => {
+  form.configKey = ''
+  form.configValue = ''
+  form.configType = 'string'
+  form.description = ''
+  form.isPublic = false
+  showEditor.value = true
+}
+
+const openEditor = (config: any) => {
+  form.configKey = config.configKey
+  form.configValue = config.configValue
+  form.configType = config.configType || 'string'
+  form.description = config.description || ''
+  form.isPublic = !!config.isPublic
+  showEditor.value = true
+}
+
+const saveConfig = async () => {
+  if (!form.configKey.trim()) return
+  saving.value = true
+  try {
+    await adminApi.upsertConfig({
+      ...form,
+      configKey: form.configKey.trim(),
+      operatorId: operatorId(),
+    })
+    showEditor.value = false
+    await loadConfigs()
+  } finally {
+    saving.value = false
+  }
+}
+
+const deleteConfig = async (config: any) => {
+  if (!confirm(`确定删除配置「${config.configKey}」吗？`)) return
+  await adminApi.deleteConfig(config.id, operatorId())
+  await loadConfigs()
 }
 
 onMounted(() => {
   loadAdminInfo()
-  loadAuditLogs()
+  loadConfigs()
 })
 </script>
 
 <template>
   <div class="configs-page">
-    <div class="page-header">
+    <header class="page-header">
       <h2>系统配置</h2>
-    </div>
+      <button class="primary-button" @click="openCreator">新增配置</button>
+    </header>
 
-    <div class="config-content">
-      <div class="config-section">
-        <h3 class="section-title">管理员信息</h3>
-        <div class="info-card">
-          <div class="info-row">
-            <span class="info-label">用户名</span>
-            <span class="info-value">{{ adminInfo?.username || '-' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">显示名称</span>
-            <span class="info-value">{{ adminInfo?.displayName || '-' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">角色</span>
-            <span class="info-value">{{ adminInfo?.role === 'super_admin' ? '超级管理员' : adminInfo?.role === 'admin' ? '管理员' : adminInfo?.role || '-' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">最近登录</span>
-            <span class="info-value">{{ formatDate(adminInfo?.lastLoginAt) }}</span>
-          </div>
-        </div>
+    <section class="admin-card">
+      <div>
+        <span>当前管理员</span>
+        <strong>{{ adminInfo?.displayName || adminInfo?.username || '-' }}</strong>
       </div>
+      <div>
+        <span>角色</span>
+        <strong>{{ adminInfo?.role || '-' }}</strong>
+      </div>
+    </section>
 
-      <div class="config-section">
-        <h3 class="section-title">系统参数</h3>
-        <div class="info-card">
-          <div class="info-row">
-            <span class="info-label">系统版本</span>
-            <span class="info-value">v1.0.0</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">API地址</span>
-            <span class="info-value">/api</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">数据存储</span>
-            <span class="info-value">PostgreSQL 17</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">运行环境</span>
-            <span class="info-value">.NET 10 + Vue 3</span>
-          </div>
+    <div v-if="loading" class="loading-state">加载中...</div>
+    <section v-else class="config-list">
+      <article v-for="config in configs" :key="config.id" class="config-card">
+        <div>
+          <h3>{{ config.configKey }}</h3>
+          <p>{{ config.description || '暂无说明' }}</p>
         </div>
-      </div>
+        <div class="config-value">
+          <span>{{ config.configType }}</span>
+          <strong>{{ config.configValue }}</strong>
+          <small>{{ config.isPublic ? '公开' : '内部' }}</small>
+        </div>
+        <div class="config-actions">
+          <button class="ghost-button" @click="openEditor(config)">编辑</button>
+          <button class="danger-button" @click="deleteConfig(config)">删除</button>
+        </div>
+      </article>
+    </section>
 
-      <div class="config-section">
-        <h3 class="section-title">操作审计日志</h3>
-        <div v-if="loading" class="loading-state">加载中...</div>
-        <div v-else-if="auditLogs.length === 0" class="empty-state">暂无审计日志</div>
-        <div v-else class="log-list">
-          <div v-for="log in auditLogs" :key="log.id" class="log-item">
-            <div class="log-header">
-              <span class="log-action">{{ actionLabel(log.action) }}</span>
-              <span class="log-time">{{ formatDate(log.createdAt) }}</span>
-            </div>
-            <div v-if="log.reason" class="log-reason">原因: {{ log.reason }}</div>
-          </div>
+    <div v-if="showEditor" class="modal-overlay" @click.self="showEditor = false">
+      <section class="modal-content">
+        <h3>配置项</h3>
+        <label>
+          配置键
+          <input v-model="form.configKey" placeholder="例如 site.name" />
+        </label>
+        <label>
+          配置值
+          <textarea v-model="form.configValue" rows="3"></textarea>
+        </label>
+        <label>
+          类型
+          <select v-model="form.configType">
+            <option value="string">字符串</option>
+            <option value="number">数字</option>
+            <option value="boolean">布尔</option>
+            <option value="json">JSON</option>
+          </select>
+        </label>
+        <label>
+          说明
+          <input v-model="form.description" />
+        </label>
+        <label class="inline-check">
+          <input v-model="form.isPublic" type="checkbox" />
+          允许前端公开读取
+        </label>
+        <div class="modal-actions">
+          <button class="ghost-button" @click="showEditor = false">取消</button>
+          <button class="primary-button" :disabled="saving" @click="saveConfig">{{ saving ? '保存中...' : '保存' }}</button>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.configs-page {
-  min-height: 100vh;
-  background: #f6f7f3;
-}
-
-.page-header {
-  background: #fff;
-  padding: 16px;
+.configs-page { min-height: 100vh; color: #1F2A26; background: #F6F7F3; }
+.page-header, .admin-card, .config-card {
   border: 1px solid #E2E8E3;
   border-radius: 8px;
-
-  h2 { margin: 0; font-size: 18px; font-weight: 800; color: #1F2A26; }
-}
-
-.config-content {
-  padding: 16px;
-}
-
-.config-section {
-  margin-bottom: 20px;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 12px;
-}
-
-.info-card {
   background: #fff;
-  border: 1px solid #E2E8E3;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
 }
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #f6f7f3;
-
-  &:last-child { border-bottom: none; }
-
-  .info-label { font-size: 14px; color: #999; }
-  .info-value { font-size: 14px; font-weight: 500; color: #333; }
-}
-
-.loading-state, .empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #999;
-  background: #fff;
-  border-radius: 12px;
-}
-
-.log-list {
-  background: #fff;
-  border: 1px solid #E2E8E3;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(31, 42, 38, 0.05);
-}
-
-.log-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f6f7f3;
-
-  &:last-child { border-bottom: none; }
-}
-
-.log-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.log-action {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.log-time {
-  font-size: 12px;
-  color: #999;
-}
-
-.log-reason {
-  font-size: 13px;
-  color: #F7B731;
-  margin-top: 4px;
-}
+.page-header { padding: 16px; display: flex; align-items: center; justify-content: space-between; h2 { margin: 0; font-size: 18px; } }
+.primary-button, .ghost-button, .danger-button { min-height: 34px; padding: 0 12px; border-radius: 6px; font-weight: 800; }
+.primary-button { color: #fff; background: #087E6B; }
+.ghost-button { color: #087E6B; background: #E7F4EF; }
+.danger-button { color: #D94C4C; background: #FFF0F0; }
+.admin-card { margin: 12px 0; padding: 14px 16px; display: flex; gap: 28px; span { display: block; color: #687872; font-size: 12px; } strong { font-size: 15px; } }
+.loading-state { padding: 60px; text-align: center; color: #687872; }
+.config-list { display: grid; gap: 10px; }
+.config-card { padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, .5fr) auto; gap: 12px; align-items: center; h3 { margin: 0 0 4px; font-size: 15px; } p { margin: 0; color: #687872; font-size: 12px; } }
+.config-value { display: grid; gap: 2px; span, small { color: #687872; font-size: 12px; } strong { word-break: break-word; } }
+.config-actions { display: flex; gap: 8px; }
+.modal-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.45); }
+.modal-content { width: min(520px, 100%); padding: 20px; border-radius: 8px; background: #fff; }
+label { display: grid; gap: 6px; margin-bottom: 12px; color: #687872; font-size: 13px; }
+input, select, textarea { min-height: 38px; padding: 8px 10px; border: 1px solid #DCE6E1; border-radius: 8px; color: #1F2A26; background: #fff; }
+textarea { resize: vertical; }
+.inline-check { display: flex; align-items: center; gap: 6px; } .inline-check input { width: auto; min-height: auto; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+@media (max-width: 720px) { .config-card { grid-template-columns: 1fr; } .config-actions { justify-content: flex-start; } }
 </style>

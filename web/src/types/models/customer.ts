@@ -68,6 +68,8 @@ export interface StoreMenuCategoryDto {
 export interface StoreMenuDto {
   /** 店铺ID */
   storeId: string
+  /** 店铺码 */
+  storeCode?: string
   /** 店铺名称 */
   storeName: string
   /** 店铺描述 */
@@ -82,8 +84,40 @@ export interface StoreMenuDto {
   diningMode: string
   /** 打包费 */
   packingFee: number
+  /** 当前生效优惠活动 */
+  activeDiscounts?: {
+    id: string
+    name: string
+    discountType: string
+    thresholdAmount?: number
+    discountAmount?: number
+    discountRate?: number
+    applyScope: string
+  }[]
   /** 分类列表 */
   categories: StoreMenuCategoryDto[]
+}
+
+/** 顾客端店铺摘要 */
+export interface StoreSummaryDto {
+  id: string
+  storeCode: string
+  name: string
+  description?: string
+  coverImageUrl?: string
+  businessStatus: string
+  monthlySales?: number
+  industryName?: string
+  activeDiscounts?: {
+    id: string
+    name: string
+    discountType: string
+    thresholdAmount?: number
+    discountAmount?: number
+    discountRate?: number
+  }[]
+  lastVisitedAt?: string
+  lastOrderedAt?: string
 }
 
 /** 顾客信息DTO */
@@ -92,6 +126,8 @@ export interface CustomerDto {
   id: string
   /** 手机号 */
   phone?: string
+  /** 账号名 */
+  username?: string
   /** 昵称 */
   nickname?: string
   /** 头像URL */
@@ -105,9 +141,11 @@ export interface CustomerDto {
 /** 注册顾客请求 */
 export interface RegisterCustomerRequest {
   /** 手机号 */
-  phone: string
-  /** 验证码 */
-  verifyCode: string
+  phone?: string
+  /** 账号名 */
+  username?: string
+  /** 密码 */
+  password: string
   /** 昵称 */
   nickname?: string
   /** 设备标识 */
@@ -116,10 +154,10 @@ export interface RegisterCustomerRequest {
 
 /** 登录顾客请求 */
 export interface LoginCustomerRequest {
-  /** 手机号 */
-  phone: string
-  /** 验证码 */
-  verifyCode: string
+  /** 手机号或账号名 */
+  account: string
+  /** 密码 */
+  password: string
   /** 设备标识 */
   deviceId?: string
 }

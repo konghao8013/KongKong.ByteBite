@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { categoryApi } from '@/api/modules/category'
 import { productApi } from '@/api/modules/product'
+import { fileApi } from '@/api/modules/file'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const loading = ref(false)
@@ -27,6 +28,8 @@ const productForm = reactive<any>({
   imageUrl: '',
   minOrderQty: 1,
   status: 'on',
+  isCombo: false,
+  comboItems: [],
   specGroups: [],
 })
 
@@ -34,6 +37,10 @@ const activeCategoryProducts = computed(() => {
   if (!activeCategory.value) return products.value
   return products.value.filter(p => p.categoryId === activeCategory.value)
 })
+
+const availableComboProducts = computed(() =>
+  products.value.filter((product) => product.id !== editingProductId.value && !product.isCombo)
+)
 
 const resetCategoryForm = () => {
   categoryForm.name = ''
@@ -50,6 +57,8 @@ const resetProductForm = () => {
   productForm.imageUrl = ''
   productForm.minOrderQty = 1
   productForm.status = 'on'
+  productForm.isCombo = false
+  productForm.comboItems = []
   productForm.specGroups = []
 }
 
@@ -113,6 +122,13 @@ const openProductEditor = (product: any) => {
   productForm.imageUrl = product.imageUrl || ''
   productForm.minOrderQty = Number(product.minOrderQty || 1)
   productForm.status = product.status || 'on'
+  productForm.isCombo = !!product.isCombo
+  productForm.comboItems = (product.comboItemComboProducts || []).map((item: any) => ({
+    productId: item.productId || item.product?.id || '',
+    quantity: Number(item.quantity || 1),
+    allowChangeSpec: item.allowChangeSpec ?? true,
+    remark: item.remark || '',
+  }))
   productForm.specGroups = (product.specGroups || []).map((group: any) => ({
     name: group.name || '',
     isRequired: group.isRequired ?? true,
@@ -133,7 +149,7 @@ const addSpecGroup = () => {
     name: '',
     isRequired: true,
     sortOrder: productForm.specGroups.length + 1,
-    options: [{ name: '', extraPrice: 0, sortOrder: 1, isDefault: true }],
+    options: [{ name: '', extraPrice: 0, stock: undefined, sortOrder: 1, isDefault: true }],
   })
 }
 
@@ -145,6 +161,7 @@ const addSpecOption = (group: any) => {
   group.options.push({
     name: '',
     extraPrice: 0,
+    stock: undefined,
     sortOrder: group.options.length + 1,
     isDefault: group.options.length === 0,
   })
@@ -152,6 +169,28 @@ const addSpecOption = (group: any) => {
 
 const removeSpecOption = (group: any, index: number) => {
   group.options.splice(index, 1)
+}
+
+const addComboItem = () => {
+  productForm.comboItems.push({
+    productId: availableComboProducts.value[0]?.id || '',
+    quantity: 1,
+    allowChangeSpec: true,
+    remark: '',
+  })
+}
+
+const removeComboItem = (index: number) => {
+  productForm.comboItems.splice(index, 1)
+}
+
+const uploadProductImage = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const result = await fileApi.upload(file)
+  productForm.imageUrl = result.url
+  input.value = ''
 }
 
 const buildProductPayload = () => ({
@@ -163,6 +202,18 @@ const buildProductPayload = () => ({
   imageUrl: productForm.imageUrl,
   minOrderQty: Number(productForm.minOrderQty || 1),
   status: productForm.status,
+  isCombo: !!productForm.isCombo,
+  comboItems: productForm.isCombo
+    ? productForm.comboItems
+      .filter((item: any) => item.productId)
+      .map((item: any, index: number) => ({
+        productId: item.productId,
+        quantity: Number(item.quantity || 1),
+        allowChangeSpec: !!item.allowChangeSpec,
+        remark: item.remark,
+        sortOrder: index + 1,
+      }))
+    : [],
   specGroups: productForm.specGroups
     .filter((group: any) => group.name.trim())
     .map((group: any, groupIndex: number) => ({
@@ -275,11 +326,15 @@ onMounted(loadData)
               <span>￥{{ Number(product.basePrice || 0).toFixed(2) }}</span>
               <span>起购 {{ product.minOrderQty || 1 }} 份</span>
               <span>月销 {{ product.monthlySales || 0 }}</span>
+              <span v-if="product.isCombo" class="combo-pill">套餐</span>
             </div>
             <div v-if="product.specGroups?.length" class="spec-summary">
               <span v-for="group in product.specGroups" :key="group.id">
                 {{ group.name }}：{{ group.specOptions?.map((o: any) => `${o.name}${o.extraPrice ? `+￥${o.extraPrice}` : ''}`).join(' / ') }}
               </span>
+            </div>
+            <div v-if="product.comboItemComboProducts?.length" class="spec-summary">
+              <span>包含：{{ product.comboItemComboProducts.map((i: any) => `${i.product?.name || '商品'}×${i.quantity}`).join(' / ') }}</span>
             </div>
           </div>
           <div class="product-actions">
@@ -352,6 +407,14 @@ onMounted(loadData)
             图片 URL
             <input v-model="productForm.imageUrl" placeholder="可选" />
           </label>
+          <label>
+            上传图片
+            <input type="file" accept="image/*" @change="uploadProductImage" />
+          </label>
+          <label class="inline-check form-check">
+            <input v-model="productForm.isCombo" type="checkbox" />
+            套餐商品
+          </label>
         </div>
         <label>
           商品描述
@@ -375,6 +438,7 @@ onMounted(loadData)
             <div v-for="(option, optionIndex) in group.options" :key="optionIndex" class="spec-option-row">
               <input v-model="option.name" placeholder="选项，如 大份" />
               <input v-model.number="option.extraPrice" type="number" step="0.01" placeholder="加价" />
+              <input v-model.number="option.stock" type="number" min="0" step="1" placeholder="库存" />
               <label class="inline-check">
                 <input v-model="option.isDefault" type="checkbox" />
                 默认
@@ -382,6 +446,29 @@ onMounted(loadData)
               <button class="text-button" @click="removeSpecOption(group, Number(optionIndex))">删除</button>
             </div>
             <button class="ghost-button compact" @click="addSpecOption(group)">添加选项</button>
+          </div>
+        </div>
+
+        <div v-if="productForm.isCombo" class="combo-editor">
+          <div class="section-title">
+            <span>套餐明细</span>
+            <button class="ghost-button compact" :disabled="availableComboProducts.length === 0" @click="addComboItem">添加子商品</button>
+          </div>
+          <div v-if="availableComboProducts.length === 0" class="combo-empty">请先录入普通商品，再创建套餐。</div>
+          <div v-for="(item, index) in productForm.comboItems" :key="index" class="combo-row">
+            <select v-model="item.productId">
+              <option value="">选择商品</option>
+              <option v-for="product in availableComboProducts" :key="product.id" :value="product.id">
+                {{ product.name }}
+              </option>
+            </select>
+            <input v-model.number="item.quantity" type="number" min="1" step="1" placeholder="数量" />
+            <label class="inline-check">
+              <input v-model="item.allowChangeSpec" type="checkbox" />
+              可改规格
+            </label>
+            <input v-model="item.remark" placeholder="备注" />
+            <button class="danger-button compact" @click="removeComboItem(Number(index))">删除</button>
           </div>
         </div>
 
@@ -596,6 +683,14 @@ onMounted(loadData)
   color: #666;
 }
 
+.combo-pill {
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #9A6A00;
+  background: #FFF6DB;
+  font-weight: 800;
+}
+
 .spec-summary {
   margin-top: 8px;
 
@@ -694,7 +789,7 @@ textarea {
 }
 
 .spec-option-row {
-  grid-template-columns: minmax(0, 1fr) 96px auto auto;
+  grid-template-columns: minmax(0, 1fr) 86px 86px auto auto;
 }
 
 .inline-check {
@@ -710,6 +805,36 @@ textarea {
   }
 }
 
+.form-check {
+  align-self: end;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafcfa;
+}
+
+.combo-editor {
+  margin-top: 10px;
+}
+
+.combo-empty {
+  padding: 10px 12px;
+  border: 1px dashed #DCE6E1;
+  border-radius: 8px;
+  color: #687872;
+  background: #FAFCFA;
+  font-size: 13px;
+}
+
+.combo-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 80px auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 @media (max-width: 640px) {
   .menu-header,
   .product-card,
@@ -720,7 +845,8 @@ textarea {
 
   .form-grid,
   .spec-group-head,
-  .spec-option-row {
+  .spec-option-row,
+  .combo-row {
     grid-template-columns: 1fr;
   }
 }

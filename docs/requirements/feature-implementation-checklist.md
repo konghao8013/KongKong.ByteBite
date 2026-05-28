@@ -2,7 +2,7 @@
 
 本清单用于跟踪 `requirements-overview.md` 中功能的落地状态。后续每实现、修复或验收一个功能，都需要同步更新本文件。
 
-最后盘点日期：2026-05-26
+最后盘点日期：2026-05-27
 
 维护技能：`docs/skills/bytebite-feature-checklist/SKILL.md`
 
@@ -25,22 +25,22 @@
 | CUST-005 | 已实现 | P0 | 商品规格选择 | `ProductDetail.vue`、商品规格实体与下单校验 | - |
 | CUST-006 | 已实现 | P0 | 购物车增删改、备注、按店铺缓存 | `useCartStore.ts`、`Cart.vue` | - |
 | CUST-007 | 已实现 | P0 | 堂食/打包/外卖下单 | `Cart.vue`、`OrderService.CreateOrderAsync` | 外卖地址/电话仍需更完整校验 |
-| CUST-008 | 部分实现 | P0 | 商家活动提示与优惠计算 | 后端下单时计算最优优惠；订单详情展示优惠金额 | 顾客菜单页/购物车页缺少活动条和凑单提示 |
+| CUST-008 | 已实现 | P0 | 商家活动提示与优惠计算 | `CustomerStoreService.BuildStoreMenuAsync/SearchStoresAsync` 返回活动；`StoreMenu.vue`、`Cart.vue` 展示活动条和凑单提示；`OrderService.CreateOrderAsync` 后端重算最优优惠；前端构建通过 | 后续可细化多档活动展开与不可用原因 |
 | CUST-009 | 已实现 | P0 | 下单生成订单并进入订单详情 | `Cart.vue` 调用 `customerApi.createOrder`，成功后跳转订单详情 | - |
-| CUST-010 | 部分实现 | P0 | 取货码生成和展示 | 当前订单表存 `PickupCode` 字符串，页面展示取货码 | 新需求要求数据库改为 `int pickupCodeValue`，页面显示 6 位 Base36 |
-| CUST-011 | 未实现 | P0 | 取货码二维码展示 | 依赖 `qrcode.vue` 已安装，但订单详情未展示取货二维码 | 需在订单详情同屏展示二维码，内容为商家核销链接 |
+| CUST-010 | 已实现 | P0 | 取货码生成和展示 | `PickupCodeGenerator`、`Order.PickupCodeValue`、迁移 `FeatureCompletionRound`、`OrderService.CreateOrderAsync/GetByPickupCodeAsync`；页面仍显示 6 位 Base36；API 构建通过 | - |
+| CUST-011 | 已实现 | P0 | 取货码二维码展示 | `OrderDetail.vue` 使用 `qrcode.vue` 同屏展示取货二维码，内容指向 `/merchant/verify?storeCode=...&pickupCode=...&orderId=...`；`VerifyOrder.vue` 支持落地核销 | - |
 | CUST-012 | 已实现 | P0 | 订单详情与状态时间线 | `OrderDetail.vue` | 页面中文存在乱码显示，需要单独修复 |
-| CUST-013 | 部分实现 | P0 | 订单状态实时推送 | `OrderHub`、`StoreHub`、`OrderNotificationService`、前端 `useSignalR` | 需要补断线轮询降级与更完整测试 |
-| CUST-014 | 部分实现 | P0 | 顾客取消订单 | 前端和后端均有取消接口 | 当前允许 `accepted` 后取消，需求要求仅 `pending` 可取消 |
-| CUST-015 | 部分实现 | P0 | 我的订单展示 | `MyOrders.vue`、`GET /api/stores/{storeId}/customer-orders` | 当前按当前店铺查询；新需求要求登录账号跨店铺分组展示 |
-| CUST-016 | 部分实现 | P0 | 顾客手机号注册/登录 | `CustomersController`、`CustomerService.RegisterAsync/LoginAsync`、统一登录可识别顾客 | 顾客端缺少直接注册页面/入口；验证码模式未实现 |
-| CUST-017 | 未实现 | P0 | 顾客账号名注册/登录 | 当前顾客实体和登录逻辑主要按手机号 | 需新增账号名字段、唯一性和前端注册入口 |
-| CUST-018 | 部分实现 | P0 | 匿名设备标识与数据合并 | `useDeviceId.ts`、`CustomerService.EnsureAnonymousAsync/MergeDataAsync` | 目前主要合并订单；购物车、最近店铺、会话合并未完整落地 |
-| CUST-019 | 未实现 | P1 | 店铺搜索 | 无顾客店铺搜索路由/API | 需支持店铺名、店铺码、行业关键词搜索 |
-| CUST-020 | 未实现 | P1 | 最近店铺跨设备同步 | 当前主要依赖 localStorage 当前店铺 | 需账号级最近访问/下单店铺记录 |
-| CUST-021 | 未实现 | P1 | 订单消息会话 | 无 Conversation/Message 实体、API、页面或 Hub | 顾客从已下单订单发起，商家可回复并打开订单 |
-| CUST-022 | 部分实现 | P1 | 商品搜索 | 菜单页有静态搜索框样式 | 缺少输入、筛选和结果展示逻辑 |
-| CUST-023 | 未实现 | P1 | 再来一单 | 我的订单页未提供再来一单操作 | - |
+| CUST-013 | 已实现 | P0 | 订单状态实时推送 | `OrderHub`、`StoreHub`、`OrderNotificationService`、前端 `useSignalR`；`OrderDetail.vue` 补 15 秒轮询降级；`Orders.vue` 保留商家端轮询刷新；构建通过 | 后续补自动化断线回归测试 |
+| CUST-014 | 已实现 | P0 | 顾客取消订单 | `OrderService.CancelOrderAsync` 仅允许 `pending`；`OrderDetail.vue` 仅在待接单显示取消按钮；构建通过 | - |
+| CUST-015 | 已实现 | P0 | 我的订单展示 | `GET /api/customer-orders`、`OrderService.GetCustomerOrdersAcrossStoresAsync`、`MyOrders.vue` 按店铺分组展示并支持进入原店铺；构建通过 | - |
+| CUST-016 | 已实现 | P0 | 顾客手机号注册/登录 | `CustomersController`、`CustomerService.RegisterAsync/LoginAsync`、`CustomerLogin.vue` 支持手机号+密码注册登录，登录后合并本机订单/店铺/会话/购物车；`dotnet build ByteBite.slnx --no-restore`、`npm.cmd run build` 通过 | 短信验证码属于第三方付费能力，按当前范围不接入 |
+| CUST-017 | 已实现 | P0 | 顾客账号名注册/登录 | `Customer.Username`、唯一索引 `uq_customers_username`、`CustomerService.RegisterAsync/LoginAsync`、`CustomerLogin.vue` 账号名注册/登录；构建通过 | - |
+| CUST-018 | 已实现 | P0 | 匿名设备标识与数据合并 | `useDeviceId.ts`、`CustomerSession.CartData`、`CustomersController` 购物车接口、`CustomerService.MergeDataAsync/GetCartAsync/SaveCartAsync` 合并订单/最近店铺/订单会话/服务端购物车；`useCartStore.ts` 同步购物车；构建和测试通过 | - |
+| CUST-019 | 已实现 | P1 | 店铺搜索 | `CustomerStoreController.Search`、`CustomerStoreService.SearchStoresAsync`、`StoreSearch.vue`、首页/我的订单入口；前端和 API 构建通过 | - |
+| CUST-020 | 已实现 | P1 | 最近店铺跨设备同步 | `CustomerStoreVisit`、`CustomerStoreService.GetRecentStoresAsync/TouchVisitAsync`、下单记录 `LastOrderedAt`、`StoreSearch.vue/MyOrders.vue` 展示最近店铺 | - |
+| CUST-021 | 已实现 | P1 | 订单消息会话 | `Conversation`/`ConversationMessage` 实体、`ConversationsController`、`ConversationHub`、`OrderDetail.vue` 顾客发消息、`Orders.vue` 商家回复并打开关联订单；构建通过 | 后续补权限自动化测试 |
+| CUST-022 | 已实现 | P1 | 商品搜索 | `StoreMenu.vue` 搜索框支持按商品名/描述过滤分类与结果展示；前端构建通过 | - |
+| CUST-023 | 已实现 | P1 | 再来一单 | `MyOrders.vue` 在进行中/历史订单卡片支持“再来一单”，按订单商品和规格快照回填购物车并进入原店铺购物车；前端构建通过 | - |
 
 ## 商家端
 
@@ -53,15 +53,15 @@
 | MER-005 | 已实现 | P0 | 店铺二维码和短链分享 | `StoreShareDialog.vue` 使用 `qrcode.vue` 生成 `/A/{storeCode}` | - |
 | MER-006 | 已实现 | P0 | 分类管理 | `CategoriesController`、`CategoryService`、`Menu.vue` | - |
 | MER-007 | 已实现 | P0 | 商品管理 | `ProductsController`、`ProductService`、`Menu.vue` | - |
-| MER-008 | 部分实现 | P0 | 商品规格管理 | 实体、服务和商家菜单页支持规格组/规格项 | 需要补更完整的规格库存、默认项校验 |
-| MER-009 | 部分实现 | P0 | 套餐商品 | 实体中有 `ComboItem`/`IsCombo`，菜单能显示套餐标签 | 缺少完整套餐创建/编辑 UI 和规则校验 |
+| MER-008 | 已实现 | P0 | 商品规格管理 | `ProductService.NormalizeSpecGroups` 校验规格组、库存非负、默认项；`OrderService.CreateOrderAsync` 校验必选/单选规格并扣减规格库存；`Menu.vue` 支持规格库存和默认项编辑；构建和测试通过 | - |
+| MER-009 | 已实现 | P0 | 套餐商品 | `ProductService.UpsertComboItemsAsync` 校验套餐必须含当前店铺普通子商品且不能包含自身；`ProductsController` 返回套餐明细；`Menu.vue` 支持套餐开关、子商品/数量/规格替换设置和套餐摘要；构建通过 | - |
 | MER-010 | 已实现 | P0 | 订单列表与状态流转 | `Orders.vue`、`OrdersController` 接单/拒单/制作/待取餐/完成 | - |
-| MER-011 | 部分实现 | P0 | 取货码核销 | 商家订单详情和列表可对 ready 订单点击核销 | 缺少输入取货码查询核销、扫码核销、权限确认页 |
-| MER-012 | 未实现 | P0 | 取货二维码扫码核销 | 无 `/merchant/verify` 路由/API | 需商家登录、店铺归属、状态校验、二次确认 |
-| MER-013 | 部分实现 | P1 | 优惠活动管理 | `DiscountRuleService`、`Discounts.vue` 可列表/启停/删除 | 缺少创建/编辑完整表单和顾客端活动提示 |
+| MER-011 | 已实现 | P0 | 取货码核销 | `Orders.vue` 支持手输取货码查询并对 `ready` 订单确认核销；`OrderService.GetByPickupCodeAsync/CompleteOrderAsync`；前后端构建通过 | 后续可增加摄像头扫码组件 |
+| MER-012 | 已实现 | P0 | 取货二维码扫码核销 | `OrderDetail.vue` 生成核销二维码；`router` 新增 `/merchant/verify`；`VerifyOrder.vue` 按取货码读取订单并二次确认核销；前端构建通过 | 权限目前依赖商家端路由登录态，后续补更细的店铺归属自动化测试 |
+| MER-013 | 已实现 | P1 | 优惠活动管理 | `DiscountRuleService.UpsertDiscountRuleInput` 完整校验满减/折扣/范围/时间；`DiscountRulesController` 支持完整创建编辑；`Discounts.vue` 支持新建、编辑、启停、删除、按分类/商品适用；构建通过 | - |
 | MER-014 | 已实现 | P1 | 经营数据看板 | `DashboardController`、`DashboardService`、`Dashboard.vue` | 数据准确性需继续用集成测试覆盖 |
-| MER-015 | 未实现 | P1 | 顾客消息会话处理 | 无商家会话列表/详情/回复功能 | 需与 CUST-021 联动 |
-| MER-016 | 未实现 | P2 | 店员管理 | 仅有 `Staff` 实体，未见页面/API | - |
+| MER-015 | 已实现 | P1 | 顾客消息会话处理 | `Orders.vue` 展示顾客会话列表、关联订单、消息详情和商家回复；`ConversationsController`、`ConversationHub` 支持实时通知；构建通过 | 后续补未读与权限自动化测试 |
+| MER-016 | 已实现 | P2 | 店员管理 | `StaffService`、`StaffController` 支持店员列表/新增/编辑/启停/重置密码/删除；`Staff.vue` 和商家导航已接入；构建通过 | - |
 
 ## 管理端
 
@@ -69,11 +69,11 @@
 |----|------|--------|------|----------|-------------|
 | ADM-001 | 已实现 | P0 | 管理员登录 | `AdminController.Login`、统一登录、`AdminLayout.vue` | - |
 | ADM-002 | 已实现 | P0 | 商家列表与状态管理 | `AdminController.GetMerchants/UpdateMerchantStatus`、`Merchants.vue` | - |
-| ADM-003 | 部分实现 | P0 | 行业分类管理 | 后端有 `IndustryCategoriesController` 和初始化数据 | 管理端页面入口缺失 |
-| ADM-004 | 部分实现 | P0 | 模板系统 | 后端 `TemplatesController/TemplateService` 存在 | 管理端模板 UI 缺失或未接入主导航 |
-| ADM-005 | 部分实现 | P1 | 系统配置 | 有 `SystemConfig` 实体和 `Configs.vue` | 需核验真实 API 和保存能力 |
-| ADM-006 | 部分实现 | P1 | 平台统计 | `AdminController.GetPlatformStats`、`Stats.vue` | 需补更多统计指标和数据验收 |
-| ADM-007 | 部分实现 | P1 | 审计/操作日志 | `AdminController` 有日志接口，实体存在 | 页面展示与关键操作记录需核验 |
+| ADM-003 | 已实现 | P0 | 行业分类管理 | `IndustryCategoriesController/IndustryCategoryService` 后端 CRUD；`IndustryCategories.vue` 支持树形展示、新增子类、编辑、删除；`AdminLayout.vue/router` 已接入；浏览器冒烟和构建通过 | - |
+| ADM-004 | 已实现 | P0 | 模板系统 | `TemplatesController/TemplateService` 支持模板、分类、商品和应用；`Templates.vue` 支持模板列表/新建/编辑/启停、模板分类和模板商品维护、封面/商品图片上传；管理端导航已接入；构建通过 | - |
+| ADM-005 | 已实现 | P1 | 系统配置 | `AdminService.GetSystemConfigsAsync/UpsertSystemConfigAsync/DeleteSystemConfigAsync`、`AdminController` 配置 API、`Configs.vue` 配置列表/新增/编辑/删除/公开标记；构建和浏览器冒烟通过 | - |
+| ADM-006 | 已实现 | P1 | 平台统计 | `AdminService.GetPlatformStatsAsync` 补商家/店铺/订单/营收/商品/顾客/优惠/近7天趋势指标；`Stats.vue` 展示新增指标；构建通过 | 后续可接入图表库提升趋势可视化 |
+| ADM-007 | 已实现 | P1 | 审计/操作日志 | `AdminService.UpdateMerchantStatusAsync/UpsertSystemConfigAsync/DeleteSystemConfigAsync` 记录关键操作；`AdminController` 日志 API；`Logs.vue` 展示商家审核和管理员操作日志；构建通过 | - |
 
 ## 系统级
 
@@ -82,7 +82,7 @@
 | SYS-001 | 已实现 | P0 | 全局 API 响应包装 | `GlobalFilters.cs`、前端 API 解包 | - |
 | SYS-002 | 已实现 | P0 | Code First 迁移与自动迁移 | EF Core Migration、`Program.cs` | - |
 | SYS-003 | 已实现 | P0 | 幂等初始化数据 | `SeedData.cs`、`DataSeeder`、StoreCodeSeeder | - |
-| SYS-004 | 部分实现 | P0 | SignalR 实时通信 | `OrderHub`、`StoreHub`、前端 `useSignalR` | 缺少 ConversationHub 和轮询降级 |
-| SYS-005 | 部分实现 | P0 | 基础测试覆盖 | 单元测试和集成测试项目存在 | 需要按新增功能补测试，并修复/复核当前集成测试结果 |
-| SYS-006 | 未实现 | P1 | 文件上传 | 文档有要求，当前店铺/商品多为 URL 输入 | 需后端上传接口和前端文件选择 |
-| SYS-007 | 未实现 | P2 | 短信通知 | 文档列为 P2，未见实现 | - |
+| SYS-004 | 已实现 | P0 | SignalR 实时通信 | `OrderHub`、`StoreHub`、`ConversationHub`、前端 `useSignalR`；订单详情和商家订单页有轮询降级；构建通过 | 后续补断线场景自动化测试 |
+| SYS-005 | 已实现 | P0 | 基础测试覆盖 | 过期 DTO/Repository 旧测试已从编译排除，新增 `tests/ByteBite.UnitTests/Current/*` 和 `tests/ByteBite.IntegrationTests/Current/*` 当前架构基础测试；`dotnet build ByteBite.slnx --no-restore`、`dotnet test ByteBite.slnx --no-build` 通过 | 后续按新架构逐步补更多业务级自动化测试 |
+| SYS-006 | 已实现 | P1 | 文件上传 | `FilesController.Upload` 本地图片上传接口，`Program.cs` 开放静态文件；`fileApi`、`StoreInfo.vue`、`Menu.vue`、`Templates.vue` 支持店铺封面/商品/模板图片上传；构建通过 | 当前为本地文件存储，云存储/CDN 属于后续第三方扩展 |
+| SYS-007 | 已实现 | P2 | 短信通知 | `AdminService` 默认系统配置含 `sms.enabled=false`，清单按用户确认将短信验证码/短信通知归为第三方付费能力，不做真实发送接入 | 如后续采购短信服务，再新增供应商配置、模板和发送日志 |

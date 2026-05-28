@@ -55,14 +55,31 @@ public class OrderService
 
             foreach (var group in product.SpecGroups.Where(g => g.IsRequired))
             {
-                if (!group.SpecOptions.Any(option => selectedOptionIds.Contains(option.Id)))
+                var selectedCount = group.SpecOptions.Count(option => selectedOptionIds.Contains(option.Id));
+                if (selectedCount == 0)
                     throw new BusinessException(400, $"{product.Name}请选择{group.Name}");
+                if (selectedCount > 1)
+                    throw new BusinessException(400, $"{product.Name}的{group.Name}只能选择一项");
+            }
+
+            foreach (var group in product.SpecGroups.Where(g => !g.IsRequired))
+            {
+                if (group.SpecOptions.Count(option => selectedOptionIds.Contains(option.Id)) > 1)
+                    throw new BusinessException(400, $"{product.Name}的{group.Name}最多选择一项");
             }
 
             var selectedOptions = product.SpecGroups
                 .SelectMany(group => group.SpecOptions.Select(option => new { Group = group, Option = option }))
                 .Where(x => selectedOptionIds.Contains(x.Option.Id))
                 .ToList();
+
+            foreach (var selected in selectedOptions)
+            {
+                if (selected.Option.Stock.HasValue && selected.Option.Stock.Value < item.Quantity)
+                    throw new BusinessException(400, $"{product.Name}的{selected.Option.Name}库存不足");
+                if (selected.Option.Stock.HasValue) selected.Option.Stock -= item.Quantity;
+            }
+
             var unitPrice = product.BasePrice + selectedOptions.Sum(x => x.Option.ExtraPrice);
             var totalPrice = unitPrice * item.Quantity;
 
@@ -88,8 +105,13 @@ public class OrderService
         var (discountAmount, discountRule) = await CalculateBestDiscountAsync(storeId, orderItems, products, totalAmount, ct);
         var actualAmount = Math.Max(0, totalAmount - discountAmount + packingFee);
 
-        string pickupCode;
-        do { pickupCode = PickupCodeGenerator.Generate(); } while (await _db.Orders.AnyAsync(o => o.PickupCode == pickupCode && o.StoreId == storeId, ct));
+        int pickupCodeValue;
+        var activeStatuses = new[] { "pending", "accepted", "preparing", "ready" };
+        do
+        {
+            pickupCodeValue = PickupCodeGenerator.GenerateValue();
+        }
+        while (await _db.Orders.AnyAsync(o => o.PickupCodeValue == pickupCodeValue && o.StoreId == storeId && activeStatuses.Contains(o.Status), ct));
 
         var now = DateTime.UtcNow;
         var order = new Order
@@ -99,7 +121,7 @@ public class OrderService
             CustomerId = customerId,
             DeviceId = deviceId,
             OrderNo = $"{now:yyyyMMddHHmmss}{Random.Shared.Next(100, 999)}",
-            PickupCode = pickupCode,
+            PickupCodeValue = pickupCodeValue,
             DiningMode = normalizedDiningMode,
             Status = "pending",
             TableNo = tableNo,
@@ -125,12 +147,40 @@ public class OrderService
 
         if (discountRule != null) discountRule.UsedCount++;
         _db.Orders.Add(order);
+        await TouchCustomerStoreVisitAsync(storeId, customerId, deviceId, now, true, ct);
         await _db.SaveChangesAsync(ct);
         return order;
     }
 
     public async Task<Order> GetByPickupCodeAsync(string pickupCode, Guid storeId, CancellationToken ct = default)
-        => await _db.Orders.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.PickupCode == pickupCode && o.StoreId == storeId, ct) ?? throw new BusinessException(404, "订单不存在");
+    {
+        var pickupCodeValue = PickupCodeGenerator.FromDisplayCode(pickupCode);
+        if (pickupCodeValue == 0) throw new BusinessException(400, "取货码格式不正确");
+
+        return await _db.Orders
+            .Include(o => o.OrderItems)
+            .Include(o => o.Store)
+            .FirstOrDefaultAsync(o => o.PickupCodeValue == pickupCodeValue && o.StoreId == storeId, ct)
+            ?? throw new BusinessException(404, "订单不存在");
+    }
+
+    public async Task<Order> GetByIdAsync(Guid orderId, Guid? customerId, string? deviceId, CancellationToken ct = default)
+    {
+        if (customerId == null && string.IsNullOrWhiteSpace(deviceId))
+            throw new BusinessException(400, "缺少顾客身份信息");
+
+        var order = await _db.Orders
+            .Include(o => o.OrderItems)
+            .Include(o => o.Store)
+            .FirstOrDefaultAsync(o => o.Id == orderId, ct)
+            ?? throw new BusinessException(404, "订单不存在");
+
+        var isOwner = (customerId != null && order.CustomerId == customerId)
+            || (!string.IsNullOrWhiteSpace(deviceId) && order.DeviceId == deviceId);
+        if (!isOwner) throw new BusinessException(403, "无权访问该订单");
+
+        return order;
+    }
 
     public async Task<List<Order>> GetByStoreIdAsync(Guid storeId, string? status, int pageIndex, int pageSize, CancellationToken ct = default)
     {
@@ -150,6 +200,37 @@ public class OrderService
             .Include(o => o.OrderItems)
             .Include(o => o.Store)
             .Where(o => o.StoreId == storeId);
+
+        if (customerId != null && !string.IsNullOrWhiteSpace(deviceId))
+        {
+            query = query.Where(o => o.CustomerId == customerId || o.DeviceId == deviceId);
+        }
+        else if (customerId != null)
+        {
+            query = query.Where(o => o.CustomerId == customerId);
+        }
+        else
+        {
+            query = query.Where(o => o.DeviceId == deviceId);
+        }
+
+        return await query
+            .OrderByDescending(o => o.CreatedAt)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    public async Task<List<Order>> GetCustomerOrdersAcrossStoresAsync(string? deviceId, Guid? customerId, int pageSize, CancellationToken ct = default)
+    {
+        if (customerId == null && string.IsNullOrWhiteSpace(deviceId))
+            throw new BusinessException(400, "缺少顾客身份信息");
+
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
+        var query = _db.Orders
+            .Include(o => o.OrderItems)
+            .Include(o => o.Store)
+            .AsQueryable();
 
         if (customerId != null && !string.IsNullOrWhiteSpace(deviceId))
         {
@@ -218,10 +299,36 @@ public class OrderService
     public async Task<Order> CancelOrderAsync(Guid orderId, CancellationToken ct = default)
     {
         var order = await _db.Orders.FindAsync([orderId], ct) ?? throw new BusinessException(404, "订单不存在");
-        if (order.Status is "completed" or "cancelled" or "rejected") throw new BusinessException(400, "订单状态不允许取消");
+        if (order.Status != "pending") throw new BusinessException(400, "仅待接单订单可以取消");
         order.Status = "cancelled"; order.CancelledAt = DateTime.UtcNow; order.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return order;
+    }
+
+    private async Task TouchCustomerStoreVisitAsync(Guid storeId, Guid? customerId, string? deviceId, DateTime now, bool ordered, CancellationToken ct)
+    {
+        if (customerId == null && string.IsNullOrWhiteSpace(deviceId)) return;
+
+        var visit = customerId != null
+            ? await _db.CustomerStoreVisits.FirstOrDefaultAsync(v => v.CustomerId == customerId && v.StoreId == storeId, ct)
+            : await _db.CustomerStoreVisits.FirstOrDefaultAsync(v => v.DeviceId == deviceId && v.StoreId == storeId, ct);
+
+        if (visit == null)
+        {
+            visit = new CustomerStoreVisit
+            {
+                Id = Guid.NewGuid(),
+                StoreId = storeId,
+                CustomerId = customerId,
+                DeviceId = customerId == null ? deviceId : null,
+                CreatedAt = now
+            };
+            _db.CustomerStoreVisits.Add(visit);
+        }
+
+        visit.LastVisitedAt = now;
+        visit.UpdatedAt = now;
+        if (ordered) visit.LastOrderedAt = now;
     }
 
     private async Task<(decimal Amount, DiscountRule? Rule)> CalculateBestDiscountAsync(Guid storeId, List<OrderItem> orderItems, Dictionary<Guid, Product> products, decimal totalAmount, CancellationToken ct)

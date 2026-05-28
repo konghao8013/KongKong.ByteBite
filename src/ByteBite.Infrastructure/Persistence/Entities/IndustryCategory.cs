@@ -33,5 +33,7 @@ public partial class IndustryCategory
 
     public virtual IndustryCategory? Parent { get; set; }
 
+    public virtual ICollection<Store> Stores { get; set; } = new List<Store>();
+
     public virtual ICollection<StoreTemplate> StoreTemplates { get; set; } = new List<StoreTemplate>();
 }

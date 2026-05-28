@@ -12,6 +12,7 @@ const activeTab = computed(() => {
   if (path.includes('/menu')) return 'menu'
   if (path.includes('/store')) return 'store'
   if (path.includes('/discounts')) return 'discounts'
+  if (path.includes('/staff')) return 'staff'
   if (path.includes('/dashboard')) return 'dashboard'
   return 'orders'
 })
@@ -21,6 +22,7 @@ const tabs = [
   { key: 'menu', label: '菜品', icon: '菜', path: '/merchant/menu' },
   { key: 'store', label: '门店', icon: '店', path: '/merchant/store' },
   { key: 'discounts', label: '优惠', icon: '惠', path: '/merchant/discounts' },
+  { key: 'staff', label: '店员', icon: '员', path: '/merchant/staff' },
   { key: 'dashboard', label: '经营', icon: '数', path: '/merchant/dashboard' },
 ]
 

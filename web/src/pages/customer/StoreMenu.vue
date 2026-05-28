@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { customerApi } from '@/api/modules/customer'
 import { useCartStore } from '@/stores/modules/useCartStore'
+import { useDeviceId } from '@/composables/useDeviceId'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { StoreMenuDto, StoreMenuItemDto, StoreMenuCategoryDto } from '@/types/models/customer'
@@ -10,29 +11,74 @@ import type { StoreMenuDto, StoreMenuItemDto, StoreMenuCategoryDto } from '@/typ
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
+const { getDeviceId } = useDeviceId()
 const storeCode = route.params.code as string
 
 const menuData = ref<StoreMenuDto | null>(null)
 const activeCategory = ref<string>('')
+const searchKeyword = ref('')
 const loading = ref(true)
 const error = ref('')
 
 onMounted(async () => {
   try {
-    const data = await customerApi.getStoreMenuByCode(storeCode)
+    const data = await customerApi.getStoreMenuByCode(storeCode, {
+      customerId: localStorage.getItem('customer_id') || undefined,
+      deviceId: getDeviceId(),
+    })
     menuData.value = data
     if (data.storeId) localStorage.setItem('current_store_id', data.storeId)
+    if (data.storeCode) localStorage.setItem('current_store_code', data.storeCode)
     if (data.storeName) localStorage.setItem('current_store_name', data.storeName)
+    localStorage.setItem('current_store_discounts', JSON.stringify(data.activeDiscounts || []))
     if (menuData.value?.categories?.length) {
       activeCategory.value = menuData.value.categories[0].id
     }
     const sid = menuData.value?.storeId || storeCode
     cartStore.loadFromLocalStorage(sid)
+    await cartStore.loadFromServer(sid)
   } catch {
     error.value = '菜单加载失败，请稍后重试'
   } finally {
     loading.value = false
   }
+})
+
+const filteredCategories = computed(() => {
+  const categories = menuData.value?.categories || []
+  const keyword = searchKeyword.value.trim().toLowerCase()
+  if (!keyword) return categories
+
+  return categories
+    .map((category) => ({
+      ...category,
+      items: category.items.filter((item) => {
+        const text = `${item.name} ${item.description || ''}`.toLowerCase()
+        return text.includes(keyword)
+      })
+    }))
+    .filter((category) => category.items.length > 0)
+})
+
+const primaryDiscountText = computed(() => {
+  const discounts = menuData.value?.activeDiscounts || []
+  if (!discounts.length) return ''
+  const rule = discounts[0]
+  if (rule.discountType === 'full_reduction' && rule.thresholdAmount && rule.discountAmount) {
+    return `满 ${rule.thresholdAmount} 减 ${rule.discountAmount}`
+  }
+  if (rule.discountType === 'discount' && rule.discountRate) {
+    return `${rule.discountRate} 折活动`
+  }
+  return rule.name
+})
+
+const cartDiscountHint = computed(() => {
+  const discounts = menuData.value?.activeDiscounts || []
+  const rule = discounts.find((d) => d.discountType === 'full_reduction' && d.thresholdAmount && d.discountAmount)
+  if (!rule?.thresholdAmount || !rule.discountAmount) return ''
+  const diff = Number(rule.thresholdAmount) - cartStore.totalPrice
+  return diff > 0 ? `再买 ${diff.toFixed(2)} 元可减 ${rule.discountAmount} 元` : `已享 ${rule.name}`
 })
 
 const selectCategory = (category: StoreMenuCategoryDto) => {
@@ -96,7 +142,14 @@ const handleDecrease = (productId: string) => {
         <span>外带</span>
         <span v-if="menuData?.diningMode?.includes('delivery')">配送</span>
       </div>
-      <div class="menu-search">搜索菜品、套餐、饮品</div>
+      <label class="menu-search">
+        <span>搜索</span>
+        <input v-model="searchKeyword" type="search" placeholder="菜品、套餐、饮品" />
+      </label>
+      <div v-if="primaryDiscountText" class="discount-strip">
+        <span class="discount-label">活动</span>
+        <span>{{ primaryDiscountText }}</span>
+      </div>
     </header>
 
     <div v-if="menuData && !menuData.canOrder" class="closed-banner">
@@ -112,7 +165,7 @@ const handleDecrease = (productId: string) => {
     <div v-else-if="menuData" class="menu-body">
       <aside class="category-sidebar">
         <button
-          v-for="category in menuData.categories"
+          v-for="category in filteredCategories"
           :key="category.id"
           class="category-item"
           :class="{ active: activeCategory === category.id }"
@@ -124,8 +177,13 @@ const handleDecrease = (productId: string) => {
       </aside>
 
       <main class="product-list">
+        <EmptyState
+          v-if="filteredCategories.length === 0"
+          description="没有找到匹配的菜品"
+          icon="?"
+        />
         <section
-          v-for="category in menuData.categories"
+          v-for="category in filteredCategories"
           :id="`cat-${category.id}`"
           :key="category.id"
           class="product-section"
@@ -193,6 +251,7 @@ const handleDecrease = (productId: string) => {
             <span class="price-value">{{ cartStore.totalPrice.toFixed(2) }}</span>
           </div>
           <span class="cart-hint">已选 {{ cartStore.totalCount }} 件</span>
+          <span v-if="cartDiscountHint" class="cart-discount-hint">{{ cartDiscountHint }}</span>
         </div>
       </div>
       <div class="cart-bar-right" :class="{ disabled: !menuData?.canOrder }">
@@ -286,9 +345,46 @@ const handleDecrease = (productId: string) => {
   border-radius: 6px;
   display: flex;
   align-items: center;
+  gap: 8px;
   color: #9AA9A3;
   background: #FAFCFA;
   font-size: 12px;
+
+  span {
+    color: #087E6B;
+    font-weight: 800;
+  }
+
+  input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    color: #1F2A26;
+    background: transparent;
+    font-size: 13px;
+  }
+}
+
+.discount-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 1px solid #F5E2A8;
+  border-radius: 6px;
+  color: #9A6A00;
+  background: #FFF8E6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.discount-label {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  background: #FF6B4A;
 }
 
 .closed-banner {
@@ -654,6 +750,14 @@ const handleDecrease = (productId: string) => {
   margin-top: -2px;
   color: rgba(255, 255, 255, 0.68);
   font-size: 10px;
+}
+
+.cart-discount-hint {
+  display: block;
+  margin-top: 1px;
+  color: #FFE08A;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .cart-bar-right {

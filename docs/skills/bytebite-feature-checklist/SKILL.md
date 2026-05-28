@@ -19,6 +19,7 @@ Use this skill for KongKong.ByteBite work that touches product requirements or i
 5. Keep feature IDs stable. Do not delete rows for removed or deferred scope; mark the reason in `待补齐/备注`.
 6. Add concise evidence in `当前依据`, such as controller/service/page/test filenames.
 7. Update `最后盘点日期` when doing a broad checklist review.
+8. Treat every `部分实现` and `未实现` checklist item as implementation work to finish in the current scope unless it depends on paid third-party services.
 
 ## Status Rules
 
@@ -26,6 +27,7 @@ Use this skill for KongKong.ByteBite work that touches product requirements or i
 - `部分实现`: some required layers exist, but key UI/API/data/test behavior is missing.
 - `未实现`: no meaningful implementation was found.
 - `待核验`: implementation appears present, but verification is pending or inconclusive.
+- Third-party paid capabilities, including SMS verification/notification and online payment provider integrations, are not required for the current implementation scope. Mark the in-scope fallback or configuration as evidence and explain the deferred paid integration in `待补齐/备注`; do not leave these as ordinary implementation gaps.
 
 ## Guardrails
 
@@ -34,4 +36,3 @@ Use this skill for KongKong.ByteBite work that touches product requirements or i
 - Prefer conservative status. If frontend and backend disagree, mark `部分实现`.
 - When a bug fix completes an existing feature, update the row status and evidence.
 - When adding tests for an implemented feature, update the evidence field if that changes confidence.
-

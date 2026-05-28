@@ -100,6 +100,8 @@ public partial class Store
 
     public virtual ICollection<HourlyOrderStat> HourlyOrderStats { get; set; } = new List<HourlyOrderStat>();
 
+    public virtual IndustryCategory? IndustryCategory { get; set; }
+
     public virtual Merchant Merchant { get; set; } = null!;
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();

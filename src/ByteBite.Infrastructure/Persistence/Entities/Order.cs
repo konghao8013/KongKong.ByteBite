@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using ByteBite.Shared.Helpers;
 
 namespace ByteBite.Infrastructure.Persistence.Entities;
 
@@ -22,9 +24,12 @@ public partial class Order
     public string? DeviceId { get; set; }
 
     /// <summary>
-    /// 取货码（4-6位字母数字）
+    /// 取货码整数码值，页面以 6 位 Base36 展示。
     /// </summary>
-    public string PickupCode { get; set; } = null!;
+    public int PickupCodeValue { get; set; }
+
+    [NotMapped]
+    public string PickupCode => PickupCodeGenerator.ToDisplayCode(PickupCodeValue);
 
     /// <summary>
     /// 就餐方式：dine_in-堂食, takeaway-打包, delivery-外卖

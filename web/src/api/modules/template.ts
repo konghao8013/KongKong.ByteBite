@@ -8,7 +8,7 @@ export const templateApi = {
   getById: (id: string) =>
     request.get<TemplateDto>(`/templates/${id}`),
 
-  createFromScratch: (data: { name: string; industryCategoryId: string; description?: string }) =>
+  createFromScratch: (data: { name: string; industryCategoryId?: string; coverImageUrl?: string; description?: string; status?: string }) =>
     request.post<TemplateDto>('/templates/from-scratch', data),
 
   createFromStore: (data: {
@@ -59,7 +59,7 @@ export const industryCategoryApi = {
   getTree: () =>
     request.get<IndustryCategoryDto[]>('/industry-categories/tree'),
 
-  create: (data: { name: string; parentId?: string; icon?: string }) =>
+  create: (data: { name: string; parentId?: string; icon?: string; sortOrder?: number }) =>
     request.post<IndustryCategoryDto>('/industry-categories', data),
 
   update: (id: string, data: { name?: string; icon?: string; sortOrder?: number }) =>

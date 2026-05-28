@@ -7,6 +7,12 @@ export const orderApi = {
   getCustomerOrders: (storeId: string, params: { deviceId?: string; customerId?: string; pageSize?: number }) =>
     request.get<any[]>(`/stores/${storeId}/customer-orders`, { params }),
 
+  getCustomerOrdersAcrossStores: (params: { deviceId?: string; customerId?: string; pageSize?: number }) =>
+    request.get<any[]>('/customer-orders', { params }),
+
+  getById: (orderId: string, params?: { deviceId?: string; customerId?: string }) =>
+    request.get<any>(`/orders/${orderId}`, { params }),
+
   getByPickupCode: (pickupCode: string, storeId: string) =>
     request.get<any>(`/orders/pickup/${pickupCode}/store/${storeId}`),
 

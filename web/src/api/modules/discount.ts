@@ -10,7 +10,7 @@ export const discountApi = {
   create: (data: any) =>
     request.post<any>('/discount-rules', data),
 
-  update: (id: string, data: { name?: string; status?: string }) =>
+  update: (id: string, data: any) =>
     request.put<any>(`/discount-rules/${id}`, data),
 
   delete: (id: string) =>

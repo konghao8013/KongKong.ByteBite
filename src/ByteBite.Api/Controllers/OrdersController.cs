@@ -28,6 +28,10 @@ public class OrdersController : ControllerBase
     [HttpGet("api/orders/pickup/{pickupCode}/store/{storeId:guid}")]
     public async Task<Order> GetByPickupCode(string pickupCode, Guid storeId) => await _orderService.GetByPickupCodeAsync(pickupCode, storeId);
 
+    [HttpGet("api/orders/{orderId:guid}")]
+    public async Task<Order> GetById(Guid orderId, [FromQuery] string? deviceId, [FromQuery] Guid? customerId, CancellationToken ct)
+        => await _orderService.GetByIdAsync(orderId, customerId, deviceId, ct);
+
     [HttpGet("api/stores/{storeId:guid}/orders")]
     public async Task<List<Order>> GetByStoreId(Guid storeId, [FromQuery] string? status, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
         => await _orderService.GetByStoreIdAsync(storeId, status, pageIndex, pageSize);
@@ -35,6 +39,10 @@ public class OrdersController : ControllerBase
     [HttpGet("api/stores/{storeId:guid}/customer-orders")]
     public async Task<List<Order>> GetCustomerOrders(Guid storeId, [FromQuery] string? deviceId, [FromQuery] Guid? customerId, [FromQuery] int pageSize = 50, CancellationToken ct = default)
         => await _orderService.GetCustomerOrdersAsync(storeId, deviceId, customerId, pageSize, ct);
+
+    [HttpGet("api/customer-orders")]
+    public async Task<List<Order>> GetCustomerOrdersAcrossStores([FromQuery] string? deviceId, [FromQuery] Guid? customerId, [FromQuery] int pageSize = 100, CancellationToken ct = default)
+        => await _orderService.GetCustomerOrdersAcrossStoresAsync(deviceId, customerId, pageSize, ct);
 
     [HttpPatch("api/orders/{orderId:guid}/accept")]
     public async Task<Order> AcceptOrder(Guid orderId, CancellationToken ct) => await UpdateAndNotify(orderId, _orderService.AcceptOrderAsync, ct);

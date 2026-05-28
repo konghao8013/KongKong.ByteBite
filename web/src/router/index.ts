@@ -8,6 +8,7 @@ const customerRoutes: RouteRecordRaw[] = [
   { path: 'product/:productId', name: 'ProductDetail', component: () => import('@/pages/customer/ProductDetail.vue') },
   { path: 'order/:orderId', name: 'OrderDetail', component: () => import('@/pages/customer/OrderDetail.vue') },
   { path: 'orders', name: 'MyOrders', component: () => import('@/pages/customer/MyOrders.vue') },
+  { path: 'account', name: 'CustomerAccount', component: () => import('@/pages/customer/CustomerLogin.vue') },
 ]
 
 const routes: RouteRecordRaw[] = [
@@ -20,6 +21,16 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'Login',
     component: () => import('@/pages/merchant/Login.vue'),
+  },
+  {
+    path: '/customer/login',
+    name: 'CustomerLogin',
+    component: () => import('@/pages/customer/CustomerLogin.vue'),
+  },
+  {
+    path: '/stores/search',
+    name: 'StoreSearch',
+    component: () => import('@/pages/customer/StoreSearch.vue'),
   },
   {
     path: '/merchant/login',
@@ -36,9 +47,11 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', redirect: '/merchant/orders' },
       { path: 'orders', name: 'MerchantOrders', component: () => import('@/pages/merchant/Orders.vue') },
+      { path: 'verify', name: 'MerchantVerifyOrder', component: () => import('@/pages/merchant/VerifyOrder.vue') },
       { path: 'menu', name: 'MerchantMenu', component: () => import('@/pages/merchant/Menu.vue') },
       { path: 'store', name: 'MerchantStore', component: () => import('@/pages/merchant/StoreInfo.vue') },
       { path: 'discounts', name: 'MerchantDiscounts', component: () => import('@/pages/merchant/Discounts.vue') },
+      { path: 'staff', name: 'MerchantStaff', component: () => import('@/pages/merchant/Staff.vue') },
       { path: 'dashboard', name: 'MerchantDashboard', component: () => import('@/pages/merchant/Dashboard.vue') },
     ],
   },
@@ -54,8 +67,11 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', redirect: '/admin/merchants' },
       { path: 'merchants', name: 'AdminMerchants', component: () => import('@/pages/admin/Merchants.vue') },
+      { path: 'industries', name: 'AdminIndustries', component: () => import('@/pages/admin/IndustryCategories.vue') },
+      { path: 'templates', name: 'AdminTemplates', component: () => import('@/pages/admin/Templates.vue') },
       { path: 'configs', name: 'AdminConfigs', component: () => import('@/pages/admin/Configs.vue') },
       { path: 'stats', name: 'AdminStats', component: () => import('@/pages/admin/Stats.vue') },
+      { path: 'logs', name: 'AdminLogs', component: () => import('@/pages/admin/Logs.vue') },
     ],
   },
   {

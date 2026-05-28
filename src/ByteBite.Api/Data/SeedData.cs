@@ -380,7 +380,7 @@ file class OrderSeeder : IDataSeeder
         var order = new Order
         {
             Id = Guid.NewGuid(), StoreId = storeId, DeviceId = $"DEV-{pickupCode}",
-            OrderNo = orderNo, PickupCode = pickupCode, DiningMode = diningMode,
+            OrderNo = orderNo, PickupCodeValue = PickupCodeGenerator.FromDisplayCode(pickupCode), DiningMode = diningMode,
             TotalAmount = total, DiscountAmount = discount, ActualAmount = actual, PackingFee = packingFee,
             Status = status, CreatedAt = createdAt, UpdatedAt = createdAt,
             AcceptedAt = status != "pending" ? createdAt.AddMinutes(2) : null,
