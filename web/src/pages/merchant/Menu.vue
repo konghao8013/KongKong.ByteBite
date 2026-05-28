@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { categoryApi } from '@/api/modules/category'
 import { productApi } from '@/api/modules/product'
 import { fileApi } from '@/api/modules/file'
+import { templateApi } from '@/api/modules/template'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const loading = ref(false)
@@ -13,6 +14,17 @@ const activeCategory = ref<string>('')
 const showCategoryEditor = ref(false)
 const showProductEditor = ref(false)
 const editingProductId = ref('')
+const uploadingImage = ref(false)
+const previewImageUrl = ref('')
+const showTemplatePicker = ref(false)
+const templateLoading = ref(false)
+const templateDetailLoading = ref(false)
+const templateImporting = ref(false)
+const templates = ref<any[]>([])
+const selectedTemplateId = ref('')
+const draggingProductId = ref('')
+const dragOverCategoryId = ref('')
+const productOrderSaving = ref(false)
 
 const categoryForm = reactive({
   name: '',
@@ -33,13 +45,30 @@ const productForm = reactive<any>({
   specGroups: [],
 })
 
+const sortProducts = (items: any[]) =>
+  [...items].sort((left, right) =>
+    Number(left.sortOrder || 0) - Number(right.sortOrder || 0)
+    || String(left.name || '').localeCompare(String(right.name || ''))
+  )
+
+const getProductsByCategory = (categoryId: string) =>
+  sortProducts(products.value.filter((product) => product.categoryId === categoryId))
+
 const activeCategoryProducts = computed(() => {
-  if (!activeCategory.value) return products.value
-  return products.value.filter(p => p.categoryId === activeCategory.value)
+  if (!activeCategory.value) return sortProducts(products.value)
+  return getProductsByCategory(activeCategory.value)
 })
 
 const availableComboProducts = computed(() =>
   products.value.filter((product) => product.id !== editingProductId.value && !product.isCombo)
+)
+
+const activeTemplates = computed(() =>
+  templates.value.filter((template) => (template.status || 'active') === 'active')
+)
+
+const selectedTemplate = computed(() =>
+  activeTemplates.value.find((template) => template.id === selectedTemplateId.value) || null
 )
 
 const resetCategoryForm = () => {
@@ -188,9 +217,111 @@ const uploadProductImage = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-  const result = await fileApi.upload(file)
-  productForm.imageUrl = result.url
-  input.value = ''
+  uploadingImage.value = true
+  try {
+    const result = await fileApi.upload(file)
+    productForm.imageUrl = result.url
+  } finally {
+    uploadingImage.value = false
+    input.value = ''
+  }
+}
+
+const clearProductImage = () => {
+  productForm.imageUrl = ''
+}
+
+const openImagePreview = (imageUrl?: string) => {
+  if (!imageUrl) return
+  previewImageUrl.value = imageUrl
+}
+
+const closeImagePreview = () => {
+  previewImageUrl.value = ''
+}
+
+const getTemplateCategories = (template: any) =>
+  template?.templateCategories || template?.categories || []
+
+const getTemplateProducts = (template: any) =>
+  template?.templateProducts || template?.products || []
+
+const getProductsInTemplateCategory = (template: any, category: any) => {
+  const directProducts = category?.templateProducts || category?.products
+  if (directProducts?.length) return directProducts
+
+  return getTemplateProducts(template).filter((product: any) =>
+    (product.templateCategoryId || product.categoryId) === category.id
+  )
+}
+
+const countTemplateProducts = (template: any) =>
+  getTemplateCategories(template).reduce(
+    (total: number, category: any) => total + getProductsInTemplateCategory(template, category).length,
+    0
+  )
+
+const templateIndustryName = (template: any) =>
+  template?.industryCategory?.name || template?.industryCategoryName || '未分类'
+
+const loadTemplates = async () => {
+  templateLoading.value = true
+  try {
+    templates.value = await templateApi.getList() || []
+    if (!activeTemplates.value.some((template) => template.id === selectedTemplateId.value)) {
+      selectedTemplateId.value = ''
+    }
+  } finally {
+    templateLoading.value = false
+  }
+}
+
+const viewTemplate = async (template: any) => {
+  selectedTemplateId.value = template.id
+  templateDetailLoading.value = true
+  try {
+    const detail = await templateApi.getById(template.id)
+    const index = templates.value.findIndex((item) => item.id === template.id)
+    if (index >= 0) {
+      templates.value.splice(index, 1, detail)
+    }
+  } finally {
+    templateDetailLoading.value = false
+  }
+}
+
+const openTemplatePicker = async () => {
+  showTemplatePicker.value = true
+  if (templates.value.length === 0) {
+    await loadTemplates()
+  }
+  if (!selectedTemplate.value && activeTemplates.value.length > 0) {
+    await viewTemplate(activeTemplates.value[0])
+  }
+}
+
+const importSelectedTemplate = async () => {
+  const template = selectedTemplate.value
+  if (!template || !storeId) return
+
+  const categoryCount = getTemplateCategories(template).length
+  const productCount = countTemplateProducts(template)
+  const confirmed = confirm(`确认引入「${template.name}」？将复制 ${categoryCount} 个分类、${productCount} 个商品到当前店铺，导入商品默认为下架。`)
+  if (!confirmed) return
+
+  templateImporting.value = true
+  try {
+    await templateApi.applyTemplate({
+      templateId: template.id,
+      storeId,
+      applyAll: true,
+    })
+    showTemplatePicker.value = false
+    await loadData()
+    alert(`已引入「${template.name}」，请检查价格和上架状态后再发布。`)
+  } finally {
+    templateImporting.value = false
+  }
 }
 
 const buildProductPayload = () => ({
@@ -261,6 +392,117 @@ const toggleProductStatus = async (product: any) => {
   product.status = status
 }
 
+const startProductDrag = (product: any, event: DragEvent) => {
+  if (productOrderSaving.value) return
+  draggingProductId.value = product.id
+  event.dataTransfer?.setData('text/plain', product.id)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+const finishProductDrag = () => {
+  draggingProductId.value = ''
+  dragOverCategoryId.value = ''
+}
+
+const handleCategoryDragOver = (categoryId: string) => {
+  if (!draggingProductId.value) return
+  dragOverCategoryId.value = categoryId
+}
+
+const saveProductOrders = async (orders: { categoryId: string; items: any[] }[]) => {
+  const orderByCategory = new Map<string, any[]>()
+  for (const order of orders) {
+    orderByCategory.set(order.categoryId, order.items)
+  }
+
+  const changes: { product: any; categoryId: string; sortOrder: number }[] = []
+  for (const [categoryId, orderedProducts] of orderByCategory) {
+    orderedProducts.forEach((product, index) => {
+      const sortOrder = index + 1
+      if (product.categoryId !== categoryId || Number(product.sortOrder || 0) !== sortOrder) {
+        changes.push({ product, categoryId, sortOrder })
+      }
+    })
+  }
+
+  if (changes.length === 0) return
+
+  productOrderSaving.value = true
+  for (const change of changes) {
+    change.product.categoryId = change.categoryId
+    change.product.sortOrder = change.sortOrder
+  }
+
+  try {
+    await Promise.all(changes.map((change) =>
+      productApi.update(change.product.id, {
+        categoryId: change.categoryId,
+        sortOrder: change.sortOrder,
+      })
+    ))
+    await loadProducts()
+  } catch {
+    await loadProducts()
+  } finally {
+    productOrderSaving.value = false
+  }
+}
+
+const dropProduct = async (destinationCategoryId: string, targetProductId = '') => {
+  const draggedProduct = products.value.find((product) => product.id === draggingProductId.value)
+  if (!draggedProduct || !destinationCategoryId) {
+    finishProductDrag()
+    return
+  }
+
+  const sourceCategoryId = draggedProduct.categoryId
+  const destinationProducts = getProductsByCategory(destinationCategoryId)
+    .filter((product) => product.id !== draggedProduct.id)
+  const targetIndex = targetProductId
+    ? destinationProducts.findIndex((product) => product.id === targetProductId)
+    : -1
+
+  if (targetIndex >= 0) {
+    destinationProducts.splice(targetIndex, 0, draggedProduct)
+  } else {
+    destinationProducts.push(draggedProduct)
+  }
+
+  const orders = [{ categoryId: destinationCategoryId, items: destinationProducts }]
+  if (sourceCategoryId !== destinationCategoryId) {
+    orders.push({
+      categoryId: sourceCategoryId,
+      items: getProductsByCategory(sourceCategoryId).filter((product) => product.id !== draggedProduct.id),
+    })
+    activeCategory.value = destinationCategoryId
+  }
+
+  await saveProductOrders(orders)
+  finishProductDrag()
+}
+
+const dropProductOnCategory = async (categoryId: string, event: DragEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+  await dropProduct(categoryId)
+}
+
+const dropProductOnProduct = async (product: any, event: DragEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+  if (product.id === draggingProductId.value) {
+    finishProductDrag()
+    return
+  }
+  await dropProduct(product.categoryId, product.id)
+}
+
+const dropProductAtListEnd = async (event: DragEvent) => {
+  event.preventDefault()
+  if (!activeCategory.value) return
+  await dropProduct(activeCategory.value)
+}
+
 const statusLabel = (status: string) => ({
   on: '上架',
   off: '下架',
@@ -282,6 +524,7 @@ onMounted(loadData)
     <header class="menu-header">
       <h2>菜单管理</h2>
       <div class="header-actions">
+        <button class="ghost-button" :disabled="!storeId" @click="openTemplatePicker">引用系统模板</button>
         <button class="ghost-button" @click="openCategoryEditor">分类</button>
         <button class="primary-button" :disabled="categories.length === 0" @click="openProductCreator">添加商品</button>
       </div>
@@ -295,8 +538,11 @@ onMounted(loadData)
           v-for="cat in categories"
           :key="cat.id"
           class="category-item"
-          :class="{ active: activeCategory === cat.id }"
+          :class="{ active: activeCategory === cat.id, 'drag-over': dragOverCategoryId === cat.id }"
           @click="activeCategory = cat.id"
+          @dragenter.prevent="handleCategoryDragOver(cat.id)"
+          @dragover.prevent="handleCategoryDragOver(cat.id)"
+          @drop="dropProductOnCategory(cat.id, $event)"
         >
           <span class="cat-icon">{{ cat.icon || '·' }}</span>
           <span class="cat-name">{{ cat.name }}</span>
@@ -306,7 +552,7 @@ onMounted(loadData)
         </button>
       </aside>
 
-      <section class="product-list">
+      <section class="product-list" @dragover.prevent @drop="dropProductAtListEnd">
         <div v-if="categories.length === 0" class="empty-state">
           <p>先添加一个分类，再录入商品。</p>
         </div>
@@ -315,7 +561,28 @@ onMounted(loadData)
           <button class="primary-button compact" @click="openProductCreator">添加商品</button>
         </div>
 
-        <article v-for="product in activeCategoryProducts" :key="product.id" class="product-card">
+        <article
+          v-for="product in activeCategoryProducts"
+          :key="product.id"
+          class="product-card"
+          :class="{ dragging: draggingProductId === product.id }"
+          :draggable="!productOrderSaving"
+          @dragstart="startProductDrag(product, $event)"
+          @dragend="finishProductDrag"
+          @dragover.prevent
+          @drop="dropProductOnProduct(product, $event)"
+        >
+          <span class="drag-handle" title="拖动排序或移动分类">⋮⋮</span>
+          <button
+            v-if="product.imageUrl"
+            type="button"
+            class="product-image-button"
+            @click="openImagePreview(product.imageUrl)"
+          >
+            <img :src="product.imageUrl" :alt="`${product.name}图片`" />
+            <span>点击放大</span>
+          </button>
+          <div v-else class="product-image-placeholder">暂无图片</div>
           <div class="product-main">
             <div class="product-title-row">
               <strong>{{ product.name }}</strong>
@@ -345,6 +612,104 @@ onMounted(loadData)
         </article>
       </section>
     </main>
+
+    <div v-if="previewImageUrl" class="image-preview-overlay" @click.self="closeImagePreview">
+      <section class="image-preview-dialog">
+        <button type="button" class="image-preview-close" @click="closeImagePreview">×</button>
+        <img :src="previewImageUrl" alt="菜品大图" />
+      </section>
+    </div>
+
+    <div v-if="showTemplatePicker" class="modal-overlay" @click.self="showTemplatePicker = false">
+      <section class="modal-content template-picker-modal">
+        <div class="template-picker-head">
+          <div>
+            <h3>引用系统模板</h3>
+            <p>选择一个平台模板，查看内容后复制到当前店铺菜单。</p>
+          </div>
+          <button class="text-button" @click="loadTemplates">刷新</button>
+        </div>
+
+        <div v-if="templateLoading" class="loading-state compact-state">模板加载中...</div>
+        <div v-else class="template-picker-body">
+          <aside class="system-template-list">
+            <div v-if="activeTemplates.length === 0" class="template-list-empty">暂无可引用模板</div>
+            <button
+              v-for="template in activeTemplates"
+              :key="template.id"
+              type="button"
+              class="system-template-item"
+              :class="{ active: selectedTemplateId === template.id }"
+              @click="viewTemplate(template)"
+            >
+              <img v-if="template.coverImageUrl" :src="template.coverImageUrl" :alt="template.name" />
+              <div v-else class="template-cover-placeholder">模板</div>
+              <span class="template-item-main">
+                <strong>{{ template.name }}</strong>
+                <small>{{ templateIndustryName(template) }} · 使用 {{ template.useCount || 0 }} 次</small>
+                <small>{{ getTemplateCategories(template).length }} 个分类 · {{ countTemplateProducts(template) }} 个商品</small>
+              </span>
+            </button>
+          </aside>
+
+          <section class="template-preview-panel">
+            <div v-if="!selectedTemplate" class="template-list-empty">请选择左侧模板查看内容</div>
+            <template v-else>
+              <div class="template-preview-head">
+                <div>
+                  <h4>{{ selectedTemplate.name }}</h4>
+                  <p>{{ selectedTemplate.description || '暂无模板说明' }}</p>
+                </div>
+                <span>{{ getTemplateCategories(selectedTemplate).length }} 类 / {{ countTemplateProducts(selectedTemplate) }} 品</span>
+              </div>
+
+              <div v-if="templateDetailLoading" class="loading-state compact-state">模板内容加载中...</div>
+              <div v-else class="template-category-preview-list">
+                <article
+                  v-for="category in getTemplateCategories(selectedTemplate)"
+                  :key="category.id"
+                  class="template-category-preview"
+                >
+                  <div class="preview-category-head">
+                    <strong>{{ category.icon || '·' }} {{ category.name }}</strong>
+                    <span>{{ getProductsInTemplateCategory(selectedTemplate, category).length }} 个商品</span>
+                  </div>
+                  <div class="preview-product-list">
+                    <div
+                      v-for="product in getProductsInTemplateCategory(selectedTemplate, category)"
+                      :key="product.id"
+                      class="preview-product"
+                    >
+                      <img v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name" />
+                      <div v-else class="preview-product-placeholder">图</div>
+                      <div class="preview-product-info">
+                        <strong>{{ product.name }}</strong>
+                        <span>{{ product.description || '暂无描述' }}</span>
+                        <small v-if="(product.templateSpecGroups || product.specGroups)?.length">
+                          {{ (product.templateSpecGroups || product.specGroups).length }} 组规格
+                        </small>
+                      </div>
+                      <strong class="preview-product-price">￥{{ Number(product.referencePrice || product.basePrice || 0).toFixed(2) }}</strong>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </template>
+          </section>
+        </div>
+
+        <div class="modal-actions">
+          <button class="ghost-button" @click="showTemplatePicker = false">取消</button>
+          <button
+            class="primary-button"
+            :disabled="!selectedTemplate || templateImporting"
+            @click="importSelectedTemplate"
+          >
+            {{ templateImporting ? '引入中...' : '引入当前模板' }}
+          </button>
+        </div>
+      </section>
+    </div>
 
     <div v-if="showCategoryEditor" class="modal-overlay" @click.self="showCategoryEditor = false">
       <section class="modal-content small">
@@ -403,18 +768,38 @@ onMounted(loadData)
               <option value="sold_out">售罄</option>
             </select>
           </label>
-          <label>
-            图片 URL
-            <input v-model="productForm.imageUrl" placeholder="可选" />
-          </label>
-          <label>
-            上传图片
-            <input type="file" accept="image/*" @change="uploadProductImage" />
-          </label>
           <label class="inline-check form-check">
             <input v-model="productForm.isCombo" type="checkbox" />
             套餐商品
           </label>
+        </div>
+        <div class="image-upload-section">
+          <span class="field-label">菜品图片</span>
+          <div class="image-upload-row">
+            <button
+              v-if="productForm.imageUrl"
+              type="button"
+              class="editor-image-preview"
+              @click="openImagePreview(productForm.imageUrl)"
+            >
+              <img :src="productForm.imageUrl" alt="当前菜品图片" />
+              <span>点击放大</span>
+            </button>
+            <div v-else class="editor-image-placeholder">还没有图片</div>
+            <label class="upload-button" :class="{ disabled: uploadingImage }">
+              {{ uploadingImage ? '上传中...' : productForm.imageUrl ? '更换图片' : '上传图片' }}
+              <input type="file" accept="image/*" :disabled="uploadingImage" @change="uploadProductImage" />
+            </label>
+            <button
+              v-if="productForm.imageUrl"
+              type="button"
+              class="text-button"
+              @click="clearProductImage"
+            >
+              移除图片
+            </button>
+          </div>
+          <p class="upload-tip">选择本地图片上传即可，无需填写图片 URL；支持 JPG、PNG、WebP，保存商品后生效。</p>
         </div>
         <label>
           商品描述
@@ -474,7 +859,7 @@ onMounted(loadData)
 
         <div class="modal-actions">
           <button class="ghost-button" @click="showProductEditor = false">取消</button>
-          <button class="primary-button" :disabled="saving" @click="saveProduct">
+          <button class="primary-button" :disabled="saving || uploadingImage" @click="saveProduct">
             {{ saving ? '保存中...' : '保存商品' }}
           </button>
         </div>
@@ -533,6 +918,13 @@ onMounted(loadData)
     opacity: 0.45;
     cursor: not-allowed;
   }
+}
+
+.ghost-button:disabled,
+.danger-button:disabled,
+.text-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .ghost-button {
@@ -596,6 +988,11 @@ onMounted(loadData)
     background: #e7f4ef;
     color: #D94C4C;
   }
+
+  &.drag-over {
+    border-color: #087e6b;
+    box-shadow: inset 0 0 0 1px #087e6b;
+  }
 }
 
 .cat-icon {
@@ -629,6 +1026,7 @@ onMounted(loadData)
 
 .product-card {
   display: flex;
+  align-items: flex-start;
   gap: 12px;
   justify-content: space-between;
   padding: 14px;
@@ -636,6 +1034,65 @@ onMounted(loadData)
   background: #fff;
   border: 1px solid #eee;
   border-radius: 8px;
+
+  &.dragging {
+    opacity: 0.56;
+  }
+}
+
+.drag-handle {
+  flex: 0 0 20px;
+  min-height: 86px;
+  display: grid;
+  place-items: center;
+  color: #9aa9a3;
+  cursor: grab;
+  font-size: 18px;
+  line-height: 1;
+  user-select: none;
+}
+
+.product-image-button,
+.product-image-placeholder {
+  flex: 0 0 86px;
+  width: 86px;
+  height: 86px;
+  border-radius: 10px;
+}
+
+.product-image-button {
+  position: relative;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  background: #eef3ef;
+  cursor: zoom-in;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  span {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    padding: 4px 0;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 11px;
+  }
+}
+
+.product-image-placeholder {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #cfdad5;
+  color: #8a9892;
+  background: #f6f7f3;
+  font-size: 12px;
 }
 
 .product-main {
@@ -705,6 +1162,48 @@ onMounted(loadData)
   flex-shrink: 0;
 }
 
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.74);
+}
+
+.image-preview-dialog {
+  position: relative;
+  max-width: min(92vw, 820px);
+  max-height: 88vh;
+
+  img {
+    display: block;
+    max-width: 100%;
+    max-height: 88vh;
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    object-fit: contain;
+  }
+}
+
+.image-preview-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #1a1a2e;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -731,6 +1230,239 @@ onMounted(loadData)
   h3 {
     margin: 0 0 16px;
   }
+}
+
+.template-picker-modal {
+  width: min(960px, 100%);
+}
+
+.template-picker-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  h3 {
+    margin: 0 0 4px;
+  }
+
+  p {
+    margin: 0;
+    color: #687872;
+    font-size: 13px;
+  }
+}
+
+.compact-state {
+  padding: 28px 16px;
+}
+
+.template-picker-body {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 430px;
+}
+
+.system-template-list,
+.template-preview-panel {
+  min-height: 0;
+  border: 1px solid #e6eee9;
+  border-radius: 10px;
+  background: #fafcfa;
+}
+
+.system-template-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.system-template-item {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a1a2e;
+  text-align: left;
+  cursor: pointer;
+
+  &.active {
+    border-color: #087e6b;
+    background: #e7f4ef;
+  }
+
+  img,
+  .template-cover-placeholder {
+    width: 62px;
+    height: 62px;
+    border-radius: 8px;
+  }
+
+  img {
+    object-fit: cover;
+  }
+}
+
+.template-cover-placeholder {
+  display: grid;
+  place-items: center;
+  color: #087e6b;
+  background: #e7f4ef;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.template-item-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: #687872;
+    font-size: 12px;
+  }
+}
+
+.template-list-empty {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  padding: 18px;
+  color: #687872;
+  text-align: center;
+}
+
+.template-preview-panel {
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.template-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e6eee9;
+
+  h4 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #687872;
+    font-size: 13px;
+  }
+
+  span {
+    flex-shrink: 0;
+    padding: 4px 8px;
+    border-radius: 999px;
+    color: #087e6b;
+    background: #e7f4ef;
+    font-size: 12px;
+    font-weight: 800;
+  }
+}
+
+.template-category-preview-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.template-category-preview {
+  padding: 10px;
+  border: 1px solid #e6eee9;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.preview-category-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  span {
+    color: #687872;
+    font-size: 12px;
+  }
+}
+
+.preview-product-list {
+  display: grid;
+  gap: 8px;
+}
+
+.preview-product {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f6f7f3;
+
+  img,
+  .preview-product-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+  }
+
+  img {
+    object-fit: cover;
+  }
+}
+
+.preview-product-placeholder {
+  display: grid;
+  place-items: center;
+  color: #8a9892;
+  background: #fff;
+  font-size: 12px;
+}
+
+.preview-product-info {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+
+  strong,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span,
+  small {
+    color: #687872;
+    font-size: 12px;
+  }
+}
+
+.preview-product-price {
+  color: #087e6b;
+  font-size: 13px;
 }
 
 label {
@@ -763,6 +1495,99 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.image-upload-section {
+  margin: 4px 0 12px;
+  padding: 12px;
+  border: 1px solid #e6eee9;
+  border-radius: 10px;
+  background: #fafcfa;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #666;
+  font-size: 13px;
+}
+
+.image-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editor-image-preview,
+.editor-image-placeholder {
+  width: 104px;
+  height: 104px;
+  border-radius: 10px;
+}
+
+.editor-image-preview {
+  position: relative;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  background: #eef3ef;
+  cursor: zoom-in;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  span {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    padding: 5px 0;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 12px;
+  }
+}
+
+.editor-image-placeholder {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #cfdad5;
+  color: #8a9892;
+  background: #fff;
+  font-size: 13px;
+}
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  margin: 0;
+  border-radius: 8px;
+  background: #087e6b;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+
+  &.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  input {
+    display: none;
+  }
+}
+
+.upload-tip {
+  margin: 8px 0 0;
+  color: #8a9892;
+  font-size: 12px;
 }
 
 .section-title {
@@ -843,7 +1668,21 @@ textarea {
     flex-direction: column;
   }
 
+  .product-image-button,
+  .product-image-placeholder {
+    width: 100%;
+    height: 150px;
+    flex-basis: auto;
+  }
+
+  .drag-handle {
+    min-height: 24px;
+    place-items: start;
+  }
+
   .form-grid,
+  .template-picker-body,
+  .image-upload-row,
   .spec-group-head,
   .spec-option-row,
   .combo-row {

@@ -34,9 +34,17 @@ public class ConversationsController : ControllerBase
     public async Task<List<object>> GetByStore(Guid storeId, CancellationToken ct)
         => (await _conversationService.GetByStoreAsync(storeId, ct)).Select(ToConversationDto).ToList();
 
+    [HttpGet("api/stores/{storeId:guid}/conversations/unread-count")]
+    public async Task<object> GetStoreUnreadCount(Guid storeId, CancellationToken ct)
+        => new { count = await _conversationService.GetUnreadCountForStoreAsync(storeId, ct) };
+
     [HttpGet("api/customer-conversations")]
     public async Task<List<object>> GetByCustomer([FromQuery] Guid? customerId, [FromQuery] string? deviceId, CancellationToken ct)
         => (await _conversationService.GetByCustomerAsync(customerId, deviceId, ct)).Select(ToConversationDto).ToList();
+
+    [HttpGet("api/customer-conversations/unread-count")]
+    public async Task<object> GetCustomerUnreadCount([FromQuery] Guid? customerId, [FromQuery] string? deviceId, CancellationToken ct)
+        => new { count = await _conversationService.GetUnreadCountForCustomerAsync(customerId, deviceId, ct) };
 
     [HttpGet("api/conversations/{conversationId:guid}/messages")]
     public async Task<List<ConversationMessage>> GetMessages(Guid conversationId, CancellationToken ct)
@@ -46,20 +54,65 @@ public class ConversationsController : ControllerBase
     public async Task<ConversationMessage> SendMessage(Guid conversationId, [FromBody] SendMessageRequest request, CancellationToken ct)
     {
         var message = await _conversationService.SendMessageAsync(conversationId, request.SenderType, request.SenderId, request.Content, ct);
-        var payload = new { conversationId, message };
-        await _conversationHub.Clients.Group($"conversation_{conversationId}").SendAsync("ConversationMessageReceived", payload, cancellationToken: ct);
-        if (request.SenderType == "customer" && request.StoreId != null)
-            await _storeHub.Clients.Group($"store_{request.StoreId}").SendAsync("CustomerMessageReceived", payload, cancellationToken: ct);
-        if (request.SenderType == "merchant" && request.OrderId != null)
-            await _orderHub.Clients.Group($"order_{request.OrderId}").SendAsync("MerchantMessageReceived", payload, cancellationToken: ct);
+        var conversation = await _conversationService.GetByIdAsync(conversationId, ct);
+        var payload = new { conversationId, message, conversation = ToConversationDto(conversation) };
+
+        await _conversationHub.Clients.Group($"conversation_{conversationId}")
+            .SendAsync("ConversationMessageReceived", payload, cancellationToken: ct);
+
+        if (message.SenderType == "customer")
+        {
+            var unreadCount = await _conversationService.GetUnreadCountForStoreAsync(conversation.StoreId, ct);
+            var storePayload = new { conversationId, message, conversation = ToConversationDto(conversation), unreadCount };
+            var unreadPayload = new { scope = "merchant", storeId = conversation.StoreId, count = unreadCount };
+            await _conversationHub.Clients.Group($"store_{conversation.StoreId}")
+                .SendAsync("CustomerMessageReceived", storePayload, cancellationToken: ct);
+            await _conversationHub.Clients.Group($"store_{conversation.StoreId}")
+                .SendAsync("ConversationUnreadChanged", unreadPayload, cancellationToken: ct);
+            await _storeHub.Clients.Group($"store_{conversation.StoreId}")
+                .SendAsync("CustomerMessageReceived", storePayload, cancellationToken: ct);
+        }
+        else
+        {
+            var unreadCount = await _conversationService.GetUnreadCountForCustomerAsync(conversation.CustomerId, conversation.DeviceId, ct);
+            var customerPayload = new { conversationId, message, conversation = ToConversationDto(conversation), unreadCount };
+            var unreadPayload = new { scope = "customer", conversation.CustomerId, conversation.DeviceId, count = unreadCount };
+            foreach (var groupName in ConversationHub.GetCustomerGroupNames(conversation.CustomerId, conversation.DeviceId))
+            {
+                await _conversationHub.Clients.Group(groupName)
+                    .SendAsync("MerchantMessageReceived", customerPayload, cancellationToken: ct);
+                await _conversationHub.Clients.Group(groupName)
+                    .SendAsync("ConversationUnreadChanged", unreadPayload, cancellationToken: ct);
+            }
+            await _orderHub.Clients.Group($"order_{conversation.OrderId}")
+                .SendAsync("MerchantMessageReceived", customerPayload, cancellationToken: ct);
+        }
+
         return message;
     }
 
     [HttpPost("api/conversations/{conversationId:guid}/read")]
     public async Task<object> MarkRead(Guid conversationId, [FromBody] MarkReadRequest request, CancellationToken ct)
     {
-        await _conversationService.MarkReadAsync(conversationId, request.ReaderType, ct);
-        return new { };
+        var conversation = await _conversationService.MarkReadAsync(conversationId, request.ReaderType, ct);
+        var readerType = request.ReaderType.Trim().ToLowerInvariant();
+        if (readerType == "merchant")
+        {
+            var unreadCount = await _conversationService.GetUnreadCountForStoreAsync(conversation.StoreId, ct);
+            var payload = new { scope = "merchant", storeId = conversation.StoreId, count = unreadCount };
+            await _conversationHub.Clients.Group($"store_{conversation.StoreId}")
+                .SendAsync("ConversationUnreadChanged", payload, cancellationToken: ct);
+            return new { unreadCount, conversation = ToConversationDto(conversation) };
+        }
+
+        var customerUnreadCount = await _conversationService.GetUnreadCountForCustomerAsync(conversation.CustomerId, conversation.DeviceId, ct);
+        var customerPayload = new { scope = "customer", conversation.CustomerId, conversation.DeviceId, count = customerUnreadCount };
+        foreach (var groupName in ConversationHub.GetCustomerGroupNames(conversation.CustomerId, conversation.DeviceId))
+        {
+            await _conversationHub.Clients.Group(groupName)
+                .SendAsync("ConversationUnreadChanged", customerPayload, cancellationToken: ct);
+        }
+        return new { unreadCount = customerUnreadCount, conversation = ToConversationDto(conversation) };
     }
 
     private static object ToConversationDto(Conversation conversation)
@@ -69,6 +122,7 @@ public class ConversationsController : ControllerBase
             conversation.OrderId,
             conversation.StoreId,
             StoreName = conversation.Store?.Name,
+            StoreCode = conversation.Store?.StoreCode,
             conversation.CustomerId,
             conversation.DeviceId,
             conversation.LastMessageAt,
@@ -99,4 +153,3 @@ public class ConversationsController : ControllerBase
 public class StartConversationRequest { public Guid? CustomerId { get; set; } public string? DeviceId { get; set; } }
 public class SendMessageRequest { public string SenderType { get; set; } = string.Empty; public Guid? SenderId { get; set; } public string Content { get; set; } = string.Empty; public Guid? StoreId { get; set; } public Guid? OrderId { get; set; } }
 public class MarkReadRequest { public string ReaderType { get; set; } = string.Empty; }
-

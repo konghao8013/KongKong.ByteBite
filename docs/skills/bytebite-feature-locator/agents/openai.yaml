@@ -1,0 +1,4 @@
+interface:
+  display_name: "ByteBite Feature Locator"
+  short_description: "Locate ByteBite feature code and docs quickly."
+  default_prompt: "Use $bytebite-feature-locator to locate and update ByteBite feature code and documentation."

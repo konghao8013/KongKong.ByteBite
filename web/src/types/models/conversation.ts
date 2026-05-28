@@ -22,6 +22,7 @@ export interface ConversationDto {
   orderId: string
   storeId: string
   storeName?: string
+  storeCode?: string
   customerId?: string
   deviceId?: string
   lastMessageAt: string
@@ -53,4 +54,19 @@ export interface SendConversationMessageRequest {
   content: string
   storeId?: string
   orderId?: string
+}
+
+export interface ConversationEventPayload {
+  conversationId: string
+  message: ConversationMessageDto
+  conversation?: ConversationDto
+  unreadCount?: number
+}
+
+export interface ConversationUnreadChangedPayload {
+  scope: 'customer' | 'merchant'
+  storeId?: string
+  customerId?: string
+  deviceId?: string
+  count: number
 }

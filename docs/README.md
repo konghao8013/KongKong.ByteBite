@@ -1,6 +1,6 @@
 # 空空码上点单 (KongKong.ByteBite) - 项目文档
 
-> 版本：v1.1.0 | 更新日期：2026-05-22
+> 版本：v1.2.0 | 更新日期：2026-05-28
 
 ## 文档导航
 
@@ -27,6 +27,8 @@ docs/
 ├── frontend/                    ← 前端文档
 │   ├── overview.md              ← 前端架构总览
 │   └── components.md            ← 组件文档
+├── feature-map/                 ← 功能点定位索引
+│   └── README.md                ← 功能到后端/前端方法的映射
 ├── specs/                       ← 功能规格（按领域组织）
 │   ├── README.md                ← Spec 索引
 │   ├── spec-auth.md             ← 认证鉴权领域
@@ -41,7 +43,11 @@ docs/
 │   ├── spec-frontend.md         ← 前端规格
 │   └── spec-testing.md          ← 测试规格
 ├── requirements/                ← 产品需求
-│   └── requirements-overview.md ← 需求清单
+│   ├── requirements-overview.md ← 需求清单
+│   └── feature-implementation-checklist.md ← 功能实现清单
+├── skills/                      ← Codex 项目技能文档
+│   ├── bytebite-feature-checklist/
+│   └── bytebite-feature-locator/
 └── sql/                         ← 数据库脚本
     ├── 01_users_and_stores.sql
     ├── 02_categories_and_products.sql
@@ -60,6 +66,7 @@ docs/
 | 后端开发 | [架构决策](architecture/decisions.md) → [API 契约](contracts/) → [Spec](specs/) |
 | 前端开发 | [前端架构](frontend/overview.md) → [API 契约](contracts/) → [风格指南](architecture/style-guide.md) |
 | 产品/设计 | [需求清单](requirements/requirements-overview.md) → [Spec](specs/README.md) |
+| 功能定位/AI 协作 | [功能点定位索引](feature-map/README.md) → [功能实现清单](requirements/feature-implementation-checklist.md) → [Codex 技能](skills/bytebite-feature-locator/SKILL.md) |
 
 ## 技术栈
 

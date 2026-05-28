@@ -74,6 +74,32 @@ public class ConversationService
         return await query.OrderByDescending(c => c.LastMessageAt).ToListAsync(ct);
     }
 
+    public async Task<Conversation> GetByIdAsync(Guid conversationId, CancellationToken ct = default)
+        => await _db.Conversations
+            .Include(c => c.Order)
+            .ThenInclude(o => o.OrderItems)
+            .Include(c => c.Store)
+            .Include(c => c.Customer)
+            .FirstOrDefaultAsync(c => c.Id == conversationId, ct)
+            ?? throw new BusinessException(404, "会话不存在");
+
+    public async Task<int> GetUnreadCountForStoreAsync(Guid storeId, CancellationToken ct = default)
+        => await _db.Conversations
+            .Where(c => c.StoreId == storeId)
+            .SumAsync(c => c.MerchantUnreadCount, ct);
+
+    public async Task<int> GetUnreadCountForCustomerAsync(Guid? customerId, string? deviceId, CancellationToken ct = default)
+    {
+        if (customerId == null && string.IsNullOrWhiteSpace(deviceId)) return 0;
+
+        var query = _db.Conversations.AsQueryable();
+        query = customerId != null
+            ? query.Where(c => c.CustomerId == customerId || c.DeviceId == deviceId)
+            : query.Where(c => c.DeviceId == deviceId);
+
+        return await query.SumAsync(c => c.CustomerUnreadCount, ct);
+    }
+
     public async Task<List<ConversationMessage>> GetMessagesAsync(Guid conversationId, CancellationToken ct = default)
         => await _db.ConversationMessages
             .Where(m => m.ConversationId == conversationId)
@@ -113,14 +139,17 @@ public class ConversationService
         return message;
     }
 
-    public async Task MarkReadAsync(Guid conversationId, string readerType, CancellationToken ct = default)
+    public async Task<Conversation> MarkReadAsync(Guid conversationId, string readerType, CancellationToken ct = default)
     {
-        var conversation = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId, ct)
-            ?? throw new BusinessException(404, "会话不存在");
-        if (readerType == "customer") conversation.CustomerUnreadCount = 0;
-        if (readerType == "merchant") conversation.MerchantUnreadCount = 0;
+        var normalizedReader = readerType.Trim().ToLowerInvariant();
+        if (normalizedReader is not ("customer" or "merchant"))
+            throw new BusinessException(400, "已读方角色不正确");
+
+        var conversation = await GetByIdAsync(conversationId, ct);
+        if (normalizedReader == "customer") conversation.CustomerUnreadCount = 0;
+        if (normalizedReader == "merchant") conversation.MerchantUnreadCount = 0;
         conversation.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        return conversation;
     }
 }
-

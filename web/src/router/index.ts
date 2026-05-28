@@ -8,6 +8,7 @@ const customerRoutes: RouteRecordRaw[] = [
   { path: 'product/:productId', name: 'ProductDetail', component: () => import('@/pages/customer/ProductDetail.vue') },
   { path: 'order/:orderId', name: 'OrderDetail', component: () => import('@/pages/customer/OrderDetail.vue') },
   { path: 'orders', name: 'MyOrders', component: () => import('@/pages/customer/MyOrders.vue') },
+  { path: 'messages', name: 'CustomerMessages', component: () => import('@/pages/customer/Messages.vue') },
   { path: 'account', name: 'CustomerAccount', component: () => import('@/pages/customer/CustomerLogin.vue') },
 ]
 
@@ -47,6 +48,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', redirect: '/merchant/orders' },
       { path: 'orders', name: 'MerchantOrders', component: () => import('@/pages/merchant/Orders.vue') },
+      { path: 'messages', name: 'MerchantMessages', component: () => import('@/pages/merchant/Messages.vue') },
       { path: 'verify', name: 'MerchantVerifyOrder', component: () => import('@/pages/merchant/VerifyOrder.vue') },
       { path: 'menu', name: 'MerchantMenu', component: () => import('@/pages/merchant/Menu.vue') },
       { path: 'store', name: 'MerchantStore', component: () => import('@/pages/merchant/StoreInfo.vue') },

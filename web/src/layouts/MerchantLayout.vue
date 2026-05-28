@@ -1,14 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { merchantApi } from '@/api/modules/merchant'
+import { useSignalR } from '@/composables/useSignalR'
+import { useConversationStore } from '@/stores/modules/useConversationStore'
+import type { ConversationEventPayload, ConversationUnreadChangedPayload } from '@/types/models/conversation'
 
 const route = useRoute()
 const router = useRouter()
+const conversationStore = useConversationStore()
+const { connection, connect, disconnect } = useSignalR('/hubs/conversation')
+
+const storeId = localStorage.getItem('merchant_store_id') || ''
+const messageBadge = computed(() => conversationStore.merchantUnreadCount)
 
 const activeTab = computed(() => {
   const path = route.path
   if (path.includes('/orders')) return 'orders'
+  if (path.includes('/messages')) return 'messages'
   if (path.includes('/menu')) return 'menu'
   if (path.includes('/store')) return 'store'
   if (path.includes('/discounts')) return 'discounts'
@@ -19,6 +29,7 @@ const activeTab = computed(() => {
 
 const tabs = [
   { key: 'orders', label: '订单', icon: '订', path: '/merchant/orders' },
+  { key: 'messages', label: '消息', icon: '信', path: '/merchant/messages' },
   { key: 'menu', label: '菜品', icon: '菜', path: '/merchant/menu' },
   { key: 'store', label: '门店', icon: '店', path: '/merchant/store' },
   { key: 'discounts', label: '优惠', icon: '惠', path: '/merchant/discounts' },
@@ -42,6 +53,36 @@ const handleLogout = async () => {
   localStorage.removeItem('merchant_info')
   router.push('/login')
 }
+
+onMounted(async () => {
+  if (!storeId) return
+  try {
+    await conversationStore.loadMerchantUnreadCount(storeId)
+  } catch {
+  }
+
+  try {
+    await connect()
+    connection.value?.on('CustomerMessageReceived', (payload: ConversationEventPayload) => {
+      if (typeof payload.unreadCount === 'number') conversationStore.setMerchantUnreadCount(payload.unreadCount)
+      else conversationStore.loadMerchantUnreadCount(storeId).catch(() => {})
+      if (route.name !== 'MerchantMessages') ElMessage.info('收到顾客新消息')
+    })
+    connection.value?.on('ConversationUnreadChanged', (payload: ConversationUnreadChangedPayload) => {
+      if (payload.scope === 'merchant') conversationStore.setMerchantUnreadCount(payload.count)
+    })
+    await connection.value?.invoke('SubscribeStore', storeId)
+  } catch {
+  }
+})
+
+onUnmounted(async () => {
+  try {
+    if (storeId) await connection.value?.invoke('UnsubscribeStore', storeId)
+  } catch {
+  }
+  await disconnect()
+})
 </script>
 
 <template>
@@ -64,6 +105,7 @@ const handleLogout = async () => {
         >
           <span class="nav-icon">{{ tab.icon }}</span>
           <span>{{ tab.label }}</span>
+          <span v-if="tab.key === 'messages' && messageBadge > 0" class="nav-badge">{{ messageBadge }}</span>
         </button>
       </nav>
       <button class="logout desktop-logout" @click="handleLogout">退出登录</button>
@@ -91,6 +133,7 @@ const handleLogout = async () => {
         @click="switchTab(tab)"
       >
         <span class="tabbar-icon">{{ tab.icon }}</span>
+        <span v-if="tab.key === 'messages' && messageBadge > 0" class="tabbar-badge">{{ messageBadge }}</span>
         <span class="tabbar-label">{{ tab.label }}</span>
       </button>
     </nav>
@@ -155,6 +198,7 @@ const handleLogout = async () => {
 }
 
 .nav-item {
+  position: relative;
   height: 38px;
   padding: 0 10px;
   border-radius: 6px;
@@ -182,6 +226,24 @@ const handleLogout = async () => {
   place-items: center;
   background: #FAFCFA;
   font-size: 12px;
+}
+
+.nav-badge,
+.tabbar-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #D94C4C;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.nav-badge {
+  margin-left: auto;
 }
 
 .merchant-main {
@@ -283,6 +345,7 @@ const handleLogout = async () => {
 
   .tabbar-item {
     flex: 1;
+    position: relative;
     display: grid;
     justify-items: center;
     align-content: center;
@@ -306,6 +369,12 @@ const handleLogout = async () => {
 
   .tabbar-label {
     font-size: 11px;
+  }
+
+  .tabbar-badge {
+    position: absolute;
+    top: 3px;
+    left: 50%;
   }
 }
 </style>

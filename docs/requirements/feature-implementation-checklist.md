@@ -4,7 +4,9 @@
 
 最后盘点日期：2026-05-27
 
-维护技能：`docs/skills/bytebite-feature-checklist/SKILL.md`
+维护技能：`docs/skills/bytebite-feature-checklist/SKILL.md`、`docs/skills/bytebite-feature-locator/SKILL.md`
+
+功能定位索引：`docs/feature-map/README.md`
 
 ## 维护规则
 
@@ -13,6 +15,7 @@
 - 只有后端或只有前端时标记为 `部分实现`。
 - 新增需求时先补一行 `未实现`，实现过程中改为 `部分实现`，验收通过后改为 `已实现`。
 - 不删除历史功能项；需求废弃时在“待补齐/备注”中写明原因。
+- 每次新增、修复或调整功能时，同步更新 `docs/feature-map/README.md` 中对应的后端接口/方法、前端接口/页面和测试证据。
 
 ## 顾客端
 
@@ -20,7 +23,7 @@
 |----|------|--------|------|----------|-------------|
 | CUST-001 | 已实现 | P0 | 短链扫码入店 `/A/{storeCode}` | `web/src/router/index.ts`、`CustomerStoreController.GetStoreMenuByCode` | 继续保留 `/store/{storeId}` 兼容跳转 |
 | CUST-002 | 已实现 | P0 | 按店铺码加载菜单 | `CustomerStoreService.GetStoreMenuByCodeAsync`、`StoreMenu.vue` | - |
-| CUST-003 | 已实现 | P0 | 菜单分类与菜品列表展示 | `StoreMenu.vue`、`CustomerStoreService.BuildStoreMenuAsync` | - |
+| CUST-003 | 已实现 | P0 | 菜单分类与菜品列表展示 | `StoreMenu.vue` 菜品列表、图片点击大图预览；`CustomerStoreService.BuildStoreMenuAsync` | - |
 | CUST-004 | 已实现 | P0 | 左侧分类独立滚动 | `StoreMenu.vue` 中分类侧栏独立 `overflow-y` | - |
 | CUST-005 | 已实现 | P0 | 商品规格选择 | `ProductDetail.vue`、商品规格实体与下单校验 | - |
 | CUST-006 | 已实现 | P0 | 购物车增删改、备注、按店铺缓存 | `useCartStore.ts`、`Cart.vue` | - |
@@ -52,7 +55,7 @@
 | MER-004 | 已实现 | P0 | 店铺信息维护 | `StoreService.UpdateAsync`、`StoreInfo.vue` | 图片当前主要是 URL 输入，文件上传未落地 |
 | MER-005 | 已实现 | P0 | 店铺二维码和短链分享 | `StoreShareDialog.vue` 使用 `qrcode.vue` 生成 `/A/{storeCode}` | - |
 | MER-006 | 已实现 | P0 | 分类管理 | `CategoriesController`、`CategoryService`、`Menu.vue` | - |
-| MER-007 | 已实现 | P0 | 商品管理 | `ProductsController`、`ProductService`、`Menu.vue` | - |
+| MER-007 | 已实现 | P0 | 商品管理 | `ProductsController`、`ProductService` 支持商品分类/排序更新；`Menu.vue` 商品列表缩略图、点击放大、上传式图片编辑、系统模板列表/预览/同名分类合并引入、拖拽排序和跨分类移动；`templateApi.getList/getById/applyTemplate` | - |
 | MER-008 | 已实现 | P0 | 商品规格管理 | `ProductService.NormalizeSpecGroups` 校验规格组、库存非负、默认项；`OrderService.CreateOrderAsync` 校验必选/单选规格并扣减规格库存；`Menu.vue` 支持规格库存和默认项编辑；构建和测试通过 | - |
 | MER-009 | 已实现 | P0 | 套餐商品 | `ProductService.UpsertComboItemsAsync` 校验套餐必须含当前店铺普通子商品且不能包含自身；`ProductsController` 返回套餐明细；`Menu.vue` 支持套餐开关、子商品/数量/规格替换设置和套餐摘要；构建通过 | - |
 | MER-010 | 已实现 | P0 | 订单列表与状态流转 | `Orders.vue`、`OrdersController` 接单/拒单/制作/待取餐/完成 | - |
@@ -70,7 +73,7 @@
 | ADM-001 | 已实现 | P0 | 管理员登录 | `AdminController.Login`、统一登录、`AdminLayout.vue` | - |
 | ADM-002 | 已实现 | P0 | 商家列表与状态管理 | `AdminController.GetMerchants/UpdateMerchantStatus`、`Merchants.vue` | - |
 | ADM-003 | 已实现 | P0 | 行业分类管理 | `IndustryCategoriesController/IndustryCategoryService` 后端 CRUD；`IndustryCategories.vue` 支持树形展示、新增子类、编辑、删除；`AdminLayout.vue/router` 已接入；浏览器冒烟和构建通过 | - |
-| ADM-004 | 已实现 | P0 | 模板系统 | `TemplatesController/TemplateService` 支持模板、分类、商品和应用；`Templates.vue` 支持模板列表/新建/编辑/启停、模板分类和模板商品维护、封面/商品图片上传；管理端导航已接入；构建通过 | - |
+| ADM-004 | 已实现 | P0 | 模板系统 | `TemplatesController/TemplateService` 支持模板、分类、商品和应用；应用模板时同名分类复用并追加商品；`Templates.vue` 支持模板列表/新建/编辑/启停、模板分类和模板商品维护、封面/商品图片上传；管理端导航已接入；构建通过 | - |
 | ADM-005 | 已实现 | P1 | 系统配置 | `AdminService.GetSystemConfigsAsync/UpsertSystemConfigAsync/DeleteSystemConfigAsync`、`AdminController` 配置 API、`Configs.vue` 配置列表/新增/编辑/删除/公开标记；构建和浏览器冒烟通过 | - |
 | ADM-006 | 已实现 | P1 | 平台统计 | `AdminService.GetPlatformStatsAsync` 补商家/店铺/订单/营收/商品/顾客/优惠/近7天趋势指标；`Stats.vue` 展示新增指标；构建通过 | 后续可接入图表库提升趋势可视化 |
 | ADM-007 | 已实现 | P1 | 审计/操作日志 | `AdminService.UpdateMerchantStatusAsync/UpsertSystemConfigAsync/DeleteSystemConfigAsync` 记录关键操作；`AdminController` 日志 API；`Logs.vue` 展示商家审核和管理员操作日志；构建通过 | - |
@@ -79,10 +82,10 @@
 
 | ID | 状态 | 优先级 | 功能 | 当前依据 | 待补齐/备注 |
 |----|------|--------|------|----------|-------------|
-| SYS-001 | 已实现 | P0 | 全局 API 响应包装 | `GlobalFilters.cs`、前端 API 解包 | - |
+| SYS-001 | 已实现 | P0 | 全局 API 响应包装 | `GlobalFilters.cs` 包装后同步 `DeclaredType=ApiResponse`，避免 DTO 返回值序列化类型转换异常；前端 API 解包；`ApiResponseWrapperFilterTests` 通过 | - |
 | SYS-002 | 已实现 | P0 | Code First 迁移与自动迁移 | EF Core Migration、`Program.cs` | - |
 | SYS-003 | 已实现 | P0 | 幂等初始化数据 | `SeedData.cs`、`DataSeeder`、StoreCodeSeeder | - |
 | SYS-004 | 已实现 | P0 | SignalR 实时通信 | `OrderHub`、`StoreHub`、`ConversationHub`、前端 `useSignalR`；订单详情和商家订单页有轮询降级；构建通过 | 后续补断线场景自动化测试 |
 | SYS-005 | 已实现 | P0 | 基础测试覆盖 | 过期 DTO/Repository 旧测试已从编译排除，新增 `tests/ByteBite.UnitTests/Current/*` 和 `tests/ByteBite.IntegrationTests/Current/*` 当前架构基础测试；`dotnet build ByteBite.slnx --no-restore`、`dotnet test ByteBite.slnx --no-build` 通过 | 后续按新架构逐步补更多业务级自动化测试 |
-| SYS-006 | 已实现 | P1 | 文件上传 | `FilesController.Upload` 本地图片上传接口，`Program.cs` 开放静态文件；`fileApi`、`StoreInfo.vue`、`Menu.vue`、`Templates.vue` 支持店铺封面/商品/模板图片上传；构建通过 | 当前为本地文件存储，云存储/CDN 属于后续第三方扩展 |
+| SYS-006 | 已实现 | P1 | 文件上传 | `FilesController.Upload` 本地图片上传接口，`Program.cs` 开放静态文件；`fileApi`、`StoreInfo.vue`、`Menu.vue`、`Templates.vue` 支持店铺封面/商品/模板图片上传；`Menu.vue` 商品编辑使用上传入口而非手填 URL；构建通过 | 当前为本地文件存储，云存储/CDN 属于后续第三方扩展 |
 | SYS-007 | 已实现 | P2 | 短信通知 | `AdminService` 默认系统配置含 `sms.enabled=false`，清单按用户确认将短信验证码/短信通知归为第三方付费能力，不做真实发送接入 | 如后续采购短信服务，再新增供应商配置、模板和发送日志 |

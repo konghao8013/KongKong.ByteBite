@@ -1,0 +1,4 @@
+display_name: ByteBite Feature Checklist
+short_description: Keep ByteBite feature status aligned with requirements and implementation.
+default_prompt: Update the ByteBite feature implementation checklist for the current work.
+

@@ -234,10 +234,30 @@ public class TemplateService
         if (selectedCategories.Count == 0 || selectedProducts.Count == 0)
             throw new BusinessException(400, "模板中没有可应用的分类或商品");
 
+        var existingCategories = await _db.Categories
+            .Where(c => c.StoreId == store.Id && c.DeletedAt == null)
+            .ToListAsync(ct);
+        var existingCategoryByName = existingCategories
+            .GroupBy(c => NormalizeCategoryName(c.Name), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.SortOrder).First(), StringComparer.OrdinalIgnoreCase);
+        var productSortOrderByCategory = await _db.Products
+            .Where(p => p.StoreId == store.Id && p.DeletedAt == null)
+            .GroupBy(p => p.CategoryId)
+            .Select(g => new { CategoryId = g.Key, MaxSortOrder = g.Max(p => p.SortOrder) })
+            .ToDictionaryAsync(g => g.CategoryId, g => g.MaxSortOrder, ct);
+        var nextCategorySortOrder = existingCategories.Count == 0 ? 1 : existingCategories.Max(c => c.SortOrder) + 1;
         var now = DateTime.UtcNow;
         var categoryMap = new Dictionary<Guid, Guid>();
         foreach (var templateCategory in selectedCategories.OrderBy(c => c.SortOrder))
         {
+            var normalizedCategoryName = NormalizeCategoryName(templateCategory.Name);
+            if (existingCategoryByName.TryGetValue(normalizedCategoryName, out var existingCategory))
+            {
+                categoryMap[templateCategory.Id] = existingCategory.Id;
+                productSortOrderByCategory.TryAdd(existingCategory.Id, 0);
+                continue;
+            }
+
             var category = new Category
             {
                 Id = Guid.NewGuid(),
@@ -245,13 +265,15 @@ public class TemplateService
                 Name = templateCategory.Name,
                 Icon = templateCategory.Icon,
                 CategoryType = templateCategory.CategoryType,
-                SortOrder = templateCategory.SortOrder,
+                SortOrder = nextCategorySortOrder++,
                 IsVisible = true,
                 HotTopCount = templateCategory.HotTopCount,
                 CreatedAt = now,
                 UpdatedAt = now
             };
             categoryMap[templateCategory.Id] = category.Id;
+            existingCategoryByName[normalizedCategoryName] = category;
+            productSortOrderByCategory[category.Id] = 0;
             _db.Categories.Add(category);
         }
 
@@ -270,12 +292,13 @@ public class TemplateService
                 BasePrice = templateProduct.ReferencePrice,
                 ImageUrl = templateProduct.ImageUrl,
                 Status = "off",
-                SortOrder = templateProduct.SortOrder,
+                SortOrder = productSortOrderByCategory.TryGetValue(categoryId, out var currentSortOrder) ? currentSortOrder + 1 : 1,
                 MinOrderQty = Math.Max(1, templateProduct.MinOrderQty),
                 IsCombo = templateProduct.TemplateComboItemComboTemplateProducts.Count > 0,
                 CreatedAt = now,
                 UpdatedAt = now
             };
+            productSortOrderByCategory[categoryId] = product.SortOrder;
             productMap[templateProduct.Id] = product.Id;
 
             foreach (var templateGroup in templateProduct.TemplateSpecGroups.OrderBy(g => g.SortOrder))
@@ -352,6 +375,8 @@ public class TemplateService
             .Include(t => t.TemplateProducts)
             .ThenInclude(p => p.TemplateComboItemComboTemplateProducts)
             .Include(t => t.IndustryCategory);
+
+    private static string NormalizeCategoryName(string name) => name.Trim();
 
     private async Task<Store> LoadStoreMenuAsync(Guid storeId, CancellationToken ct)
         => await _db.Stores

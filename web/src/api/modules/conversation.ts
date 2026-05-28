@@ -13,8 +13,14 @@ export const conversationApi = {
   getByStore: (storeId: string) =>
     request.get<ConversationDto[]>(`/stores/${storeId}/conversations`),
 
+  getStoreUnreadCount: (storeId: string) =>
+    request.get<{ count: number }>(`/stores/${storeId}/conversations/unread-count`),
+
   getByCustomer: (params: { customerId?: string; deviceId?: string }) =>
     request.get<ConversationDto[]>('/customer-conversations', { params }),
+
+  getCustomerUnreadCount: (params: { customerId?: string; deviceId?: string }) =>
+    request.get<{ count: number }>('/customer-conversations/unread-count', { params }),
 
   getMessages: (conversationId: string) =>
     request.get<ConversationMessageDto[]>(`/conversations/${conversationId}/messages`),

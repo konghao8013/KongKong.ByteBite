@@ -125,7 +125,8 @@ public class ProductService
             .Include(p => p.ComboItemComboProducts)
             .ThenInclude(i => i.Product)
             .Where(p => p.StoreId == storeId && p.DeletedAt == null)
-            .OrderBy(p => p.SortOrder)
+            .OrderBy(p => p.Category.SortOrder)
+            .ThenBy(p => p.SortOrder)
             .ToListAsync(ct);
 
     private async Task UpsertComboItemsAsync(Product product, List<ProductComboItemInput>? comboItems, DateTime now, CancellationToken ct)

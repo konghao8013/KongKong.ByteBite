@@ -19,8 +19,13 @@ public class ApiResponseWrapperFilter : IResultFilter
         if (context.Result is ObjectResult objectResult)
         {
             // 已经是ApiResponse类型则不再重复包装
-            if (objectResult.Value is ApiResponse) return;
+            if (objectResult.Value is ApiResponse)
+            {
+                objectResult.DeclaredType = typeof(ApiResponse);
+                return;
+            }
             objectResult.Value = ApiResponse.Success(objectResult.Value);
+            objectResult.DeclaredType = typeof(ApiResponse);
             // 所有响应统一返回HTTP 200，错误信息通过ApiResponse.code传递
             objectResult.StatusCode = (int)HttpStatusCode.OK;
         }
@@ -60,6 +65,7 @@ public class GlobalExceptionFilter : IExceptionFilter
 
         context.Result = new ObjectResult(ApiResponse.Fail(code, message, detail))
         {
+            DeclaredType = typeof(ApiResponse),
             // 统一返回HTTP 200，错误信息通过ApiResponse传递
             StatusCode = (int)HttpStatusCode.OK
         };

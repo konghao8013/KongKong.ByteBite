@@ -19,6 +19,7 @@ const activeCategory = ref<string>('')
 const searchKeyword = ref('')
 const loading = ref(true)
 const error = ref('')
+const previewImage = ref<{ url: string; name: string } | null>(null)
 
 onMounted(async () => {
   try {
@@ -124,6 +125,15 @@ const handleDecrease = (productId: string) => {
     cartStore.updateQuantity(idx, cartStore.items[idx].quantity - 1)
   }
 }
+
+const openImagePreview = (item: StoreMenuItemDto) => {
+  if (!item.imageUrl) return
+  previewImage.value = { url: item.imageUrl, name: item.name }
+}
+
+const closeImagePreview = () => {
+  previewImage.value = null
+}
 </script>
 
 <template>
@@ -195,7 +205,14 @@ const handleDecrease = (productId: string) => {
             class="product-card"
           >
             <div class="product-image-wrapper">
-              <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="product-image" />
+              <button
+                v-if="item.imageUrl"
+                type="button"
+                class="product-image-button"
+                @click.stop="openImagePreview(item)"
+              >
+                <img :src="item.imageUrl" :alt="item.name" class="product-image" />
+              </button>
               <div v-else class="product-image-placeholder">餐</div>
               <span v-if="item.status === 'sold_out'" class="sold-out-badge">售罄</span>
             </div>
@@ -257,6 +274,11 @@ const handleDecrease = (productId: string) => {
       <div class="cart-bar-right" :class="{ disabled: !menuData?.canOrder }">
         {{ menuData?.canOrder ? '去结算' : '暂不可下单' }}
       </div>
+    </div>
+
+    <div v-if="previewImage" class="image-preview-overlay" @click.self="closeImagePreview">
+      <button type="button" class="image-preview-close" @click="closeImagePreview">×</button>
+      <img :src="previewImage.url" :alt="previewImage.name" class="image-preview" />
     </div>
   </div>
 </template>
@@ -519,6 +541,21 @@ const handleDecrease = (productId: string) => {
   object-fit: cover;
 }
 
+.product-image-button {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  display: block;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.product-image-button:focus-visible {
+  outline: 2px solid #087E6B;
+  outline-offset: -2px;
+}
+
 .product-image-placeholder {
   width: 100%;
   height: 100%;
@@ -775,5 +812,40 @@ const handleDecrease = (productId: string) => {
 .cart-bar-right.disabled {
   background: #687872;
   cursor: not-allowed;
+}
+
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.76);
+}
+
+.image-preview {
+  display: block;
+  max-width: min(100%, 720px);
+  max-height: 84vh;
+  border-radius: 10px;
+  object-fit: contain;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.36);
+}
+
+.image-preview-close {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top));
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  color: #1F2A26;
+  background: #fff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
 }
 </style>

@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /web/dist
 /web/node_modules
+/.codex-push-worktree-20260526210131
+/.codex-push-worktree-20260526205955
+/.codex-temp
