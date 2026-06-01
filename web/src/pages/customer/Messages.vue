@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { conversationApi } from '@/api/modules/conversation'
 import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import { useSignalR } from '@/composables/useSignalR'
@@ -29,6 +29,19 @@ const sending = ref(false)
 const identity = ref(getCustomerIdentity())
 const messageListRef = ref<HTMLElement | null>(null)
 const isDetailOpen = computed(() => Boolean(selectedConversation.value))
+const queryOrderId = computed(() => (typeof route.query.orderId === 'string' ? route.query.orderId : ''))
+const returnToPath = computed(() => {
+  const value = route.query.returnTo
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : ''
+})
+
+const syncChatRouteState = (open: boolean) => {
+  if ((route.query.chat === '1') === open) return
+  const query: LocationQueryRaw = { ...route.query }
+  if (open) query.chat = '1'
+  else delete query.chat
+  void router.replace({ query })
+}
 
 const formatTime = (value?: string) => {
   if (!value) return ''
@@ -79,6 +92,7 @@ const loadConversations = async () => {
       else {
         selectedConversation.value = null
         messages.value = []
+        syncChatRouteState(false)
       }
     }
   } finally {
@@ -91,6 +105,7 @@ const openConversation = async (conversation: ConversationDto) => {
     try { await connection.value?.invoke('UnsubscribeConversation', selectedConversation.value.id) } catch {}
   }
   selectedConversation.value = conversation
+  syncChatRouteState(true)
   messageLoading.value = true
   try {
     messages.value = await conversationApi.getMessages(conversation.id)
@@ -107,6 +122,23 @@ const openConversation = async (conversation: ConversationDto) => {
   }
 }
 
+const openConversationFromOrder = async (orderId: string) => {
+  if (!orderId) return
+  const existing = conversations.value.find((conversation) => conversation.orderId === orderId)
+  if (existing) {
+    await openConversation(existing)
+    return
+  }
+
+  identity.value = await ensureCustomerIdentity()
+  const conversation = await conversationApi.startByOrder(orderId, {
+    customerId: identity.value.customerId,
+    deviceId: identity.value.deviceId,
+  })
+  upsertConversation(conversation)
+  await openConversation(conversation)
+}
+
 const closeConversation = async () => {
   const conversationId = selectedConversation.value?.id
   if (conversationId) {
@@ -115,9 +147,14 @@ const closeConversation = async () => {
   selectedConversation.value = null
   messages.value = []
   replyText.value = ''
+  syncChatRouteState(false)
 }
 
 const handleBack = () => {
+  if (returnToPath.value) {
+    router.push(returnToPath.value)
+    return
+  }
   if (isDetailOpen.value) {
     void closeConversation()
     return
@@ -160,6 +197,11 @@ onMounted(async () => {
   identity.value = await ensureCustomerIdentity()
   await loadConversations()
   try {
+    await openConversationFromOrder(queryOrderId.value)
+  } catch {
+  }
+  if (!selectedConversation.value) syncChatRouteState(false)
+  try {
     await connect()
     onReconnected(subscribeCurrent)
     connection.value?.on('ConversationMessageReceived', async (payload: ConversationEventPayload) => {
@@ -188,6 +230,18 @@ onMounted(async () => {
   } catch {
   }
 })
+
+watch(
+  () => route.query.orderId,
+  async () => {
+    await loadConversations()
+    try {
+      await openConversationFromOrder(queryOrderId.value)
+    } catch {
+    }
+    if (!selectedConversation.value) syncChatRouteState(false)
+  },
+)
 
 onUnmounted(async () => {
   try {

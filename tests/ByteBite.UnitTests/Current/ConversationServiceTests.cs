@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Linq.Expressions;
+using ByteBite.Application.Exceptions;
 using ByteBite.Application.Services;
 using ByteBite.Infrastructure.Persistence;
 using ByteBite.Infrastructure.Persistence.Entities;
@@ -80,6 +81,55 @@ public class ConversationServiceTests
     }
 
     [Fact]
+    public async Task GetOrCreateByOrderForMerchantAsync_CreatesConversationFromOrderIdentity()
+    {
+        var fixture = ConversationFixture.CreateWithoutConversation();
+        var service = new ConversationService(fixture.Db.Object);
+
+        var conversation = await service.GetOrCreateByOrderForMerchantAsync(
+            fixture.OrderId,
+            fixture.StoreId);
+
+        conversation.OrderId.Should().Be(fixture.OrderId);
+        conversation.StoreId.Should().Be(fixture.StoreId);
+        conversation.DeviceId.Should().Be(fixture.DeviceId);
+        fixture.Conversations.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetOrCreateByOrderForMerchantAsync_UsesProvidedIdentityWhenOrderIdentityIsMissing()
+    {
+        var fixture = ConversationFixture.CreateWithoutConversationWithoutOrderIdentity();
+        var service = new ConversationService(fixture.Db.Object);
+
+        var conversation = await service.GetOrCreateByOrderForMerchantAsync(
+            fixture.OrderId,
+            fixture.StoreId,
+            fixture.CustomerId,
+            fixture.DeviceId);
+
+        conversation.OrderId.Should().Be(fixture.OrderId);
+        conversation.StoreId.Should().Be(fixture.StoreId);
+        conversation.CustomerId.Should().Be(fixture.CustomerId);
+        conversation.DeviceId.Should().Be(fixture.DeviceId);
+        fixture.Conversations.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetOrCreateByOrderForMerchantAsync_RejectsOtherStores()
+    {
+        var fixture = ConversationFixture.CreateWithoutConversation();
+        var service = new ConversationService(fixture.Db.Object);
+
+        var act = () => service.GetOrCreateByOrderForMerchantAsync(
+            fixture.OrderId,
+            Guid.NewGuid());
+
+        await act.Should().ThrowAsync<BusinessException>()
+            .Where(ex => ex.Code == 403);
+    }
+
+    [Fact]
     public async Task GetByCustomerAsync_DoesNotMatchNullDeviceIdWhenCustomerIdExists()
     {
         var fixture = ConversationFixture.CreateWithConversation();
@@ -133,11 +183,17 @@ public class ConversationServiceTests
             return fixture.ConfigureDb([]);
         }
 
-        private ConversationFixture ConfigureDb(List<ConversationMessage> messages)
+        public static ConversationFixture CreateWithoutConversationWithoutOrderIdentity()
+        {
+            var fixture = new ConversationFixture();
+            return fixture.ConfigureDb([], orderHasDeviceId: false);
+        }
+
+        private ConversationFixture ConfigureDb(List<ConversationMessage> messages, bool orderHasDeviceId = true)
         {
             var stores = new List<Store> { BuildStore() };
             var customers = new List<Customer> { BuildCustomer() };
-            var orders = new List<Order> { BuildOrder(customerId: null) };
+            var orders = new List<Order> { BuildOrder(customerId: null, hasDeviceId: orderHasDeviceId) };
 
             Db = new Mock<ByteBiteDbContext>(new DbContextOptionsBuilder<ByteBiteDbContext>().Options);
             Db.Setup(context => context.Stores).Returns(CreateDbSet(stores).Object);
@@ -171,12 +227,12 @@ public class ConversationServiceTests
             UpdatedAt = DateTime.UtcNow
         };
 
-        private Order BuildOrder(Guid? customerId) => new()
+        private Order BuildOrder(Guid? customerId, bool hasDeviceId = true) => new()
         {
             Id = OrderId,
             StoreId = StoreId,
             CustomerId = customerId,
-            DeviceId = DeviceId,
+            DeviceId = hasDeviceId ? DeviceId : null,
             OrderNo = "202605280001",
             PickupCodeValue = 1,
             DiningMode = "dine_in",

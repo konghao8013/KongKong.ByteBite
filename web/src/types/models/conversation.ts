@@ -48,6 +48,12 @@ export interface StartConversationRequest {
   deviceId?: string
 }
 
+export interface StartMerchantConversationRequest {
+  storeId: string
+  customerId?: string
+  deviceId?: string
+}
+
 export interface SendConversationMessageRequest {
   senderType: 'customer' | 'merchant'
   senderId?: string

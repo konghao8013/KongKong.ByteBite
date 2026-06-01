@@ -13,7 +13,7 @@ public class ConversationService
 
     public async Task<Conversation> GetOrCreateByOrderAsync(Guid orderId, Guid? customerId, string? deviceId, CancellationToken ct = default)
     {
-        var order = await _db.Orders.Include(o => o.Store).FirstOrDefaultAsync(o => o.Id == orderId, ct)
+        var order = await _db.Orders.Include(o => o.Store).Include(o => o.Customer).FirstOrDefaultAsync(o => o.Id == orderId, ct)
             ?? throw new BusinessException(404, "订单不存在");
 
         if (customerId == null && string.IsNullOrWhiteSpace(deviceId))
@@ -23,12 +23,34 @@ public class ConversationService
         if (customerId == null && order.DeviceId != deviceId)
             throw new BusinessException(403, "无权访问该订单会话");
 
+        return await GetOrCreateConversationAsync(order, customerId, deviceId, ct);
+    }
+
+    public async Task<Conversation> GetOrCreateByOrderForMerchantAsync(Guid orderId, Guid storeId, Guid? customerId = null, string? deviceId = null, CancellationToken ct = default)
+    {
+        var order = await _db.Orders.Include(o => o.Store).Include(o => o.Customer).FirstOrDefaultAsync(o => o.Id == orderId, ct)
+            ?? throw new BusinessException(404, "订单不存在");
+
+        if (order.StoreId != storeId)
+            throw new BusinessException(403, "无权访问该订单会话");
+
+        return await GetOrCreateConversationAsync(order, order.CustomerId ?? customerId, order.DeviceId ?? deviceId, ct);
+    }
+
+    private async Task<Conversation> GetOrCreateConversationAsync(Order order, Guid? fallbackCustomerId, string? fallbackDeviceId, CancellationToken ct)
+    {
         var conversation = await _db.Conversations
             .Include(c => c.Order)
             .ThenInclude(o => o.OrderItems)
             .Include(c => c.Store)
-            .FirstOrDefaultAsync(c => c.OrderId == orderId, ct);
+            .Include(c => c.Customer)
+            .FirstOrDefaultAsync(c => c.OrderId == order.Id, ct);
         if (conversation != null) return conversation;
+
+        var conversationCustomerId = order.CustomerId ?? fallbackCustomerId;
+        var conversationDeviceId = order.CustomerId == null ? NormalizeDeviceId(order.DeviceId ?? fallbackDeviceId) : null;
+        if (conversationCustomerId == null && conversationDeviceId == null)
+            throw new BusinessException(400, "订单缺少顾客身份信息，暂无法创建会话");
 
         var now = DateTime.UtcNow;
         conversation = new Conversation
@@ -36,8 +58,8 @@ public class ConversationService
             Id = Guid.NewGuid(),
             OrderId = order.Id,
             StoreId = order.StoreId,
-            CustomerId = order.CustomerId ?? customerId,
-            DeviceId = order.CustomerId == null ? order.DeviceId ?? deviceId : null,
+            CustomerId = conversationCustomerId,
+            DeviceId = conversationDeviceId,
             LastMessageAt = now,
             CreatedAt = now,
             UpdatedAt = now
@@ -46,6 +68,7 @@ public class ConversationService
         await _db.SaveChangesAsync(ct);
         conversation.Order = order;
         conversation.Store = order.Store;
+        conversation.Customer = order.Customer;
         return conversation;
     }
 

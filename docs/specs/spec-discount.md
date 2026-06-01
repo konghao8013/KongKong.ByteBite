@@ -49,7 +49,7 @@
 
 ## 4. 业务规则
 
-- BR-1：满减（full_reduction）：订单金额 >= threshold_amount 时减 discount_amount
+- BR-1：满减（full_reduction）：订单金额 >= threshold_amount 时减 discount_amount，单条规则只减一次，不按门槛倍数重复减免
 - BR-2：折扣（discount）：订单金额 × discount_rate，如 0.8 = 八折
 - BR-3：新创建的规则默认 status=active
 - BR-4：allow_stack=false 时，同一订单只能使用一条规则

@@ -179,18 +179,28 @@ const uploadTemplateCover = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-  const result = await fileApi.upload(file)
-  templateForm.coverImageUrl = result.url
-  input.value = ''
+  try {
+    const result = await fileApi.upload(file)
+    templateForm.coverImageUrl = result.url
+  } catch {
+    // The upload API already shows the concrete error message.
+  } finally {
+    input.value = ''
+  }
 }
 
 const uploadProductImage = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-  const result = await fileApi.upload(file)
-  productForm.imageUrl = result.url
-  input.value = ''
+  try {
+    const result = await fileApi.upload(file)
+    productForm.imageUrl = result.url
+  } catch {
+    // The upload API already shows the concrete error message.
+  } finally {
+    input.value = ''
+  }
 }
 
 const productsInCategory = (categoryId: string) => templateProducts.value.filter((p: any) => p.templateCategoryId === categoryId)

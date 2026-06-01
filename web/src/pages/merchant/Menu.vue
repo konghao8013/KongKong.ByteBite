@@ -221,6 +221,8 @@ const uploadProductImage = async (event: Event) => {
   try {
     const result = await fileApi.upload(file)
     productForm.imageUrl = result.url
+  } catch {
+    // The upload API already shows the concrete error message.
   } finally {
     uploadingImage.value = false
     input.value = ''

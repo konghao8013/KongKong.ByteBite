@@ -16,6 +16,8 @@ const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/con
 const storeCode = computed(() => route.params.code as string)
 const messageBadge = computed(() => conversationStore.customerUnreadCount)
 const isMessageRoute = computed(() => route.name === 'CustomerMessages')
+const isMessageChatRoute = computed(() => isMessageRoute.value && route.query.chat === '1')
+const isMessageListRoute = computed(() => isMessageRoute.value && !isMessageChatRoute.value)
 
 const activeTab = computed(() => {
   const path = route.path
@@ -75,11 +77,18 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <div class="customer-layout" :class="{ 'with-tabbar': !isMessageRoute, 'message-route': isMessageRoute }">
+  <div
+    class="customer-layout"
+    :class="{
+      'with-tabbar': !isMessageChatRoute,
+      'message-route': isMessageChatRoute,
+      'message-list-route': isMessageListRoute,
+    }"
+  >
     <main class="customer-content">
       <router-view />
     </main>
-    <nav v-if="!isMessageRoute" class="customer-tabbar">
+    <nav v-if="!isMessageChatRoute" class="customer-tabbar">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -111,13 +120,15 @@ onUnmounted(async () => {
   min-height: 0;
 }
 
-.customer-layout.message-route {
+.customer-layout.message-route,
+.customer-layout.message-list-route {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
 }
 
-.customer-layout.message-route .customer-content {
+.customer-layout.message-route .customer-content,
+.customer-layout.message-list-route .customer-content {
   display: flex;
   overflow: hidden;
 }

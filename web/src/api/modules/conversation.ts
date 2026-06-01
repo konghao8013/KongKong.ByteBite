@@ -4,11 +4,18 @@ import type {
   ConversationMessageDto,
   SendConversationMessageRequest,
   StartConversationRequest,
+  StartMerchantConversationRequest,
 } from '@/types/models/conversation'
 
 export const conversationApi = {
   startByOrder: (orderId: string, data: StartConversationRequest) =>
     request.post<ConversationDto>(`/orders/${orderId}/conversation`, data),
+
+  startByOrderForMerchant: (orderId: string, data: StartMerchantConversationRequest) =>
+    request.post<ConversationDto>(`/orders/${orderId}/conversation`, {
+      customerId: data.customerId,
+      deviceId: data.deviceId,
+    }),
 
   getByStore: (storeId: string) =>
     request.get<ConversationDto[]>(`/stores/${storeId}/conversations`),

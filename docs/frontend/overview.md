@@ -1,6 +1,6 @@
 # 前端架构总览
 
-> 版本：v1.1.0 | 更新日期：2026-05-22
+> 版本：v1.1.0 | 更新日期：2026-06-01
 
 ## 技术栈
 
@@ -115,10 +115,10 @@ request.get('/stores/123')  ←→   { code:200, message:"success", data:{...} }
 
 ## 消息模块前端落点
 
-- 顾客路由：`/A/:code/messages`，页面 `web/src/pages/customer/Messages.vue`，用于查看商家回复、继续回复、打开关联订单。
-- 商家路由：`/merchant/messages`，页面 `web/src/pages/merchant/Messages.vue`，用于集中处理顾客消息、回复消息、打开关联订单。
-- 消息交互：顾客端和商家端进入消息路由先展示会话列表，点击具体会话进入单独聊天详情；详情页固定顶部名称和订单信息、底部输入区，仅中间消息区域滚动，并在加载、发送、实时接收后自动滚动到底。
+- 顾客路由：`/A/:code/messages`，页面 `web/src/pages/customer/Messages.vue`，用于查看商家回复、继续回复、打开关联订单；订单详情通过 `orderId/returnTo` 查询参数跳入消息页并自动创建或打开会话。
+- 商家路由：`/merchant/messages`，页面 `web/src/pages/merchant/Messages.vue`，用于集中处理顾客消息、回复消息、打开关联订单；订单管理页通过 `orderId/customerId/deviceId/returnTo` 查询参数跳入消息页，并用订单里的顾客身份自动创建或打开会话。
+- 消息交互：顾客端和商家端进入消息路由先展示会话列表，消息列表保留各端底部模块菜单；点击具体会话进入单独聊天详情后隐藏底部菜单以固定输入区；携带 `orderId` 时自动进入对应会话；详情页固定顶部名称和订单信息、底部输入区，仅中间消息区域滚动，商家回复输入区吸附在底部，并在加载、发送、实时接收后自动滚动到底；返回按钮优先回到 `returnTo` 来源页。
 - 导航角标：`CustomerLayout.vue` 和 `MerchantLayout.vue` 通过 `useConversationStore` 维护未读数，并通过 `ConversationHub` 实时更新。
 - 顾客身份：`useCustomerIdentity` 首次访问时调用匿名顾客接口，为游客生成并缓存 `customer_id`，消息中转优先按顾客 ID 分组。
 - 实时连接：`useSignalR` 防止同一组件重复启动连接，断线后自动重连并触发页面/布局恢复门店、顾客和会话订阅。
-- API 封装：`conversationApi` 增加顾客/商家未读统计接口；`models/conversation.ts` 增加 SignalR 事件载荷类型。
+- API 封装：`conversationApi` 增加顾客/商家未读统计接口；商家按订单创建会话时复用通用订单会话接口并携带订单顾客身份；`models/conversation.ts` 增加 SignalR 事件载荷类型。

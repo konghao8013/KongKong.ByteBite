@@ -88,9 +88,14 @@ const uploadCover = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-  const result = await fileApi.upload(file)
-  form.coverImageUrl = result.url
-  input.value = ''
+  try {
+    const result = await fileApi.upload(file)
+    form.coverImageUrl = result.url
+  } catch {
+    // The upload API already shows the concrete error message.
+  } finally {
+    input.value = ''
+  }
 }
 
 const toggleBusiness = async () => {

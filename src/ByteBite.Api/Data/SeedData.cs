@@ -151,6 +151,7 @@ file class StoreMenuSeeder : IDataSeeder
         else
         {
             RepairDemoStoreMetadata(merchant, store);
+            await RepairDemoDiscountRulesAsync(db, store);
             await db.SaveChangesAsync();
             return;
         }
@@ -264,14 +265,14 @@ file class StoreMenuSeeder : IDataSeeder
                 Id = Guid.NewGuid(), Store = store, Name = "满200减30", DiscountType = "full_reduction",
                 ThresholdAmount = 200, DiscountAmount = 30, ApplyScope = "all", AllowStack = false,
                 StartTime = DateTime.UtcNow.AddDays(-30), EndTime = DateTime.UtcNow.AddDays(365),
-                Status = "active", UsedCount = 22, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                Status = "inactive", UsedCount = 22, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
             },
             new DiscountRule
             {
                 Id = Guid.NewGuid(), Store = store, Name = "烧烤类8折", DiscountType = "discount",
                 DiscountRate = 80, ApplyScope = "category", AllowStack = false,
                 StartTime = DateTime.UtcNow.AddDays(-7), EndTime = DateTime.UtcNow.AddDays(30),
-                Status = "active", UsedCount = 18, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                Status = "inactive", UsedCount = 18, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
             }
         );
 
@@ -318,6 +319,89 @@ file class StoreMenuSeeder : IDataSeeder
         }
     }
 
+    private static async Task RepairDemoDiscountRulesAsync(ByteBiteDbContext db, Store store)
+    {
+        if (store.StoreCode != "000001") return;
+
+        var now = DateTime.UtcNow;
+        var rules = await db.DiscountRules
+            .Where(rule => rule.StoreId == store.Id && rule.DeletedAt == null)
+            .ToListAsync();
+
+        var mainRule = rules.FirstOrDefault(rule =>
+            rule.DiscountType == "full_reduction"
+            && rule.ThresholdAmount == 100
+            && rule.DiscountAmount == 10
+            && rule.ApplyScope == "all");
+
+        if (mainRule == null)
+        {
+            mainRule = new DiscountRule
+            {
+                Id = Guid.NewGuid(),
+                StoreId = store.Id,
+                Name = "满100减10",
+                DiscountType = "full_reduction",
+                ThresholdAmount = 100,
+                DiscountAmount = 10,
+                ApplyScope = "all",
+                AllowStack = false,
+                StartTime = now.AddDays(-30),
+                EndTime = now.AddDays(365),
+                Status = "active",
+                UsedCount = 0,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            db.DiscountRules.Add(mainRule);
+        }
+
+        mainRule.Name = "满100减10";
+        mainRule.DiscountType = "full_reduction";
+        mainRule.ThresholdAmount = 100;
+        mainRule.DiscountAmount = 10;
+        mainRule.DiscountRate = null;
+        mainRule.ApplyScope = "all";
+        mainRule.ApplyScopeId = null;
+        mainRule.AllowStack = false;
+        mainRule.Status = "active";
+        if (mainRule.StartTime > now) mainRule.StartTime = now.AddDays(-30);
+        if (mainRule.EndTime < now) mainRule.EndTime = now.AddDays(365);
+        mainRule.UpdatedAt = now;
+
+        var deprecatedDemoRules = rules.Where(rule =>
+            rule.Id != mainRule.Id
+            && ((rule.DiscountType == "full_reduction" && rule.ThresholdAmount == 200 && rule.DiscountAmount == 30)
+                || (rule.DiscountType == "discount" && rule.DiscountRate == 80)))
+            .ToList();
+
+        foreach (var rule in deprecatedDemoRules)
+        {
+            rule.Status = "inactive";
+            rule.UpdatedAt = now;
+        }
+
+        if (deprecatedDemoRules.Count == 0) return;
+
+        var deprecatedRuleIds = deprecatedDemoRules.Select(rule => rule.Id).ToList();
+        var activeStatuses = new[] { "pending", "accepted", "preparing", "ready" };
+        var affectedOrders = await db.Orders
+            .Where(order => order.StoreId == store.Id
+                && activeStatuses.Contains(order.Status)
+                && order.DiscountRuleId.HasValue
+                && deprecatedRuleIds.Contains(order.DiscountRuleId.Value))
+            .ToListAsync();
+
+        foreach (var order in affectedOrders)
+        {
+            var discountAmount = order.TotalAmount >= 100 ? 10 : 0;
+            order.DiscountAmount = discountAmount;
+            order.ActualAmount = Math.Max(0, order.TotalAmount - discountAmount + order.PackingFee);
+            order.DiscountRuleId = discountAmount > 0 ? mainRule.Id : null;
+            order.UpdatedAt = now;
+        }
+    }
+
     private static bool IsBrokenText(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return true;
@@ -354,11 +438,11 @@ file class OrderSeeder : IDataSeeder
         AddCompletedOrder(db, store.Id, "20260514003", "E5F6", "dine_in", 128, 10, 118, 0, now.AddDays(-7).AddHours(20));
         AddCompletedOrder(db, store.Id, "20260516001", "G7H8", "dine_in", 56, 0, 56, 0, now.AddDays(-5).AddHours(18.5));
         AddCompletedOrder(db, store.Id, "20260516002", "I9J0", "delivery", 88, 0, 89, 1, now.AddDays(-5).AddHours(19.25));
-        AddCompletedOrder(db, store.Id, "20260518001", "K1L2", "dine_in", 168, 30, 138, 0, now.AddDays(-3).AddHours(19));
+        AddCompletedOrder(db, store.Id, "20260518001", "K1L2", "dine_in", 168, 10, 158, 0, now.AddDays(-3).AddHours(19));
         AddCompletedOrder(db, store.Id, "20260518002", "M3N4", "takeaway", 35, 0, 36, 1, now.AddDays(-3).AddHours(20));
         AddCompletedOrder(db, store.Id, "20260518003", "O5P6", "dine_in", 72, 0, 72, 0, now.AddDays(-3).AddHours(21));
-        AddCompletedOrder(db, store.Id, "20260520001", "Q7R8", "dine_in", 96, 10, 86, 0, now.AddDays(-1).AddHours(18));
-        AddCompletedOrder(db, store.Id, "20260520002", "S9T0", "delivery", 128, 10, 118, 1, now.AddDays(-1).AddHours(19));
+        AddCompletedOrder(db, store.Id, "20260520001", "Q7R8", "dine_in", 96, 0, 96, 0, now.AddDays(-1).AddHours(18));
+        AddCompletedOrder(db, store.Id, "20260520002", "S9T0", "delivery", 128, 10, 119, 1, now.AddDays(-1).AddHours(19));
         AddCompletedOrder(db, store.Id, "20260520003", "U1V2", "dine_in", 45, 0, 45, 0, now.AddDays(-1).AddHours(20));
 
         // 今日订单 - 各种状态

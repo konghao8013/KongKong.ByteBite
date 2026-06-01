@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { conversationApi } from '@/api/modules/conversation'
+import { orderApi } from '@/api/modules/order'
 import { useSignalR } from '@/composables/useSignalR'
 import { useConversationStore } from '@/stores/modules/useConversationStore'
 import { formatPrice } from '@/utils/format'
@@ -12,6 +14,7 @@ import type {
   ConversationUnreadChangedPayload,
 } from '@/types/models/conversation'
 
+const route = useRoute()
 const router = useRouter()
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const merchantId = localStorage.getItem('merchant_id') || undefined
@@ -29,6 +32,21 @@ const messageListRef = ref<HTMLElement | null>(null)
 
 const unreadCount = computed(() => conversationStore.merchantUnreadCount)
 const isDetailOpen = computed(() => Boolean(selectedConversation.value))
+const queryOrderId = computed(() => (typeof route.query.orderId === 'string' ? route.query.orderId : ''))
+const queryCustomerId = computed(() => (typeof route.query.customerId === 'string' ? route.query.customerId : undefined))
+const queryDeviceId = computed(() => (typeof route.query.deviceId === 'string' ? route.query.deviceId : undefined))
+const returnToPath = computed(() => {
+  const value = route.query.returnTo
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : ''
+})
+
+const syncChatRouteState = (open: boolean) => {
+  if ((route.query.chat === '1') === open) return
+  const query: LocationQueryRaw = { ...route.query }
+  if (open) query.chat = '1'
+  else delete query.chat
+  void router.replace({ query })
+}
 
 const formatTime = (value?: string) => {
   if (!value) return ''
@@ -84,6 +102,7 @@ const loadConversations = async () => {
       else {
         selectedConversation.value = null
         messages.value = []
+        syncChatRouteState(false)
       }
     }
   } finally {
@@ -96,6 +115,7 @@ const openConversation = async (conversation: ConversationDto) => {
     try { await connection.value?.invoke('UnsubscribeConversation', selectedConversation.value.id) } catch {}
   }
   selectedConversation.value = conversation
+  syncChatRouteState(true)
   messageLoading.value = true
   try {
     messages.value = await conversationApi.getMessages(conversation.id)
@@ -112,6 +132,42 @@ const openConversation = async (conversation: ConversationDto) => {
   }
 }
 
+const openConversationFromOrder = async (orderId: string) => {
+  if (!orderId || !storeId) return
+  const existing = conversations.value.find((conversation) => conversation.orderId === orderId)
+  if (existing) {
+    await openConversation(existing)
+    return
+  }
+
+  const identity = await resolveOrderIdentity(orderId)
+  if (!identity.customerId && !identity.deviceId) {
+    ElMessage.warning('该订单缺少顾客身份，暂时无法发起消息')
+    syncChatRouteState(false)
+    return
+  }
+
+  const conversation = await conversationApi.startByOrderForMerchant(orderId, { storeId, ...identity })
+  upsertConversation(conversation)
+  await openConversation(conversation)
+}
+
+const resolveOrderIdentity = async (orderId: string) => {
+  if (queryCustomerId.value || queryDeviceId.value) {
+    return {
+      customerId: queryCustomerId.value,
+      deviceId: queryDeviceId.value,
+    }
+  }
+
+  const recentOrders = await orderApi.getByStoreId(storeId, { pageSize: 100 })
+  const order = recentOrders.find((item) => item.id === orderId)
+  return {
+    customerId: typeof order?.customerId === 'string' ? order.customerId : undefined,
+    deviceId: typeof order?.deviceId === 'string' ? order.deviceId : undefined,
+  }
+}
+
 const closeConversation = async () => {
   const conversationId = selectedConversation.value?.id
   if (conversationId) {
@@ -120,9 +176,14 @@ const closeConversation = async () => {
   selectedConversation.value = null
   messages.value = []
   replyText.value = ''
+  syncChatRouteState(false)
 }
 
 const handleBack = () => {
+  if (returnToPath.value) {
+    router.push(returnToPath.value)
+    return
+  }
   if (isDetailOpen.value) {
     void closeConversation()
     return
@@ -162,6 +223,11 @@ const subscribeCurrent = async () => {
 onMounted(async () => {
   await loadConversations()
   try {
+    await openConversationFromOrder(queryOrderId.value)
+  } catch {
+  }
+  if (!selectedConversation.value) syncChatRouteState(false)
+  try {
     await connect()
     onReconnected(subscribeCurrent)
     connection.value?.on('ConversationMessageReceived', async (payload: ConversationEventPayload) => {
@@ -190,6 +256,18 @@ onMounted(async () => {
   } catch {
   }
 })
+
+watch(
+  () => route.query.orderId,
+  async () => {
+    await loadConversations()
+    try {
+      await openConversationFromOrder(queryOrderId.value)
+    } catch {
+    }
+    if (!selectedConversation.value) syncChatRouteState(false)
+  },
+)
 
 onUnmounted(async () => {
   try {
@@ -288,6 +366,10 @@ onUnmounted(async () => {
   flex-direction: column;
   overflow: hidden;
   color: #1F2A26;
+}
+
+.merchant-messages-page.is-chat {
+  min-height: 0;
 }
 
 .page-header {
@@ -424,6 +506,7 @@ onUnmounted(async () => {
 
 .chat-panel {
   flex: 1;
+  height: 0;
   min-height: 0;
   overflow: hidden;
   display: grid;
@@ -496,6 +579,9 @@ onUnmounted(async () => {
 }
 
 .reply-row {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
   flex-shrink: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 82px;
@@ -504,6 +590,7 @@ onUnmounted(async () => {
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid #E2E8E3;
   background: #fff;
+  box-shadow: 0 -8px 18px rgba(31, 42, 38, 0.06);
 
   input {
     height: 40px;
@@ -550,6 +637,11 @@ onUnmounted(async () => {
 @media (max-width: 760px) {
   .merchant-messages-page {
     background: #F6F7F3;
+  }
+
+  .merchant-messages-page.is-chat {
+    height: 100vh;
+    height: 100dvh;
   }
 }
 </style>

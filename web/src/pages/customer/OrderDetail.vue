@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { orderApi } from '@/api/modules/order'
-import { conversationApi } from '@/api/modules/conversation'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { formatPrice, formatDate } from '@/utils/format'
 import { useSignalR } from '@/composables/useSignalR'
@@ -12,30 +11,17 @@ import QrcodeVue from 'qrcode.vue'
 import PickupCodeDisplay from '@/components/common/PickupCodeDisplay.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { OrderDto } from '@/types/models/order'
-import type { ConversationDto, ConversationMessageDto } from '@/types/models/conversation'
 
 const route = useRoute()
 const router = useRouter()
 const orderStore = useOrderStore()
 const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/order')
-const {
-  connection: conversationConnection,
-  connect: connectConversation,
-  disconnect: disconnectConversation,
-  onReconnected: onConversationReconnected,
-} = useSignalR('/hubs/conversation')
 const { getCustomerIdentity, ensureCustomerIdentity } = useCustomerIdentity()
 const orderId = route.params.orderId as string
 
 const order = ref<OrderDto | null>(null)
 const loading = ref(true)
 const cancelling = ref(false)
-const conversation = ref<ConversationDto | null>(null)
-const messages = ref<ConversationMessageDto[]>([])
-const messageText = ref('')
-const conversationLoading = ref(false)
-const sendingMessage = ref(false)
-const conversationMessageListRef = ref<HTMLElement | null>(null)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 const refreshOrder = async () => {
@@ -49,16 +35,6 @@ const refreshOrder = async () => {
 
 const subscribeOrder = async () => {
   await connection.value?.invoke('SubscribeOrder', orderId)
-}
-
-const subscribeConversation = async () => {
-  if (conversation.value) await conversationConnection.value?.invoke('SubscribeConversation', conversation.value.id)
-}
-
-const scrollConversationToBottom = async () => {
-  await nextTick()
-  const el = conversationMessageListRef.value
-  if (el) el.scrollTop = el.scrollHeight
 }
 
 onMounted(async () => {
@@ -98,13 +74,9 @@ onUnmounted(async () => {
   if (refreshTimer) clearInterval(refreshTimer)
   try {
     await connection.value?.invoke('UnsubscribeOrder', orderId)
-    if (conversation.value) {
-      await conversationConnection.value?.invoke('UnsubscribeConversation', conversation.value.id)
-    }
   } catch {
   }
   await disconnect()
-  await disconnectConversation()
 })
 
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {
@@ -174,54 +146,17 @@ const goBack = () => {
   router.back()
 }
 
-const openConversation = async () => {
-  if (!order.value || conversationLoading.value) return
-  if (conversation.value) return
-  conversationLoading.value = true
-  try {
-    const identity = await ensureCustomerIdentity()
-    conversation.value = await conversationApi.startByOrder(orderId, {
-      customerId: identity.customerId,
-      deviceId: identity.deviceId,
-    })
-    messages.value = await conversationApi.getMessages(conversation.value.id)
-    await scrollConversationToBottom()
-    await connectConversation()
-    onConversationReconnected(subscribeConversation)
-    conversationConnection.value?.on('ConversationMessageReceived', (payload: { conversationId: string; message: ConversationMessageDto }) => {
-      if (payload.conversationId !== conversation.value?.id) return
-      if (!messages.value.some((message) => message.id === payload.message.id)) {
-        messages.value.push(payload.message)
-        void scrollConversationToBottom()
-      }
-    })
-    await subscribeConversation()
-    await conversationApi.markRead(conversation.value.id, 'customer')
-  } finally {
-    conversationLoading.value = false
-  }
-}
-
-const sendMessage = async () => {
-  const content = messageText.value.trim()
-  if (!conversation.value || !order.value || !content || sendingMessage.value) return
-  sendingMessage.value = true
-  try {
-    const message = await conversationApi.sendMessage(conversation.value.id, {
-      senderType: 'customer',
-      senderId: getCustomerIdentity().customerId,
-      content,
-      storeId: order.value.storeId,
+const openConversation = () => {
+  if (!order.value) return
+  const code = order.value.storeCode || String(route.params.code || '')
+  router.push({
+    name: 'CustomerMessages',
+    params: { code },
+    query: {
       orderId,
-    })
-    if (!messages.value.some((item) => item.id === message.id)) {
-      messages.value.push(message)
-      void scrollConversationToBottom()
-    }
-    messageText.value = ''
-  } finally {
-    sendingMessage.value = false
-  }
+      returnTo: route.fullPath,
+    },
+  })
 }
 </script>
 
@@ -333,26 +268,9 @@ const sendMessage = async () => {
 
       <div class="conversation-section">
         <div class="section-title">联系商家</div>
-        <button v-if="!conversation" class="chat-open-btn" :disabled="conversationLoading" @click="openConversation">
-          {{ conversationLoading ? '打开中...' : '发起消息' }}
+        <button class="chat-open-btn" @click="openConversation">
+          发送消息
         </button>
-        <template v-else>
-          <div ref="conversationMessageListRef" class="message-list">
-            <div
-              v-for="message in messages"
-              :key="message.id"
-              class="message-bubble"
-              :class="{ mine: message.senderType === 'customer' }"
-            >
-              <span>{{ message.content }}</span>
-              <small>{{ formatDate(message.createdAt) }}</small>
-            </div>
-          </div>
-          <div class="message-input-row">
-            <input v-model="messageText" placeholder="输入要和商家沟通的内容" @keyup.enter="sendMessage" />
-            <button :disabled="sendingMessage" @click="sendMessage">发送</button>
-          </div>
-        </template>
       </div>
 
       <!-- 取消订单 -->

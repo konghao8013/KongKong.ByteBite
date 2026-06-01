@@ -69,11 +69,20 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+app.UseDefaultFiles();
 app.UseStaticFiles();
+
 app.MapControllers();
 app.MapHub<OrderHub>("/hubs/order");
 app.MapHub<StoreHub>("/hubs/store");
 app.MapHub<ConversationHub>("/hubs/conversation");
+
+app.Map("/api", () => Results.NotFound()).ExcludeFromDescription();
+app.Map("/api/{**catchAll}", () => Results.NotFound()).ExcludeFromDescription();
+app.Map("/hubs", () => Results.NotFound()).ExcludeFromDescription();
+app.Map("/hubs/{**catchAll}", () => Results.NotFound()).ExcludeFromDescription();
+app.MapFallbackToFile("index.html");
 
 app.Run();
 

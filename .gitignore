@@ -32,6 +32,7 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+/.build/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -366,3 +367,4 @@ FodyWeavers.xsd
 /.codex-push-worktree-20260526210131
 /.codex-push-worktree-20260526205955
 /.codex-temp
+/.codex-build/

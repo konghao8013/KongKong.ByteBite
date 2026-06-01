@@ -15,6 +15,8 @@ const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/con
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const messageBadge = computed(() => conversationStore.merchantUnreadCount)
 const isMessageRoute = computed(() => route.name === 'MerchantMessages')
+const isMessageChatRoute = computed(() => isMessageRoute.value && route.query.chat === '1')
+const isMessageListRoute = computed(() => isMessageRoute.value && !isMessageChatRoute.value)
 
 const activeTab = computed(() => {
   const path = route.path
@@ -92,7 +94,10 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <div class="merchant-layout" :class="{ 'message-route': isMessageRoute }">
+  <div
+    class="merchant-layout"
+    :class="{ 'message-route': isMessageChatRoute, 'message-list-route': isMessageListRoute }"
+  >
     <aside class="merchant-sidebar">
       <div class="brand">
         <span class="brand-logo">B</span>
@@ -130,7 +135,7 @@ onUnmounted(async () => {
       </main>
     </div>
 
-    <nav v-if="!isMessageRoute" class="merchant-tabbar">
+    <nav v-if="!isMessageChatRoute" class="merchant-tabbar">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -155,7 +160,8 @@ onUnmounted(async () => {
   background: #F6F7F3;
 }
 
-.merchant-layout.message-route {
+.merchant-layout.message-route,
+.merchant-layout.message-list-route {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -326,6 +332,11 @@ onUnmounted(async () => {
   display: flex;
   overflow: hidden;
   padding: 0;
+}
+
+.merchant-layout.message-list-route .merchant-content {
+  display: flex;
+  overflow: hidden;
 }
 
 .merchant-tabbar {

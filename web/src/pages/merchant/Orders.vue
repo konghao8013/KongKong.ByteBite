@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { orderApi } from '@/api/modules/order'
 import { conversationApi } from '@/api/modules/conversation'
 import { useSignalR } from '@/composables/useSignalR'
-import type { ConversationDto, ConversationMessageDto } from '@/types/models/conversation'
+import type { ConversationDto } from '@/types/models/conversation'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const route = useRoute()
+const router = useRouter()
 const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/store')
 const loading = ref(false)
 const orders = ref<any[]>([])
@@ -18,10 +19,6 @@ const pickupKeyword = ref('')
 const pickupResult = ref<any>(null)
 const pickupLoading = ref(false)
 const conversations = ref<ConversationDto[]>([])
-const selectedConversation = ref<ConversationDto | null>(null)
-const conversationMessages = ref<ConversationMessageDto[]>([])
-const replyText = ref('')
-const replySending = ref(false)
 const tabs = [
   { key: 'pending', label: '待接单', icon: '🔔' },
   { key: 'accepted', label: '已接单', icon: '✅' },
@@ -127,35 +124,28 @@ const completePickupResult = async () => {
   if (target) target.status = updated.status
 }
 
-const openConversation = async (conversation: ConversationDto) => {
-  selectedConversation.value = conversation
-  conversationMessages.value = await conversationApi.getMessages(conversation.id)
-  await conversationApi.markRead(conversation.id, 'merchant')
-  conversation.merchantUnreadCount = 0
+const openMessageForOrder = (order: any) => {
+  const orderId = typeof order === 'string' ? order : order?.id
+  if (!orderId) return
+  const customerId = typeof order !== 'string' && typeof order?.customerId === 'string' ? order.customerId : undefined
+  const deviceId = typeof order !== 'string' && typeof order?.deviceId === 'string' ? order.deviceId : undefined
+  router.push({
+    name: 'MerchantMessages',
+    query: {
+      orderId,
+      customerId,
+      deviceId,
+      returnTo: route.fullPath,
+    },
+  })
 }
 
-const sendReply = async () => {
-  const content = replyText.value.trim()
-  if (!selectedConversation.value || !content || replySending.value) return
-  replySending.value = true
-  try {
-    const message = await conversationApi.sendMessage(selectedConversation.value.id, {
-      senderType: 'merchant',
-      content,
-      storeId,
-      orderId: selectedConversation.value.orderId,
-    })
-    conversationMessages.value.push(message)
-    replyText.value = ''
-  } finally {
-    replySending.value = false
-  }
-}
-
-const openConversationOrder = () => {
-  const orderId = selectedConversation.value?.orderId
-  const target = orders.value.find(o => o.id === orderId)
-  if (target) openDetail(target)
+const openConversation = (conversation: ConversationDto) => {
+  openMessageForOrder({
+    id: conversation.orderId,
+    customerId: conversation.customerId,
+    deviceId: conversation.deviceId,
+  })
 }
 
 const openOrderFromQuery = () => {
@@ -226,17 +216,8 @@ onMounted(async () => {
       const target = orders.value.find(o => o.id === payload.orderId)
       if (target) target.status = 'cancelled'
     })
-    connection.value?.on('CustomerMessageReceived', async (payload: { conversationId?: string; message?: ConversationMessageDto }) => {
+    connection.value?.on('CustomerMessageReceived', async () => {
       await loadConversations()
-      if (!payload.conversationId || selectedConversation.value?.id !== payload.conversationId) return
-      if (payload.message && !conversationMessages.value.some(message => message.id === payload.message?.id)) {
-        conversationMessages.value.push(payload.message)
-      } else {
-        conversationMessages.value = await conversationApi.getMessages(payload.conversationId)
-      }
-      await conversationApi.markRead(payload.conversationId, 'merchant')
-      const target = conversations.value.find(item => item.id === payload.conversationId)
-      if (target) target.merchantUnreadCount = 0
     })
     await subscribeStore()
   } catch {
@@ -285,32 +266,11 @@ onUnmounted(async () => {
           v-for="item in conversations"
           :key="item.id"
           class="conversation-item"
-          :class="{ active: selectedConversation?.id === item.id }"
           @click="openConversation(item)"
         >
           <span>#{{ item.order?.pickupCode || item.orderId.slice(0, 6) }}</span>
-          <small v-if="item.merchantUnreadCount">{{ item.merchantUnreadCount }} 条未读</small>
+          <small>{{ item.merchantUnreadCount ? `${item.merchantUnreadCount} 条未读` : '查看消息' }}</small>
         </button>
-      </div>
-      <div v-if="selectedConversation" class="conversation-detail">
-        <div class="conversation-order">
-          <span>关联订单 #{{ selectedConversation.order?.pickupCode }}</span>
-          <button @click="openConversationOrder">打开订单</button>
-        </div>
-        <div class="conversation-messages">
-          <div
-            v-for="message in conversationMessages"
-            :key="message.id"
-            class="conversation-message"
-            :class="{ mine: message.senderType === 'merchant' }"
-          >
-            {{ message.content }}
-          </div>
-        </div>
-        <div class="reply-row">
-          <input v-model="replyText" placeholder="回复顾客" @keyup.enter="sendReply" />
-          <button :disabled="replySending" @click="sendReply">回复</button>
-        </div>
       </div>
     </section>
 
@@ -370,6 +330,7 @@ onUnmounted(async () => {
 
           <div class="order-actions" @click.stop>
             <button class="btn-detail" @click="openDetail(order)">详情</button>
+            <button class="btn-message" @click="openMessageForOrder(order)">消息</button>
             <button v-if="order.status === 'pending'" class="btn-accept" @click="handleAccept(order)">接单</button>
             <button v-if="order.status === 'pending'" class="btn-reject" @click="handleReject(order)">拒单</button>
             <button v-if="order.status === 'accepted'" class="btn-prepare" @click="handlePrepare(order)">开始制作</button>
@@ -510,6 +471,7 @@ onUnmounted(async () => {
 
         <!-- 操作按钮 -->
         <div class="detail-actions">
+          <button class="btn-message full" @click="openMessageForOrder(selectedOrder)">查看消息</button>
           <button v-if="selectedOrder.status === 'pending'" class="btn-accept full" @click="handleAccept(selectedOrder); closeDetail()">接单</button>
           <button v-if="selectedOrder.status === 'pending'" class="btn-reject full" @click="handleReject(selectedOrder); closeDetail()">拒单</button>
           <button v-if="selectedOrder.status === 'accepted'" class="btn-prepare full" @click="handlePrepare(selectedOrder); closeDetail()">开始制作</button>
@@ -824,7 +786,7 @@ onUnmounted(async () => {
   .order-actions { display: flex; gap: 8px; }
 }
 
-.btn-accept, .btn-prepare, .btn-ready, .btn-complete, .btn-detail {
+.btn-accept, .btn-prepare, .btn-ready, .btn-complete, .btn-detail, .btn-message {
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 13px;
@@ -834,6 +796,7 @@ onUnmounted(async () => {
 }
 
 .btn-detail { background: #F6F7F3; color: #1F2A26; }
+.btn-message { background: #E7F4EF; color: #087E6B; }
 .btn-accept { background: #087E6B; color: #fff; }
 .btn-reject { background: #E7F4EF; color: #D94C4C; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
 .btn-prepare { background: #FFF6DB; color: #F7B731; }

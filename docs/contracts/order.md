@@ -1,6 +1,6 @@
 # 订单 API 契约
 
-> 版本：v1.2.0 | 更新日期：2026-05-25
+> 版本：v1.2.0 | 更新日期：2026-06-01
 
 ## 顾客端 - 创建订单
 
@@ -130,6 +130,10 @@ pending ──→ accepted ──→ preparing ──→ ready ──→ complet
 ### POST /api/orders/{orderId}/conversation
 
 按订单创建或获取顾客与商家的会话。请求体支持 `customerId` 或 `deviceId`，至少传一个；前端会优先通过 `CustomersController.EnsureAnonymous` 为游客生成并缓存 `customerId`，服务端中转也优先按该顾客 ID 分组。
+
+### POST /api/merchant/orders/{orderId}/conversation
+
+商家从订单上下文创建或获取会话。请求体：`storeId`，可同时携带订单里的 `customerId/deviceId` 作为历史订单身份兜底。服务端校验订单属于该门店后，优先使用订单已记录的 `customerId/deviceId`，缺失时使用请求体身份创建或复用会话；前端商家订单入口会携带订单身份并复用 `POST /api/orders/{orderId}/conversation`，避免旧运行环境缺少商家专用路由时出现 404。
 
 ### GET /api/customer-conversations
 

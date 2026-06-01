@@ -30,6 +30,10 @@ public class ConversationsController : ControllerBase
     public async Task<object> GetOrCreateByOrder(Guid orderId, [FromBody] StartConversationRequest request, CancellationToken ct)
         => ToConversationDto(await _conversationService.GetOrCreateByOrderAsync(orderId, request.CustomerId, request.DeviceId, ct));
 
+    [HttpPost("api/merchant/orders/{orderId:guid}/conversation")]
+    public async Task<object> GetOrCreateByOrderForMerchant(Guid orderId, [FromBody] StartMerchantConversationRequest request, CancellationToken ct)
+        => ToConversationDto(await _conversationService.GetOrCreateByOrderForMerchantAsync(orderId, request.StoreId, request.CustomerId, request.DeviceId, ct));
+
     [HttpGet("api/stores/{storeId:guid}/conversations")]
     public async Task<List<object>> GetByStore(Guid storeId, CancellationToken ct)
         => (await _conversationService.GetByStoreAsync(storeId, ct)).Select(ToConversationDto).ToList();
@@ -166,5 +170,6 @@ public class ConversationsController : ControllerBase
 }
 
 public class StartConversationRequest { public Guid? CustomerId { get; set; } public string? DeviceId { get; set; } }
+public class StartMerchantConversationRequest { public Guid StoreId { get; set; } public Guid? CustomerId { get; set; } public string? DeviceId { get; set; } }
 public class SendMessageRequest { public string SenderType { get; set; } = string.Empty; public Guid? SenderId { get; set; } public string Content { get; set; } = string.Empty; public Guid? StoreId { get; set; } public Guid? OrderId { get; set; } }
 public class MarkReadRequest { public string ReaderType { get; set; } = string.Empty; }

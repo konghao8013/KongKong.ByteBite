@@ -28,7 +28,7 @@
 | CUST-005 | 已实现 | P0 | 商品规格选择 | `ProductDetail.vue`、商品规格实体与下单校验 | - |
 | CUST-006 | 已实现 | P0 | 购物车增删改、备注、按店铺缓存 | `useCartStore.ts`、`Cart.vue` | - |
 | CUST-007 | 已实现 | P0 | 堂食/打包/外卖下单 | `Cart.vue`、`OrderService.CreateOrderAsync` | 外卖地址/电话仍需更完整校验 |
-| CUST-008 | 已实现 | P0 | 商家活动提示与优惠计算 | `CustomerStoreService.BuildStoreMenuAsync/SearchStoresAsync` 返回活动；`StoreMenu.vue`、`Cart.vue` 展示活动条和凑单提示；`OrderService.CreateOrderAsync` 后端重算最优优惠；前端构建通过 | 后续可细化多档活动展开与不可用原因 |
+| CUST-008 | 已实现 | P0 | 商家活动提示与优惠计算 | `CustomerStoreService.BuildStoreMenuAsync/SearchStoresAsync` 返回活动；`StoreMenu.vue`、`Cart.vue` 展示活动条和凑单提示；`OrderService.CreateOrderAsync` 后端重算优惠；`SeedData.RepairDemoDiscountRulesAsync` 收敛演示店仅启用满100减10并修正引用旧演示活动的进行中订单；`OrderServiceDiscountTests` 覆盖400元只减10；构建通过 | 后续可细化多档活动展开与不可用原因 |
 | CUST-009 | 已实现 | P0 | 下单生成订单并进入订单详情 | `Cart.vue` 调用 `customerApi.createOrder`，成功后跳转订单详情 | - |
 | CUST-010 | 已实现 | P0 | 取货码生成和展示 | `PickupCodeGenerator`、`Order.PickupCodeValue`、迁移 `FeatureCompletionRound`、`OrderService.CreateOrderAsync/GetByPickupCodeAsync`；页面仍显示 6 位 Base36；API 构建通过 | - |
 | CUST-011 | 已实现 | P0 | 取货码二维码展示 | `OrderDetail.vue` 使用 `qrcode.vue` 同屏展示取货二维码，内容指向 `/merchant/verify?storeCode=...&pickupCode=...&orderId=...`；`VerifyOrder.vue` 支持落地核销 | - |
@@ -41,7 +41,7 @@
 | CUST-018 | 已实现 | P0 | 匿名设备标识与数据合并 | `useDeviceId.ts`、`useCustomerIdentity.ts`、`CustomersController.EnsureAnonymous` 缓存游客顾客 ID；`CustomerService.MergeDataAsync/GetCartAsync/SaveCartAsync` 合并订单/最近店铺/订单会话/服务端购物车；`useCartStore.ts` 同步购物车；构建和测试通过 | - |
 | CUST-019 | 已实现 | P1 | 店铺搜索 | `CustomerStoreController.Search`、`CustomerStoreService.SearchStoresAsync`、`StoreSearch.vue`、首页/我的订单入口；前端和 API 构建通过 | - |
 | CUST-020 | 已实现 | P1 | 最近店铺跨设备同步 | `CustomerStoreVisit`、`CustomerStoreService.GetRecentStoresAsync/TouchVisitAsync`、下单记录 `LastOrderedAt`、`StoreSearch.vue/MyOrders.vue` 展示最近店铺 | - |
-| CUST-021 | 已实现 | P1 | 订单消息会话 | `Conversation`/`ConversationMessage` 实体、`ConversationsController` 未读统计与扁平 DTO SignalR 推送、`ConversationHub` 优先按顾客 ID 分组中转并保留设备兜底、`OrderDetail.vue`/`customer/Messages.vue` 重连后恢复订阅；消息详情固定顶部店铺/订单信息和底部输入区，仅中间消息区滚动并在加载/发送/接收后滚动到底；`ConversationServiceTests` 覆盖顾客/商家互发；`npm.cmd run build`、`dotnet build ByteBite.Api` 通过 | 后续补权限自动化测试 |
+| CUST-021 | 已实现 | P1 | 订单消息会话 | `Conversation`/`ConversationMessage` 实体、`ConversationsController` 未读统计与扁平 DTO SignalR 推送、`ConversationHub` 优先按顾客 ID 分组中转并保留设备兜底、`OrderDetail.vue` 点击联系商家跳转 `customer/Messages.vue` 并携带 `orderId/returnTo`，消息页自动创建或打开会话并支持返回订单详情；消息列表保留底部模块菜单，进入会话详情后隐藏底部菜单；消息详情固定顶部店铺/订单信息和底部输入区，仅中间消息区滚动并在加载/发送/接收后滚动到底；`ConversationServiceTests` 覆盖顾客/商家互发；`npm.cmd run build`、`dotnet build ByteBite.Api` 通过 | 后续补权限自动化测试 |
 | CUST-022 | 已实现 | P1 | 商品搜索 | `StoreMenu.vue` 搜索框支持按商品名/描述过滤分类与结果展示；前端构建通过 | - |
 | CUST-023 | 已实现 | P1 | 再来一单 | `MyOrders.vue` 在进行中/历史订单卡片支持“再来一单”，按订单商品和规格快照回填购物车并进入原店铺购物车；前端构建通过 | - |
 
@@ -63,7 +63,7 @@
 | MER-012 | 已实现 | P0 | 取货二维码扫码核销 | `OrderDetail.vue` 生成核销二维码；`router` 新增 `/merchant/verify`；`VerifyOrder.vue` 按取货码读取订单并二次确认核销；前端构建通过 | 权限目前依赖商家端路由登录态，后续补更细的店铺归属自动化测试 |
 | MER-013 | 已实现 | P1 | 优惠活动管理 | `DiscountRuleService.UpsertDiscountRuleInput` 完整校验满减/折扣/范围/时间；`DiscountRulesController` 支持完整创建编辑；`Discounts.vue` 支持新建、编辑、启停、删除、按分类/商品适用；构建通过 | - |
 | MER-014 | 已实现 | P1 | 经营数据看板 | `DashboardController`、`DashboardService`、`Dashboard.vue` | 数据准确性需继续用集成测试覆盖 |
-| MER-015 | 已实现 | P1 | 顾客消息会话处理 | `merchant/Messages.vue` 独立消息模块先展示顾客会话列表，点击后进入单独会话详情，固定顶部顾客/订单信息和底部回复区，仅中间消息区滚动，支持关联订单、回复、打开订单和消息自动滚到底；`MerchantLayout.vue` 菜单未读角标、新消息提示，并在消息路由隐藏多余工具栏；`Orders.vue` 兼容订单页会话且重连后恢复门店订阅；`ConversationsController`、`ConversationHub` 使用扁平 DTO 支持门店未读与实时通知；`ConversationServiceTests`、构建通过 | 后续补权限自动化测试 |
+| MER-015 | 已实现 | P1 | 顾客消息会话处理 | `merchant/Messages.vue` 独立消息模块先展示顾客会话列表，消息列表保留底部模块菜单；支持按 `orderId` 自动创建或打开会话并用 `returnTo` 返回来源页；`Orders.vue` 的消息入口携带订单 `customerId/deviceId` 跳转消息模块，商家可主动给该订单顾客发起消息且避免旧商家专用接口 404；会话详情隐藏底部菜单并固定顶部顾客/订单信息和底部回复区，仅中间消息区滚动，回复输入区吸附在底部，支持关联订单、回复、打开订单和消息自动滚到底；`MerchantLayout.vue` 菜单未读角标、新消息提示，并仅在会话详情隐藏多余工具栏；`ConversationsController.GetOrCreateByOrderForMerchant` 兼容请求体身份兜底，`conversationApi.startByOrderForMerchant` 复用通用订单会话接口，`ConversationHub` 使用扁平 DTO 支持门店未读与实时通知；`ConversationServiceTests`、构建通过 | 后续补权限自动化测试 |
 | MER-016 | 已实现 | P2 | 店员管理 | `StaffService`、`StaffController` 支持店员列表/新增/编辑/启停/重置密码/删除；`Staff.vue` 和商家导航已接入；构建通过 | - |
 
 ## 管理端
@@ -87,5 +87,5 @@
 | SYS-003 | 已实现 | P0 | 幂等初始化数据 | `SeedData.cs`、`DataSeeder`、StoreCodeSeeder | - |
 | SYS-004 | 已实现 | P0 | SignalR 实时通信 | `OrderHub`、`StoreHub`、`ConversationHub`、前端 `useSignalR` 自动重连/断线兜底重试并触发页面恢复订阅；订单状态、顾客/商家消息、会话未读数量通过扁平 DTO SignalR 实时更新，客户/商家布局菜单显示未读角标；构建通过 | 后续补浏览器端断线回归测试 |
 | SYS-005 | 已实现 | P0 | 基础测试覆盖 | 过期 DTO/Repository 旧测试已从编译排除，新增 `tests/ByteBite.UnitTests/Current/ConversationServiceTests.cs` 覆盖消息互发/已读/游客顾客 ID 会话创建；`dotnet test ByteBite.UnitTests --filter ConversationServiceTests`、`dotnet build ByteBite.Api`、`npm.cmd run build` 通过 | 后续按新架构逐步补更多业务级自动化测试 |
-| SYS-006 | 已实现 | P1 | 文件上传 | `FilesController.Upload` 本地图片上传接口，`Program.cs` 开放静态文件；`fileApi`、`StoreInfo.vue`、`Menu.vue`、`Templates.vue` 支持店铺封面/商品/模板图片上传；`Menu.vue` 商品编辑使用上传入口而非手填 URL；构建通过 | 当前为本地文件存储，云存储/CDN 属于后续第三方扩展 |
+| SYS-006 | 已实现 | P1 | 文件上传 | `FilesController.Upload` 本地图片上传接口，`Program.cs` 开放静态文件、默认首页和 SPA 路由回退；`fileApi` 上传前校验格式、自动压缩普通图片到 1200px/5MB 内；`StoreInfo.vue`、`Menu.vue`、`Templates.vue` 支持店铺封面/商品/模板图片上传并吞掉已提示的上传异常；`FilesControllerTests` 覆盖 5MB 文件与 multipart 余量；`npm.cmd run build` 通过 | 当前为本地文件存储，云存储/CDN 属于后续第三方扩展 |
 | SYS-007 | 已实现 | P2 | 短信通知 | `AdminService` 默认系统配置含 `sms.enabled=false`，清单按用户确认将短信验证码/短信通知归为第三方付费能力，不做真实发送接入 | 如后续采购短信服务，再新增供应商配置、模板和发送日志 |
