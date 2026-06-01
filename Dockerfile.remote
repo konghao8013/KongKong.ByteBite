@@ -1,4 +1,7 @@
 ARG NODE_IMAGE=node:24-alpine
+ARG DOTNET_SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0
+ARG DOTNET_ASPNET_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0
+
 FROM ${NODE_IMAGE} AS web-build
 
 WORKDIR /src/web
@@ -7,7 +10,6 @@ RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-ARG DOTNET_SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0
 FROM ${DOTNET_SDK_IMAGE} AS api-build
 
 WORKDIR /src
@@ -17,7 +19,6 @@ RUN dotnet publish src/ByteBite.Api/ByteBite.Api.csproj -c Release -o /out /p:Us
 RUN rm -rf /out/wwwroot/uploads
 COPY --from=web-build /src/web/dist/ /out/wwwroot/
 
-ARG DOTNET_ASPNET_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0
 FROM ${DOTNET_ASPNET_IMAGE} AS runtime
 
 WORKDIR /app

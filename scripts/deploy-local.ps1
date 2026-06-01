@@ -11,6 +11,9 @@ param(
     [string]$DbUser = "konghao",
     [string]$DbPassword = "hitek.123",
     [string]$PostgresImage = "postgres:17-alpine",
+    [string]$NodeImage = "docker.1panel.live/library/node:24-alpine",
+    [string]$DotnetSdkImage = "mcr.microsoft.com/dotnet/sdk:10.0",
+    [string]$DotnetAspNetImage = "mcr.microsoft.com/dotnet/aspnet:10.0",
     [switch]$SkipBuild,
     [switch]$SkipPostgres
 )
@@ -21,7 +24,12 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $PublishDir = Join-Path $RepoRoot "artifacts\docker\publish"
 $UploadsDir = Join-Path $RepoRoot "artifacts\docker\uploads"
+$DockerConfigDir = Join-Path $RepoRoot "artifacts\docker\config"
+$NpmCacheDir = Join-Path $RepoRoot "artifacts\npm-cache"
 $ImageRef = "${ImageName}:${ImageTag}"
+
+New-Item -ItemType Directory -Force $DockerConfigDir | Out-Null
+$env:DOCKER_CONFIG = $DockerConfigDir
 
 function Invoke-CommandStep {
     param(
@@ -55,22 +63,47 @@ function Invoke-External {
 
 function Invoke-NpmRestore {
     $webDir = Join-Path $RepoRoot "web"
+    New-Item -ItemType Directory -Force $NpmCacheDir | Out-Null
+
     Push-Location $webDir
+    $oldNpmConfigCache = $env:npm_config_cache
+    $oldNpmConfigUpdateNotifier = $env:npm_config_update_notifier
     try {
-        & npm.cmd ci
-        if ($LASTEXITCODE -eq 0) {
+        $env:npm_config_cache = $NpmCacheDir
+        $env:npm_config_update_notifier = "false"
+
+        if (Test-Path (Join-Path $webDir "node_modules")) {
+            Write-Host "Using existing web\node_modules. Skipping npm install to avoid locked Windows native modules."
             return
         }
 
-        Write-Warning "npm ci failed. Falling back to npm install so locked local node_modules files do not block deployment."
-        & npm.cmd install
+        & npm.cmd install --prefer-offline --no-audit --no-fund
         if ($LASTEXITCODE -ne 0) {
             throw "npm install failed with exit code $LASTEXITCODE"
         }
     }
     finally {
+        $env:npm_config_cache = $oldNpmConfigCache
+        $env:npm_config_update_notifier = $oldNpmConfigUpdateNotifier
         Pop-Location
     }
+}
+
+function Invoke-DotnetRestoreIfNeeded {
+    $assetPaths = @(
+        "src\ByteBite.Api\obj\project.assets.json",
+        "src\ByteBite.Application\obj\project.assets.json",
+        "src\ByteBite.Infrastructure\obj\project.assets.json",
+        "src\ByteBite.Shared\obj\project.assets.json"
+    )
+
+    $missingAsset = $assetPaths | Where-Object { -not (Test-Path (Join-Path $RepoRoot $_)) } | Select-Object -First 1
+    if (-not $missingAsset) {
+        Write-Host "Using existing .NET restore assets. Skipping dotnet restore."
+        return
+    }
+
+    Invoke-External "dotnet" @("restore", "src\ByteBite.Api\ByteBite.Api.csproj")
 }
 
 function Ensure-DockerNetwork {
@@ -113,8 +146,8 @@ function Build-PublishOutput {
 
     Invoke-NpmRestore
     Invoke-External "npm.cmd" @("run", "build") (Join-Path $RepoRoot "web")
-    Invoke-External "dotnet" @("restore", "src\ByteBite.Api\ByteBite.Api.csproj")
-    Invoke-External "dotnet" @("publish", "src\ByteBite.Api\ByteBite.Api.csproj", "-c", "Release", "-o", $PublishDir, "/p:UseAppHost=false")
+    Invoke-DotnetRestoreIfNeeded
+    Invoke-External "dotnet" @("publish", "src\ByteBite.Api\ByteBite.Api.csproj", "-c", "Release", "-o", $PublishDir, "--no-restore", "/p:UseAppHost=false")
 
     $wwwroot = Join-Path $PublishDir "wwwroot"
     $publishUploads = Join-Path $wwwroot "uploads"
@@ -132,7 +165,13 @@ Invoke-CommandStep "Build local publish output" {
 }
 
 Invoke-CommandStep "Build Docker image $ImageRef" {
-    Invoke-External "docker" @("build", "-f", "Dockerfile.release", "-t", $ImageRef, ".")
+    Invoke-External "docker" @(
+        "build",
+        "--build-arg", "DOTNET_ASPNET_IMAGE=$DotnetAspNetImage",
+        "-f", "Dockerfile.release",
+        "-t", $ImageRef,
+        "."
+    )
 }
 
 Invoke-CommandStep "Prepare Docker network and PostgreSQL" {

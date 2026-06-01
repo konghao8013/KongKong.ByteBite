@@ -4,7 +4,7 @@ param(
     [string]$ServerUser = "root",
     [int]$ServerPort = 22,
     [string]$SshKeyPath = "",
-    [ValidateSet("LocalDocker", "RemoteDocker", "RemoteSourceDocker")]
+    [ValidateSet("LocalDocker", "RemoteDocker")]
     [string]$BuildMode = "LocalDocker",
     [string]$AppName = "bytebite-api",
     [string]$ImageName = "bytebite-api",
@@ -32,8 +32,13 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $PublishDir = Join-Path $RepoRoot "artifacts\docker\publish"
 $ImageDir = Join-Path $RepoRoot "artifacts\docker\images"
+$DockerConfigDir = Join-Path $RepoRoot "artifacts\docker\config"
+$NpmCacheDir = Join-Path $RepoRoot "artifacts\npm-cache"
 $ImageRef = "${ImageName}:${ImageTag}"
 $Remote = "${ServerUser}@${ServerHost}"
+
+New-Item -ItemType Directory -Force $DockerConfigDir | Out-Null
+$env:DOCKER_CONFIG = $DockerConfigDir
 
 function Invoke-CommandStep {
     param(
@@ -67,22 +72,47 @@ function Invoke-External {
 
 function Invoke-NpmRestore {
     $webDir = Join-Path $RepoRoot "web"
+    New-Item -ItemType Directory -Force $NpmCacheDir | Out-Null
+
     Push-Location $webDir
+    $oldNpmConfigCache = $env:npm_config_cache
+    $oldNpmConfigUpdateNotifier = $env:npm_config_update_notifier
     try {
-        & npm.cmd ci
-        if ($LASTEXITCODE -eq 0) {
+        $env:npm_config_cache = $NpmCacheDir
+        $env:npm_config_update_notifier = "false"
+
+        if (Test-Path (Join-Path $webDir "node_modules")) {
+            Write-Host "Using existing web\node_modules. Skipping npm install to avoid locked Windows native modules."
             return
         }
 
-        Write-Warning "npm ci failed. Falling back to npm install so locked local node_modules files do not block deployment."
-        & npm.cmd install
+        & npm.cmd install --prefer-offline --no-audit --no-fund
         if ($LASTEXITCODE -ne 0) {
             throw "npm install failed with exit code $LASTEXITCODE"
         }
     }
     finally {
+        $env:npm_config_cache = $oldNpmConfigCache
+        $env:npm_config_update_notifier = $oldNpmConfigUpdateNotifier
         Pop-Location
     }
+}
+
+function Invoke-DotnetRestoreIfNeeded {
+    $assetPaths = @(
+        "src\ByteBite.Api\obj\project.assets.json",
+        "src\ByteBite.Application\obj\project.assets.json",
+        "src\ByteBite.Infrastructure\obj\project.assets.json",
+        "src\ByteBite.Shared\obj\project.assets.json"
+    )
+
+    $missingAsset = $assetPaths | Where-Object { -not (Test-Path (Join-Path $RepoRoot $_)) } | Select-Object -First 1
+    if (-not $missingAsset) {
+        Write-Host "Using existing .NET restore assets. Skipping dotnet restore."
+        return
+    }
+
+    Invoke-External "dotnet" @("restore", "src\ByteBite.Api\ByteBite.Api.csproj")
 }
 
 function Get-SshOptions {
@@ -113,11 +143,25 @@ function Get-ScpOptions {
     return $args
 }
 
+function Get-NativeTool {
+    param([string[]]$Names)
+
+    foreach ($name in $Names) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue
+        if ($command -and $command.Source) {
+            return $command.Source
+        }
+    }
+
+    throw "Required command not found: $($Names -join ', ')"
+}
+
 function Invoke-RemoteScript {
     param([string]$Script)
 
     $sshArgs = Get-SshOptions
-    $Script | & ssh @sshArgs $Remote "bash -s"
+    $sshExe = Get-NativeTool -Names @("ssh.exe", "ssh")
+    $Script | & $sshExe @sshArgs $Remote "bash -s"
     if ($LASTEXITCODE -ne 0) {
         throw "Remote command failed with exit code $LASTEXITCODE"
     }
@@ -130,7 +174,9 @@ function Copy-ToServer {
     )
 
     $scpArgs = Get-ScpOptions
-    & scp @scpArgs $LocalPath "${Remote}:$RemotePath"
+    $scpExe = Get-NativeTool -Names @("scp.exe", "scp")
+    $resolvedLocalPath = (Resolve-Path -LiteralPath $LocalPath).Path
+    & $scpExe @scpArgs $resolvedLocalPath "${Remote}:$RemotePath"
     if ($LASTEXITCODE -ne 0) {
         throw "scp failed with exit code $LASTEXITCODE"
     }
@@ -149,8 +195,8 @@ function Build-PublishOutput {
 
     Invoke-NpmRestore
     Invoke-External "npm.cmd" @("run", "build") (Join-Path $RepoRoot "web")
-    Invoke-External "dotnet" @("restore", "src\ByteBite.Api\ByteBite.Api.csproj")
-    Invoke-External "dotnet" @("publish", "src\ByteBite.Api\ByteBite.Api.csproj", "-c", "Release", "-o", $PublishDir, "/p:UseAppHost=false")
+    Invoke-DotnetRestoreIfNeeded
+    Invoke-External "dotnet" @("publish", "src\ByteBite.Api\ByteBite.Api.csproj", "-c", "Release", "-o", $PublishDir, "--no-restore", "/p:UseAppHost=false")
 
     $wwwroot = Join-Path $PublishDir "wwwroot"
     $publishUploads = Join-Path $wwwroot "uploads"
@@ -246,18 +292,27 @@ docker ps --filter "name=`$DB_CONTAINER"
 
 function Build-LocalDockerImage {
     New-Item -ItemType Directory -Force $ImageDir | Out-Null
-    $tarPath = Join-Path $ImageDir "$ImageName-$ImageTag.tar"
+    $tarPath = Join-Path $ImageDir "image.tar"
+    if (Test-Path $tarPath) {
+        Remove-Item -LiteralPath $tarPath -Force
+    }
 
-    Invoke-External "docker" @("build", "--build-arg", "DOTNET_ASPNET_IMAGE=$DotnetAspNetImage", "-f", "Dockerfile.release", "-t", $ImageRef, ".")
-    Invoke-External "docker" @("save", $ImageRef, "-o", $tarPath)
+    Invoke-External "docker" @(
+        "build",
+        "--build-arg", "DOTNET_ASPNET_IMAGE=$DotnetAspNetImage",
+        "-f", "Dockerfile.release",
+        "-t", $ImageRef,
+        "."
+    ) | Out-Host
+    Invoke-External "docker" @("save", $ImageRef, "-o", $tarPath) | Out-Host
 
-    return $tarPath
+    return (Resolve-Path -LiteralPath $tarPath).Path
 }
 
 function Publish-WithLocalImageTar {
     param([string]$TarPath)
 
-    $remoteTar = "$RemoteDir/releases/$(Split-Path $TarPath -Leaf)"
+    $remoteTar = "$RemoteDir/releases/$ImageName-$ImageTag.tar"
     Copy-ToServer $TarPath $remoteTar
 
     $remoteTarQ = BashQuote $remoteTar
@@ -304,63 +359,6 @@ docker save $imageRefQ -o $imageTarQ
 "@
 }
 
-function Publish-WithRemoteSourceBuild {
-    New-Item -ItemType Directory -Force $ImageDir | Out-Null
-    $archivePath = Join-Path $ImageDir "$ImageName-$ImageTag-source.tgz"
-    if (Test-Path $archivePath) {
-        Remove-Item -LiteralPath $archivePath -Force
-    }
-
-    Invoke-External "tar" @(
-        "--exclude=.git",
-        "--exclude=.vs",
-        "--exclude=.agent",
-        "--exclude=.trae",
-        "--exclude=.codex",
-        "--exclude=.codex-temp",
-        "--exclude=.codex-push-worktree-*",
-        "--exclude=artifacts",
-        "--exclude=web/node_modules",
-        "--exclude=web/dist",
-        "--exclude=src/ByteBite.Api/wwwroot/uploads",
-        "-czf", $archivePath,
-        "."
-    )
-
-    $remoteArchive = "$RemoteDir/releases/$(Split-Path $archivePath -Leaf)"
-    Copy-ToServer $archivePath $remoteArchive
-
-    $remoteDirQ = BashQuote $RemoteDir
-    $remoteArchiveQ = BashQuote $remoteArchive
-    $imageRefQ = BashQuote $ImageRef
-    $imageTarQ = BashQuote "$RemoteDir/releases/$ImageName-$ImageTag.tar"
-    $imageTagQ = BashQuote $ImageTag
-    $nodeImageQ = BashQuote $NodeImage
-    $dotnetSdkImageQ = BashQuote $DotnetSdkImage
-    $dotnetAspNetImageQ = BashQuote $DotnetAspNetImage
-
-    Invoke-RemoteScript @"
-set -euo pipefail
-REMOTE_DIR=$remoteDirQ
-IMAGE_TAG=$imageTagQ
-NODE_IMAGE=$nodeImageQ
-DOTNET_SDK_IMAGE=$dotnetSdkImageQ
-DOTNET_ASPNET_IMAGE=$dotnetAspNetImageQ
-WORK_DIR="`$REMOTE_DIR/build/source-`$IMAGE_TAG"
-rm -rf "`$WORK_DIR"
-mkdir -p "`$WORK_DIR"
-tar -xzf $remoteArchiveQ -C "`$WORK_DIR"
-docker build \
-  --build-arg NODE_IMAGE="`$NODE_IMAGE" \
-  --build-arg DOTNET_SDK_IMAGE="`$DOTNET_SDK_IMAGE" \
-  --build-arg DOTNET_ASPNET_IMAGE="`$DOTNET_ASPNET_IMAGE" \
-  -f "`$WORK_DIR/Dockerfile.remote" \
-  -t $imageRefQ \
-  "`$WORK_DIR"
-docker save $imageRefQ -o $imageTarQ
-"@
-}
-
 function Restart-RemoteApp {
     $remoteDirQ = BashQuote $RemoteDir
     $appNameQ = BashQuote $AppName
@@ -391,15 +389,27 @@ docker run -d \
   -v "`$REMOTE_DIR/uploads:/app/wwwroot/uploads" \
   "`$IMAGE_REF"
 
-sleep 8
+rm -f /tmp/bytebite-home.html
+APP_READY=0
+for i in `$(seq 1 90); do
+  if curl -fsS "http://127.0.0.1:`$HOST_PORT/" >/tmp/bytebite-home.html && test -s /tmp/bytebite-home.html; then
+    APP_READY=1
+    break
+  fi
+  sleep 2
+done
+
 docker ps --filter "name=`$APP_NAME"
-curl -fsS "http://127.0.0.1:`$HOST_PORT/" >/tmp/bytebite-home.html
+if [ "`$APP_READY" != "1" ]; then
+  docker logs "`$APP_NAME" --tail 200 >&2 || true
+  exit 1
+fi
 test -s /tmp/bytebite-home.html
 "@
 }
 
 Invoke-CommandStep "Build local publish output" {
-    if ((-not $SkipBuild) -and $BuildMode -ne "RemoteSourceDocker") {
+    if (-not $SkipBuild) {
         Build-PublishOutput
     }
 }
@@ -420,11 +430,6 @@ if ($BuildMode -eq "LocalDocker") {
 elseif ($BuildMode -eq "RemoteDocker") {
     Invoke-CommandStep "Upload publish output and build Docker image on server" {
         Publish-WithRemoteDockerBuild
-    }
-}
-else {
-    Invoke-CommandStep "Upload source and build Docker image on server" {
-        Publish-WithRemoteSourceBuild
     }
 }
 
