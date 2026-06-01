@@ -47,15 +47,17 @@ public class ConversationsController : ControllerBase
         => new { count = await _conversationService.GetUnreadCountForCustomerAsync(customerId, deviceId, ct) };
 
     [HttpGet("api/conversations/{conversationId:guid}/messages")]
-    public async Task<List<ConversationMessage>> GetMessages(Guid conversationId, CancellationToken ct)
-        => await _conversationService.GetMessagesAsync(conversationId, ct);
+    public async Task<List<object>> GetMessages(Guid conversationId, CancellationToken ct)
+        => (await _conversationService.GetMessagesAsync(conversationId, ct)).Select(ToMessageDto).ToList();
 
     [HttpPost("api/conversations/{conversationId:guid}/messages")]
-    public async Task<ConversationMessage> SendMessage(Guid conversationId, [FromBody] SendMessageRequest request, CancellationToken ct)
+    public async Task<object> SendMessage(Guid conversationId, [FromBody] SendMessageRequest request, CancellationToken ct)
     {
         var message = await _conversationService.SendMessageAsync(conversationId, request.SenderType, request.SenderId, request.Content, ct);
         var conversation = await _conversationService.GetByIdAsync(conversationId, ct);
-        var payload = new { conversationId, message, conversation = ToConversationDto(conversation) };
+        var messageDto = ToMessageDto(message);
+        var conversationDto = ToConversationDto(conversation);
+        var payload = new { conversationId, message = messageDto, conversation = conversationDto };
 
         await _conversationHub.Clients.Group($"conversation_{conversationId}")
             .SendAsync("ConversationMessageReceived", payload, cancellationToken: ct);
@@ -63,7 +65,7 @@ public class ConversationsController : ControllerBase
         if (message.SenderType == "customer")
         {
             var unreadCount = await _conversationService.GetUnreadCountForStoreAsync(conversation.StoreId, ct);
-            var storePayload = new { conversationId, message, conversation = ToConversationDto(conversation), unreadCount };
+            var storePayload = new { conversationId, message = messageDto, conversation = conversationDto, unreadCount };
             var unreadPayload = new { scope = "merchant", storeId = conversation.StoreId, count = unreadCount };
             await _conversationHub.Clients.Group($"store_{conversation.StoreId}")
                 .SendAsync("CustomerMessageReceived", storePayload, cancellationToken: ct);
@@ -75,7 +77,7 @@ public class ConversationsController : ControllerBase
         else
         {
             var unreadCount = await _conversationService.GetUnreadCountForCustomerAsync(conversation.CustomerId, conversation.DeviceId, ct);
-            var customerPayload = new { conversationId, message, conversation = ToConversationDto(conversation), unreadCount };
+            var customerPayload = new { conversationId, message = messageDto, conversation = conversationDto, unreadCount };
             var unreadPayload = new { scope = "customer", conversation.CustomerId, conversation.DeviceId, count = unreadCount };
             foreach (var groupName in ConversationHub.GetCustomerGroupNames(conversation.CustomerId, conversation.DeviceId))
             {
@@ -88,7 +90,7 @@ public class ConversationsController : ControllerBase
                 .SendAsync("MerchantMessageReceived", customerPayload, cancellationToken: ct);
         }
 
-        return message;
+        return messageDto;
     }
 
     [HttpPost("api/conversations/{conversationId:guid}/read")]
@@ -147,6 +149,19 @@ public class ConversationsController : ControllerBase
                 conversation.Customer.Username,
                 conversation.Customer.Nickname
             }
+        };
+
+    private static object ToMessageDto(ConversationMessage message)
+        => new
+        {
+            message.Id,
+            message.ConversationId,
+            message.SenderType,
+            message.SenderId,
+            message.Content,
+            message.MessageType,
+            message.ReadAt,
+            message.CreatedAt
         };
 }
 

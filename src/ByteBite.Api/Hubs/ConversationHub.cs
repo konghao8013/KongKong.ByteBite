@@ -4,37 +4,41 @@ namespace ByteBite.Api.Hubs;
 
 public class ConversationHub : Hub
 {
-    public async Task SubscribeConversation(Guid conversationId)
+    public async Task SubscribeConversation(string? conversationId)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"conversation_{conversationId}");
+        var groupName = GetEntityGroupName("conversation", conversationId);
+        if (groupName != null) await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
     }
 
-    public async Task UnsubscribeConversation(Guid conversationId)
+    public async Task UnsubscribeConversation(string? conversationId)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"conversation_{conversationId}");
+        var groupName = GetEntityGroupName("conversation", conversationId);
+        if (groupName != null) await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 
-    public async Task SubscribeStore(Guid storeId)
+    public async Task SubscribeStore(string? storeId)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"store_{storeId}");
+        var groupName = GetEntityGroupName("store", storeId);
+        if (groupName != null) await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
     }
 
-    public async Task UnsubscribeStore(Guid storeId)
+    public async Task UnsubscribeStore(string? storeId)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"store_{storeId}");
+        var groupName = GetEntityGroupName("store", storeId);
+        if (groupName != null) await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 
-    public async Task SubscribeCustomer(Guid? customerId, string? deviceId)
+    public async Task SubscribeCustomer(string? customerId, string? deviceId)
     {
-        foreach (var groupName in GetCustomerGroupNames(customerId, deviceId))
+        foreach (var groupName in GetCustomerGroupNames(ParseGuid(customerId), deviceId))
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
     }
 
-    public async Task UnsubscribeCustomer(Guid? customerId, string? deviceId)
+    public async Task UnsubscribeCustomer(string? customerId, string? deviceId)
     {
-        foreach (var groupName in GetCustomerGroupNames(customerId, deviceId))
+        foreach (var groupName in GetCustomerGroupNames(ParseGuid(customerId), deviceId))
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
@@ -42,7 +46,21 @@ public class ConversationHub : Hub
 
     public static IEnumerable<string> GetCustomerGroupNames(Guid? customerId, string? deviceId)
     {
-        if (customerId.HasValue) yield return $"customer_{customerId.Value}";
+        if (customerId.HasValue)
+        {
+            yield return $"customer_{customerId.Value}";
+            yield break;
+        }
+
         if (!string.IsNullOrWhiteSpace(deviceId)) yield return $"device_{deviceId.Trim()}";
     }
+
+    private static string? GetEntityGroupName(string prefix, string? id)
+    {
+        var parsedId = ParseGuid(id);
+        return parsedId.HasValue ? $"{prefix}_{parsedId.Value}" : null;
+    }
+
+    private static Guid? ParseGuid(string? value)
+        => Guid.TryParse(value, out var parsed) ? parsed : null;
 }

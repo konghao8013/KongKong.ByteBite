@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { orderApi } from '@/api/modules/order'
 import { conversationApi } from '@/api/modules/conversation'
 import { useSignalR } from '@/composables/useSignalR'
 import type { ConversationDto, ConversationMessageDto } from '@/types/models/conversation'
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
-const { connection, connect, disconnect } = useSignalR('/hubs/store')
+const route = useRoute()
+const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/store')
 const loading = ref(false)
 const orders = ref<any[]>([])
 const activeTab = ref('pending')
@@ -89,6 +91,7 @@ const loadOrders = async () => {
   try {
     const res = await orderApi.getByStoreId(storeId, { pageSize: 50 })
     orders.value = res || []
+    openOrderFromQuery()
   } catch (e) {
     console.error('加载订单失败', e)
   } finally {
@@ -155,6 +158,17 @@ const openConversationOrder = () => {
   if (target) openDetail(target)
 }
 
+const openOrderFromQuery = () => {
+  const orderId = String(route.query.orderId || '')
+  if (!orderId || showDetail.value) return
+  const target = orders.value.find(o => o.id === orderId)
+  if (target) openDetail(target)
+}
+
+const subscribeStore = async () => {
+  if (storeId) await connection.value?.invoke('SubscribeStore', storeId)
+}
+
 const handleAccept = async (order: any) => {
   try {
     await orderApi.acceptOrder(order.id)
@@ -200,6 +214,7 @@ onMounted(async () => {
   await loadConversations()
   try {
     await connect()
+    onReconnected(subscribeStore)
     connection.value?.on('NewOrder', (order: any) => {
       if (!orders.value.some(o => o.id === order.id)) orders.value.unshift(order)
     })
@@ -211,10 +226,19 @@ onMounted(async () => {
       const target = orders.value.find(o => o.id === payload.orderId)
       if (target) target.status = 'cancelled'
     })
-    connection.value?.on('CustomerMessageReceived', () => {
-      loadConversations()
+    connection.value?.on('CustomerMessageReceived', async (payload: { conversationId?: string; message?: ConversationMessageDto }) => {
+      await loadConversations()
+      if (!payload.conversationId || selectedConversation.value?.id !== payload.conversationId) return
+      if (payload.message && !conversationMessages.value.some(message => message.id === payload.message?.id)) {
+        conversationMessages.value.push(payload.message)
+      } else {
+        conversationMessages.value = await conversationApi.getMessages(payload.conversationId)
+      }
+      await conversationApi.markRead(payload.conversationId, 'merchant')
+      const target = conversations.value.find(item => item.id === payload.conversationId)
+      if (target) target.merchantUnreadCount = 0
     })
-    if (storeId) await connection.value?.invoke('SubscribeStore', storeId)
+    await subscribeStore()
   } catch {
   }
   refreshTimer = setInterval(loadOrders, 15000)

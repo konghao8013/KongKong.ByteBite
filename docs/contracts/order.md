@@ -23,7 +23,7 @@
 | deliveryAddress | string | 否 | 配送地址（外卖时必填） |
 | deliveryPhone | string | 否 | 联系电话（外卖时必填） |
 | remark | string | 否 | 整单备注 |
-| customerId | string | 否 | 顾客ID（已登录时） |
+| customerId | string | 否 | 顾客ID（登录顾客或本地缓存的游客顾客 ID） |
 
 **响应**：Order 实体（含 pickupCode 取货码）
 
@@ -123,3 +123,45 @@ pending ──→ accepted ──→ preparing ──→ ready ──→ complet
 | completed | 已完成 | #8C8C8C 灰色 | 订单关闭 |
 | cancelled | 已取消 | #8C8C8C 灰色 | 订单取消 |
 | rejected | 已拒单 | #FF4D4F 红色 | 商家拒绝 |
+---
+
+## 订单消息会话
+
+### POST /api/orders/{orderId}/conversation
+
+按订单创建或获取顾客与商家的会话。请求体支持 `customerId` 或 `deviceId`，至少传一个；前端会优先通过 `CustomersController.EnsureAnonymous` 为游客生成并缓存 `customerId`，服务端中转也优先按该顾客 ID 分组。
+
+### GET /api/customer-conversations
+
+顾客消息列表。查询参数：`customerId`、`deviceId`。返回会话、关联订单、门店信息与未读数；同时传入时优先按 `customerId` 命中，`deviceId` 兼容旧匿名数据。
+
+### GET /api/customer-conversations/unread-count
+
+顾客消息未读总数。查询参数同上，响应 `{ count }`。
+
+### GET /api/stores/{storeId}/conversations
+
+商家门店消息列表。返回会话、关联订单、顾客信息与未读数。
+
+### GET /api/stores/{storeId}/conversations/unread-count
+
+商家消息未读总数，响应 `{ count }`。
+
+### GET /api/conversations/{conversationId}/messages
+
+获取会话消息明细，按创建时间正序返回。
+
+### POST /api/conversations/{conversationId}/messages
+
+发送文本消息。请求体：`senderType`（`customer`/`merchant`）、`senderId`、`content`、`storeId`、`orderId`。
+
+### POST /api/conversations/{conversationId}/read
+
+标记会话已读。请求体：`readerType`（`customer`/`merchant`）。响应包含最新未读总数。
+
+### SignalR /hubs/conversation
+
+- `SubscribeConversation(conversationId)`：订阅单个会话消息。
+- `SubscribeStore(storeId)`：商家订阅门店消息和未读数。
+- `SubscribeCustomer(customerId, deviceId)`：顾客订阅账号或游客身份消息；服务端优先加入 `customer_{customerId}`，没有顾客 ID 时才回退到 `device_{deviceId}`。
+- 服务端事件：`ConversationMessageReceived`、`CustomerMessageReceived`、`MerchantMessageReceived`、`ConversationUnreadChanged`。

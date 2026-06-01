@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { customerApi } from '@/api/modules/customer'
 import { orderApi } from '@/api/modules/order'
-import { useDeviceId } from '@/composables/useDeviceId'
+import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import { useCartStore } from '@/stores/modules/useCartStore'
 import { formatPrice, formatDate } from '@/utils/format'
 import { normalizeCustomerOrder } from '@/utils/order'
@@ -14,7 +14,7 @@ import type { StoreSummaryDto } from '@/types/models/customer'
 
 const router = useRouter()
 const route = useRoute()
-const { getDeviceId } = useDeviceId()
+const { ensureCustomerIdentity } = useCustomerIdentity()
 const cartStore = useCartStore()
 const storeCode = computed(() => route.params.code as string)
 
@@ -23,7 +23,6 @@ const recentStores = ref<StoreSummaryDto[]>([])
 const loading = ref(false)
 const error = ref('')
 
-const customerId = computed(() => localStorage.getItem('customer_id') || undefined)
 const isLoggedIn = computed(() => Boolean(localStorage.getItem('customer_token')))
 
 const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -72,9 +71,10 @@ const loadOrders = async () => {
   loading.value = true
   error.value = ''
   try {
+    const identity = await ensureCustomerIdentity()
     const params = {
-      deviceId: getDeviceId(),
-      customerId: customerId.value,
+      deviceId: identity.deviceId,
+      customerId: identity.customerId,
       pageSize: 100,
     }
     const [orderRows, stores] = await Promise.all([

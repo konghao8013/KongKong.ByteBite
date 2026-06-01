@@ -86,9 +86,13 @@
 
 生成并缓存浏览器设备唯一标识（localStorage）
 
+### useCustomerIdentity
+
+基于 `useDeviceId` 调用匿名顾客接口，为游客生成并缓存 `customer_id`，登录后复用同一设备线索合并订单、购物车和会话。
+
 ### useSignalR
 
-SignalR 连接管理，自动重连、断线检测
+SignalR 连接管理，自动重连、断线检测，并提供重连回调用于恢复门店、顾客、订单和会话订阅。
 
 ---
 

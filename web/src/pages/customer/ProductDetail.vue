@@ -3,11 +3,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { customerApi } from '@/api/modules/customer'
 import { useCartStore } from '@/stores/modules/useCartStore'
+import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import type { StoreMenuItemDto } from '@/types/models/customer'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
+const { ensureCustomerIdentity } = useCustomerIdentity()
 const storeId = localStorage.getItem('current_store_id') || ''
 const storeCode = route.params.code as string
 const productId = route.params.productId as string
@@ -19,9 +21,10 @@ const selectedSpecs = ref<Record<string, string>>({})
 
 onMounted(async () => {
   try {
+    const identity = await ensureCustomerIdentity()
     const menuData = storeId
-      ? await customerApi.getStoreMenu(storeId)
-      : await customerApi.getStoreMenuByCode(storeCode)
+      ? await customerApi.getStoreMenu(storeId, identity)
+      : await customerApi.getStoreMenuByCode(storeCode, identity)
     if (menuData) {
       if (menuData.storeId) localStorage.setItem('current_store_id', menuData.storeId)
       for (const category of menuData.categories) {

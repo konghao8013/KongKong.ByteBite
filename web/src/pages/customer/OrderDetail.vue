@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { orderApi } from '@/api/modules/order'
 import { conversationApi } from '@/api/modules/conversation'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { formatPrice, formatDate } from '@/utils/format'
 import { useSignalR } from '@/composables/useSignalR'
-import { useDeviceId } from '@/composables/useDeviceId'
+import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import { normalizeCustomerOrder } from '@/utils/order'
 import QrcodeVue from 'qrcode.vue'
 import PickupCodeDisplay from '@/components/common/PickupCodeDisplay.vue'
@@ -17,13 +17,14 @@ import type { ConversationDto, ConversationMessageDto } from '@/types/models/con
 const route = useRoute()
 const router = useRouter()
 const orderStore = useOrderStore()
-const { connection, connect, disconnect } = useSignalR('/hubs/order')
+const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/order')
 const {
   connection: conversationConnection,
   connect: connectConversation,
   disconnect: disconnectConversation,
+  onReconnected: onConversationReconnected,
 } = useSignalR('/hubs/conversation')
-const { getDeviceId } = useDeviceId()
+const { getCustomerIdentity, ensureCustomerIdentity } = useCustomerIdentity()
 const orderId = route.params.orderId as string
 
 const order = ref<OrderDto | null>(null)
@@ -34,17 +35,34 @@ const messages = ref<ConversationMessageDto[]>([])
 const messageText = ref('')
 const conversationLoading = ref(false)
 const sendingMessage = ref(false)
+const conversationMessageListRef = ref<HTMLElement | null>(null)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 const refreshOrder = async () => {
+  const identity = getCustomerIdentity()
   const fresh = await orderApi.getById(orderId, {
-    customerId: localStorage.getItem('customer_id') || undefined,
-    deviceId: getDeviceId(),
+    customerId: identity.customerId,
+    deviceId: identity.deviceId,
   })
   order.value = normalizeCustomerOrder(fresh, order.value?.storeName || '')
 }
 
+const subscribeOrder = async () => {
+  await connection.value?.invoke('SubscribeOrder', orderId)
+}
+
+const subscribeConversation = async () => {
+  if (conversation.value) await conversationConnection.value?.invoke('SubscribeConversation', conversation.value.id)
+}
+
+const scrollConversationToBottom = async () => {
+  await nextTick()
+  const el = conversationMessageListRef.value
+  if (el) el.scrollTop = el.scrollHeight
+}
+
 onMounted(async () => {
+  await ensureCustomerIdentity()
   try {
     const cached = orderStore.activeOrders.find((o) => o.id === orderId)
       || orderStore.orderHistory.find((o) => o.id === orderId)
@@ -56,6 +74,7 @@ onMounted(async () => {
   }
   try {
     await connect()
+    onReconnected(subscribeOrder)
     connection.value?.on('OrderStatusChanged', (payload: { orderId: string; status: string }) => {
       if (payload.orderId !== orderId || !order.value) return
       order.value.status = payload.status
@@ -66,7 +85,7 @@ onMounted(async () => {
       order.value.status = 'cancelled'
       orderStore.updateOrderStatus(orderId, 'cancelled')
     })
-    await connection.value?.invoke('SubscribeOrder', orderId)
+    await subscribeOrder()
   } catch {
   }
   refreshTimer = setInterval(() => {
@@ -160,20 +179,23 @@ const openConversation = async () => {
   if (conversation.value) return
   conversationLoading.value = true
   try {
-    const customerId = localStorage.getItem('customer_id') || undefined
+    const identity = await ensureCustomerIdentity()
     conversation.value = await conversationApi.startByOrder(orderId, {
-      customerId,
-      deviceId: getDeviceId(),
+      customerId: identity.customerId,
+      deviceId: identity.deviceId,
     })
     messages.value = await conversationApi.getMessages(conversation.value.id)
+    await scrollConversationToBottom()
     await connectConversation()
+    onConversationReconnected(subscribeConversation)
     conversationConnection.value?.on('ConversationMessageReceived', (payload: { conversationId: string; message: ConversationMessageDto }) => {
       if (payload.conversationId !== conversation.value?.id) return
       if (!messages.value.some((message) => message.id === payload.message.id)) {
         messages.value.push(payload.message)
+        void scrollConversationToBottom()
       }
     })
-    await conversationConnection.value?.invoke('SubscribeConversation', conversation.value.id)
+    await subscribeConversation()
     await conversationApi.markRead(conversation.value.id, 'customer')
   } finally {
     conversationLoading.value = false
@@ -187,12 +209,15 @@ const sendMessage = async () => {
   try {
     const message = await conversationApi.sendMessage(conversation.value.id, {
       senderType: 'customer',
-      senderId: localStorage.getItem('customer_id') || undefined,
+      senderId: getCustomerIdentity().customerId,
       content,
       storeId: order.value.storeId,
       orderId,
     })
-    if (!messages.value.some((item) => item.id === message.id)) messages.value.push(message)
+    if (!messages.value.some((item) => item.id === message.id)) {
+      messages.value.push(message)
+      void scrollConversationToBottom()
+    }
     messageText.value = ''
   } finally {
     sendingMessage.value = false
@@ -312,7 +337,7 @@ const sendMessage = async () => {
           {{ conversationLoading ? '打开中...' : '发起消息' }}
         </button>
         <template v-else>
-          <div class="message-list">
+          <div ref="conversationMessageListRef" class="message-list">
             <div
               v-for="message in messages"
               :key="message.id"

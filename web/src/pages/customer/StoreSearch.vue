@@ -2,13 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { customerApi } from '@/api/modules/customer'
-import { useDeviceId } from '@/composables/useDeviceId'
+import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import EmptyState from '@/components/common/EmptyState.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { StoreSummaryDto } from '@/types/models/customer'
 
 const router = useRouter()
-const { getDeviceId } = useDeviceId()
+const { ensureCustomerIdentity } = useCustomerIdentity()
 
 const keyword = ref('')
 const loading = ref(false)
@@ -36,9 +36,10 @@ const searchStores = async () => {
 }
 
 const loadRecentStores = async () => {
+  const identity = await ensureCustomerIdentity()
   recentStores.value = await customerApi.getRecentStores({
-    customerId: localStorage.getItem('customer_id') || undefined,
-    deviceId: getDeviceId(),
+    customerId: identity.customerId,
+    deviceId: identity.deviceId,
     pageSize: 20,
   })
 }

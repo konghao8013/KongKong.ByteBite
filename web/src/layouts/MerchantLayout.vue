@@ -10,10 +10,11 @@ import type { ConversationEventPayload, ConversationUnreadChangedPayload } from 
 const route = useRoute()
 const router = useRouter()
 const conversationStore = useConversationStore()
-const { connection, connect, disconnect } = useSignalR('/hubs/conversation')
+const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/conversation')
 
 const storeId = localStorage.getItem('merchant_store_id') || ''
 const messageBadge = computed(() => conversationStore.merchantUnreadCount)
+const isMessageRoute = computed(() => route.name === 'MerchantMessages')
 
 const activeTab = computed(() => {
   const path = route.path
@@ -41,6 +42,10 @@ const switchTab = (tab: typeof tabs[0]) => {
   router.push(tab.path)
 }
 
+const subscribeStore = async () => {
+  if (storeId) await connection.value?.invoke('SubscribeStore', storeId)
+}
+
 const handleLogout = async () => {
   if (!confirm('确定退出登录？')) return
   const merchantId = localStorage.getItem('merchant_id')
@@ -63,6 +68,7 @@ onMounted(async () => {
 
   try {
     await connect()
+    onReconnected(subscribeStore)
     connection.value?.on('CustomerMessageReceived', (payload: ConversationEventPayload) => {
       if (typeof payload.unreadCount === 'number') conversationStore.setMerchantUnreadCount(payload.unreadCount)
       else conversationStore.loadMerchantUnreadCount(storeId).catch(() => {})
@@ -71,7 +77,7 @@ onMounted(async () => {
     connection.value?.on('ConversationUnreadChanged', (payload: ConversationUnreadChangedPayload) => {
       if (payload.scope === 'merchant') conversationStore.setMerchantUnreadCount(payload.count)
     })
-    await connection.value?.invoke('SubscribeStore', storeId)
+    await subscribeStore()
   } catch {
   }
 })
@@ -86,7 +92,7 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <div class="merchant-layout">
+  <div class="merchant-layout" :class="{ 'message-route': isMessageRoute }">
     <aside class="merchant-sidebar">
       <div class="brand">
         <span class="brand-logo">B</span>
@@ -124,7 +130,7 @@ onUnmounted(async () => {
       </main>
     </div>
 
-    <nav class="merchant-tabbar">
+    <nav v-if="!isMessageRoute" class="merchant-tabbar">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -147,6 +153,12 @@ onUnmounted(async () => {
   min-height: 100vh;
   min-height: 100dvh;
   background: #F6F7F3;
+}
+
+.merchant-layout.message-route {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .merchant-sidebar {
@@ -248,6 +260,7 @@ onUnmounted(async () => {
 
 .merchant-main {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -301,7 +314,18 @@ onUnmounted(async () => {
 .merchant-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   padding: 18px;
+}
+
+.merchant-layout.message-route .merchant-topbar {
+  display: none;
+}
+
+.merchant-layout.message-route .merchant-content {
+  display: flex;
+  overflow: hidden;
+  padding: 0;
 }
 
 .merchant-tabbar {

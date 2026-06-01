@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { conversationApi } from '@/api/modules/conversation'
-import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import { useSignalR } from '@/composables/useSignalR'
 import { useConversationStore } from '@/stores/modules/useConversationStore'
 import { formatPrice } from '@/utils/format'
@@ -13,9 +12,9 @@ import type {
   ConversationUnreadChangedPayload,
 } from '@/types/models/conversation'
 
-const route = useRoute()
 const router = useRouter()
-const { getCustomerIdentity, ensureCustomerIdentity } = useCustomerIdentity()
+const storeId = localStorage.getItem('merchant_store_id') || ''
+const merchantId = localStorage.getItem('merchant_id') || undefined
 const conversationStore = useConversationStore()
 const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/conversation')
 
@@ -26,8 +25,9 @@ const replyText = ref('')
 const loading = ref(false)
 const messageLoading = ref(false)
 const sending = ref(false)
-const identity = ref(getCustomerIdentity())
 const messageListRef = ref<HTMLElement | null>(null)
+
+const unreadCount = computed(() => conversationStore.merchantUnreadCount)
 const isDetailOpen = computed(() => Boolean(selectedConversation.value))
 
 const formatTime = (value?: string) => {
@@ -36,8 +36,12 @@ const formatTime = (value?: string) => {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
-const customerName = (conversation: ConversationDto) =>
-  conversation.storeName || `店铺 ${conversation.storeId.slice(0, 6)}`
+const customerLabel = (conversation: ConversationDto) => {
+  if (conversation.customer?.nickname) return conversation.customer.nickname
+  if (conversation.customer?.phone) return conversation.customer.phone
+  if (conversation.customer?.username) return conversation.customer.username
+  return conversation.deviceId ? `匿名顾客 ${conversation.deviceId.slice(-4)}` : '顾客'
+}
 
 const orderTitle = (conversation: ConversationDto) =>
   conversation.order?.pickupCode ? `订单 #${conversation.order.pickupCode}` : `订单 ${conversation.orderId.slice(0, 6)}`
@@ -69,10 +73,11 @@ const appendMessage = (message?: ConversationMessageDto) => {
 }
 
 const loadConversations = async () => {
+  if (!storeId) return
   loading.value = true
   try {
-    conversations.value = await conversationApi.getByCustomer(identity.value)
-    await conversationStore.loadCustomerUnreadCount(identity.value)
+    conversations.value = await conversationApi.getByStore(storeId)
+    await conversationStore.loadMerchantUnreadCount(storeId)
     if (selectedConversation.value) {
       const freshConversation = conversations.value.find((item) => item.id === selectedConversation.value?.id)
       if (freshConversation) selectedConversation.value = { ...selectedConversation.value, ...freshConversation }
@@ -95,12 +100,12 @@ const openConversation = async (conversation: ConversationDto) => {
   try {
     messages.value = await conversationApi.getMessages(conversation.id)
     await connection.value?.invoke('SubscribeConversation', conversation.id)
-    const result = await conversationApi.markRead(conversation.id, 'customer') as { unreadCount?: number }
+    const result = await conversationApi.markRead(conversation.id, 'merchant') as { unreadCount?: number }
     const index = conversations.value.findIndex((item) => item.id === conversation.id)
-    if (index >= 0) conversations.value[index] = { ...conversations.value[index], customerUnreadCount: 0 }
-    selectedConversation.value = { ...conversation, customerUnreadCount: 0 }
-    if (typeof result?.unreadCount === 'number') conversationStore.setCustomerUnreadCount(result.unreadCount)
-    else await conversationStore.loadCustomerUnreadCount(identity.value)
+    if (index >= 0) conversations.value[index] = { ...conversations.value[index], merchantUnreadCount: 0 }
+    selectedConversation.value = { ...conversation, merchantUnreadCount: 0 }
+    if (typeof result?.unreadCount === 'number') conversationStore.setMerchantUnreadCount(result.unreadCount)
+    else await conversationStore.loadMerchantUnreadCount(storeId)
     await scrollMessagesToBottom()
   } finally {
     messageLoading.value = false
@@ -125,16 +130,16 @@ const handleBack = () => {
   router.back()
 }
 
-const sendMessage = async () => {
+const sendReply = async () => {
   const content = replyText.value.trim()
   if (!selectedConversation.value || !content || sending.value) return
   sending.value = true
   try {
     const message = await conversationApi.sendMessage(selectedConversation.value.id, {
-      senderType: 'customer',
-      senderId: identity.value.customerId,
+      senderType: 'merchant',
+      senderId: merchantId,
       content,
-      storeId: selectedConversation.value.storeId,
+      storeId,
       orderId: selectedConversation.value.orderId,
     })
     appendMessage(message)
@@ -146,18 +151,15 @@ const sendMessage = async () => {
 }
 
 const openOrder = (conversation: ConversationDto) => {
-  const code = conversation.storeCode || String(route.params.code || '')
-  router.push({ name: 'OrderDetail', params: { code, orderId: conversation.orderId } })
+  router.push({ name: 'MerchantOrders', query: { orderId: conversation.orderId } })
 }
 
 const subscribeCurrent = async () => {
-  identity.value = getCustomerIdentity()
-  await connection.value?.invoke('SubscribeCustomer', identity.value.customerId || null, identity.value.deviceId || null)
+  if (storeId) await connection.value?.invoke('SubscribeStore', storeId)
   if (selectedConversation.value) await connection.value?.invoke('SubscribeConversation', selectedConversation.value.id)
 }
 
 onMounted(async () => {
-  identity.value = await ensureCustomerIdentity()
   await loadConversations()
   try {
     await connect()
@@ -166,23 +168,23 @@ onMounted(async () => {
       if (payload.conversationId !== selectedConversation.value?.id) return
       appendMessage(payload.message)
       upsertConversation(payload.conversation)
-      if (payload.message.senderType === 'merchant' && selectedConversation.value) {
-        await conversationApi.markRead(selectedConversation.value.id, 'customer')
-        await conversationStore.loadCustomerUnreadCount(identity.value)
+      if (payload.message.senderType === 'customer') {
+        await conversationApi.markRead(payload.conversationId, 'merchant')
+        await conversationStore.loadMerchantUnreadCount(storeId)
       }
     })
-    connection.value?.on('MerchantMessageReceived', async (payload: ConversationEventPayload) => {
+    connection.value?.on('CustomerMessageReceived', async (payload: ConversationEventPayload) => {
       upsertConversation(payload.conversation)
       if (payload.conversationId === selectedConversation.value?.id) {
         appendMessage(payload.message)
-        await conversationApi.markRead(payload.conversationId, 'customer')
-        await conversationStore.loadCustomerUnreadCount(identity.value)
+        await conversationApi.markRead(payload.conversationId, 'merchant')
+        await conversationStore.loadMerchantUnreadCount(storeId)
       } else if (typeof payload.unreadCount === 'number') {
-        conversationStore.setCustomerUnreadCount(payload.unreadCount)
+        conversationStore.setMerchantUnreadCount(payload.unreadCount)
       }
     })
     connection.value?.on('ConversationUnreadChanged', (payload: ConversationUnreadChangedPayload) => {
-      if (payload.scope === 'customer') conversationStore.setCustomerUnreadCount(payload.count)
+      if (payload.scope === 'merchant') conversationStore.setMerchantUnreadCount(payload.count)
     })
     await subscribeCurrent()
   } catch {
@@ -192,8 +194,7 @@ onMounted(async () => {
 onUnmounted(async () => {
   try {
     if (selectedConversation.value) await connection.value?.invoke('UnsubscribeConversation', selectedConversation.value.id)
-    const currentIdentity = getCustomerIdentity()
-    await connection.value?.invoke('UnsubscribeCustomer', currentIdentity.customerId || null, currentIdentity.deviceId || null)
+    if (storeId) await connection.value?.invoke('UnsubscribeStore', storeId)
   } catch {
   }
   await disconnect()
@@ -201,26 +202,27 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <div class="messages-page" :class="{ 'is-chat': isDetailOpen }">
+  <div class="merchant-messages-page" :class="{ 'is-chat': isDetailOpen }">
     <header class="page-header">
       <button class="back-btn" @click="handleBack">←</button>
       <div>
-        <h1>{{ selectedConversation ? customerName(selectedConversation) : '我的消息' }}</h1>
-        <p>{{ selectedConversation ? orderTitle(selectedConversation) : '查看商家的回复，继续沟通订单问题' }}</p>
+        <span v-if="!selectedConversation" class="kicker">Messages</span>
+        <h2>{{ selectedConversation ? customerLabel(selectedConversation) : '顾客消息' }}</h2>
+        <p>{{ selectedConversation ? orderTitle(selectedConversation) : `集中处理订单沟通，未读 ${unreadCount} 条` }}</p>
       </div>
       <button v-if="!selectedConversation" class="refresh-btn" @click="loadConversations">刷新</button>
       <button v-else class="refresh-btn" @click="openOrder(selectedConversation)">订单</button>
     </header>
 
-    <div v-if="loading && !selectedConversation" class="state-card">消息加载中...</div>
+    <div v-if="!storeId" class="state-card">当前账号未绑定门店，暂无法查看消息。</div>
+    <div v-else-if="loading && !selectedConversation" class="state-card">消息加载中...</div>
     <div v-else-if="!selectedConversation && !conversations.length" class="state-card">
-      <strong>暂无消息</strong>
-      <p>你可以从订单详情里联系商家，后续回复会出现在这里。</p>
-      <button @click="router.push({ name: 'MyOrders', params: { code: route.params.code } })">去看订单</button>
+      <strong>暂无顾客消息</strong>
+      <p>顾客从订单详情发起联系后，会在这里出现。</p>
     </div>
 
-    <template v-else-if="!selectedConversation">
-      <section class="conversation-list">
+    <div v-else-if="!selectedConversation" class="messages-shell">
+      <aside class="conversation-list">
         <button
           v-for="conversation in conversations"
           :key="conversation.id"
@@ -228,17 +230,17 @@ onUnmounted(async () => {
           @click="openConversation(conversation)"
         >
           <div>
-            <strong>{{ customerName(conversation) }}</strong>
+            <strong>{{ customerLabel(conversation) }}</strong>
             <span>
               {{ orderTitle(conversation) }}
               <template v-if="conversation.order"> · {{ conversation.order.status }}</template>
             </span>
           </div>
           <small>{{ formatTime(conversation.lastMessageAt) }}</small>
-          <em v-if="conversation.customerUnreadCount > 0">{{ conversation.customerUnreadCount }}</em>
+          <em v-if="conversation.merchantUnreadCount > 0">{{ conversation.merchantUnreadCount }}</em>
         </button>
-      </section>
-    </template>
+      </aside>
+    </div>
 
     <section v-else class="chat-panel">
       <div class="chat-order">
@@ -248,7 +250,7 @@ onUnmounted(async () => {
             {{ selectedConversation.order.status }} · {{ formatPrice(selectedConversation.order.actualAmount) }}
           </span>
         </div>
-        <button @click="openOrder(selectedConversation)">查看订单</button>
+        <button @click="openOrder(selectedConversation)">打开订单</button>
       </div>
 
       <div ref="messageListRef" class="message-list">
@@ -258,7 +260,7 @@ onUnmounted(async () => {
             v-for="message in messages"
             :key="message.id"
             class="message-bubble"
-            :class="{ mine: message.senderType === 'customer' }"
+            :class="{ mine: message.senderType === 'merchant' }"
           >
             <span>{{ message.content }}</span>
             <small>{{ formatTime(message.createdAt) }}</small>
@@ -267,9 +269,9 @@ onUnmounted(async () => {
       </div>
 
       <div class="reply-row">
-        <input v-model="replyText" placeholder="输入要回复商家的内容" @keyup.enter="sendMessage" />
-        <button :disabled="sending || !replyText.trim()" @click="sendMessage">
-          {{ sending ? '发送中' : '发送' }}
+        <input v-model="replyText" placeholder="回复顾客" @keyup.enter="sendReply" />
+        <button :disabled="sending || !replyText.trim()" @click="sendReply">
+          {{ sending ? '发送中' : '回复' }}
         </button>
       </div>
     </section>
@@ -277,7 +279,7 @@ onUnmounted(async () => {
 </template>
 
 <style scoped lang="scss">
-.messages-page {
+.merchant-messages-page {
   flex: 1;
   width: 100%;
   height: 100%;
@@ -285,7 +287,6 @@ onUnmounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #F6F7F3;
   color: #1F2A26;
 }
 
@@ -304,7 +305,7 @@ onUnmounted(async () => {
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
 
-  h1 {
+  h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 900;
@@ -322,13 +323,12 @@ onUnmounted(async () => {
 
 .back-btn,
 .refresh-btn,
-.chat-order button,
-.state-card button {
+.chat-order button {
   height: 32px;
   border-radius: 6px;
   color: #087E6B;
   background: #E7F4EF;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .back-btn {
@@ -338,17 +338,25 @@ onUnmounted(async () => {
   font-size: 22px;
 }
 
-.conversation-list {
+.refresh-btn {
+  width: 58px;
+}
+
+.kicker {
+  color: #087E6B;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.messages-shell {
   flex: 1;
   min-height: 0;
-  display: grid;
-  align-content: start;
-  gap: 10px;
   overflow-y: auto;
   padding: 12px 16px 22px;
 }
 
-.conversation-card,
+.conversation-list,
 .state-card {
   border: 1px solid #E2E8E3;
   border-radius: 8px;
@@ -356,15 +364,23 @@ onUnmounted(async () => {
   box-shadow: 0 6px 18px rgba(31, 42, 38, 0.05);
 }
 
+.conversation-list {
+  padding: 10px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
 .conversation-card {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   min-height: 74px;
   padding: 13px 40px 13px 14px;
+  border: 1px solid #E2E8E3;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
   text-align: left;
+  background: #FAFCFA;
 
   &.active {
     border-color: #087E6B;
@@ -372,7 +388,8 @@ onUnmounted(async () => {
   }
 
   strong,
-  span {
+  span,
+  small {
     display: block;
   }
 
@@ -408,14 +425,13 @@ onUnmounted(async () => {
 .chat-panel {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
   background: #fff;
 }
 
 .chat-order {
-  min-height: 0;
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -430,6 +446,15 @@ onUnmounted(async () => {
     margin-top: 3px;
     color: #687872;
     font-size: 12px;
+  }
+
+  button {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
+    color: #087E6B;
+    background: #E7F4EF;
+    font-weight: 900;
   }
 }
 
@@ -473,7 +498,7 @@ onUnmounted(async () => {
 .reply-row {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
+  grid-template-columns: minmax(0, 1fr) 82px;
   gap: 8px;
   padding: 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
@@ -481,7 +506,7 @@ onUnmounted(async () => {
   background: #fff;
 
   input {
-    height: 38px;
+    height: 40px;
     padding: 0 12px;
     border: 1px solid #DCE6E1;
     border-radius: 6px;
@@ -520,5 +545,11 @@ onUnmounted(async () => {
 .message-state {
   margin: 0;
   align-self: center;
+}
+
+@media (max-width: 760px) {
+  .merchant-messages-page {
+    background: #F6F7F3;
+  }
 }
 </style>

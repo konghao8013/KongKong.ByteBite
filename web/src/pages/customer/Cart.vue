@@ -5,7 +5,7 @@ import { useCartStore } from '@/stores/modules/useCartStore'
 import { useOrderStore } from '@/stores/modules/useOrderStore'
 import { customerApi } from '@/api/modules/customer'
 import { formatPrice } from '@/utils/format'
-import { useDeviceId } from '@/composables/useDeviceId'
+import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { CreateOrderData, StoreMenuDto } from '@/types/models/customer'
 import { normalizeCustomerOrder } from '@/utils/order'
@@ -14,7 +14,7 @@ const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
-const { getDeviceId } = useDeviceId()
+const { ensureCustomerIdentity } = useCustomerIdentity()
 const storeCode = route.params.code as string
 const storeId = ref(localStorage.getItem('current_store_id') || '')
 
@@ -50,6 +50,7 @@ const discountHint = computed(() => {
 })
 
 onMounted(async () => {
+  const identity = await ensureCustomerIdentity()
   try {
     activeDiscounts.value = JSON.parse(localStorage.getItem('current_store_discounts') || '[]')
   } catch {
@@ -58,8 +59,8 @@ onMounted(async () => {
   if (storeId.value && activeDiscounts.value.length) return
   try {
     const menu = await customerApi.getStoreMenuByCode(storeCode, {
-      customerId: localStorage.getItem('customer_id') || undefined,
-      deviceId: getDeviceId(),
+      customerId: identity.customerId,
+      deviceId: identity.deviceId,
     })
     if (menu.storeId) {
       storeId.value = menu.storeId
@@ -99,10 +100,11 @@ const submitOrder = async () => {
 
   submitting.value = true
   try {
+    const identity = await ensureCustomerIdentity()
     const data: CreateOrderData = {
       storeId: storeId.value,
-      customerId: localStorage.getItem('customer_id') || undefined,
-      deviceId: getDeviceId(),
+      customerId: identity.customerId,
+      deviceId: identity.deviceId,
       items: cartStore.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,

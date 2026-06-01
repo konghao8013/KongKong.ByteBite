@@ -2,19 +2,20 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { useDeviceId } from '@/composables/useDeviceId'
+import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import { useSignalR } from '@/composables/useSignalR'
 import { useConversationStore } from '@/stores/modules/useConversationStore'
 import type { ConversationEventPayload, ConversationUnreadChangedPayload } from '@/types/models/conversation'
 
 const route = useRoute()
 const router = useRouter()
-const { getDeviceId } = useDeviceId()
+const { getCustomerIdentity, ensureCustomerIdentity } = useCustomerIdentity()
 const conversationStore = useConversationStore()
-const { connection, connect, disconnect } = useSignalR('/hubs/conversation')
+const { connection, connect, disconnect, onReconnected } = useSignalR('/hubs/conversation')
 
 const storeCode = computed(() => route.params.code as string)
 const messageBadge = computed(() => conversationStore.customerUnreadCount)
+const isMessageRoute = computed(() => route.name === 'CustomerMessages')
 
 const activeTab = computed(() => {
   const path = route.path
@@ -35,36 +36,38 @@ const switchTab = (tab: typeof tabs[0]) => {
   router.push({ name: tab.routeName, params: { code: storeCode.value } })
 }
 
+const subscribeCustomer = async () => {
+  const identity = getCustomerIdentity()
+  await connection.value?.invoke('SubscribeCustomer', identity.customerId || null, identity.deviceId || null)
+}
+
 onMounted(async () => {
-  const customerId = localStorage.getItem('customer_id') || undefined
-  const deviceId = getDeviceId()
+  const identity = await ensureCustomerIdentity()
   try {
-    await conversationStore.loadCustomerUnreadCount({ customerId, deviceId })
+    await conversationStore.loadCustomerUnreadCount(identity)
   } catch {
   }
 
   try {
     await connect()
+    onReconnected(subscribeCustomer)
     connection.value?.on('MerchantMessageReceived', (payload: ConversationEventPayload) => {
       if (typeof payload.unreadCount === 'number') conversationStore.setCustomerUnreadCount(payload.unreadCount)
-      else conversationStore.loadCustomerUnreadCount({ customerId, deviceId }).catch(() => {})
+      else conversationStore.loadCustomerUnreadCount(getCustomerIdentity()).catch(() => {})
       if (route.name !== 'CustomerMessages') ElMessage.info('收到商家新回复')
     })
     connection.value?.on('ConversationUnreadChanged', (payload: ConversationUnreadChangedPayload) => {
       if (payload.scope === 'customer') conversationStore.setCustomerUnreadCount(payload.count)
     })
-    await connection.value?.invoke('SubscribeCustomer', customerId || null, deviceId || null)
+    await subscribeCustomer()
   } catch {
   }
 })
 
 onUnmounted(async () => {
   try {
-    await connection.value?.invoke(
-      'UnsubscribeCustomer',
-      localStorage.getItem('customer_id') || null,
-      getDeviceId() || null,
-    )
+    const identity = getCustomerIdentity()
+    await connection.value?.invoke('UnsubscribeCustomer', identity.customerId || null, identity.deviceId || null)
   } catch {
   }
   await disconnect()
@@ -72,11 +75,11 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <div class="customer-layout">
+  <div class="customer-layout" :class="{ 'with-tabbar': !isMessageRoute, 'message-route': isMessageRoute }">
     <main class="customer-content">
       <router-view />
     </main>
-    <nav class="customer-tabbar">
+    <nav v-if="!isMessageRoute" class="customer-tabbar">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -106,6 +109,20 @@ onUnmounted(async () => {
 .customer-content {
   flex: 1;
   min-height: 0;
+}
+
+.customer-layout.message-route {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.customer-layout.message-route .customer-content {
+  display: flex;
+  overflow: hidden;
+}
+
+.customer-layout.with-tabbar .customer-content {
   padding-bottom: calc(58px + env(safe-area-inset-bottom));
 }
 

@@ -61,15 +61,24 @@ public class ConversationService
     public async Task<List<Conversation>> GetByCustomerAsync(Guid? customerId, string? deviceId, CancellationToken ct = default)
     {
         if (customerId == null && string.IsNullOrWhiteSpace(deviceId)) return [];
-        var query = _db.Conversations
+        var normalizedDeviceId = NormalizeDeviceId(deviceId);
+        IQueryable<Conversation> query = _db.Conversations
             .Include(c => c.Order)
             .ThenInclude(o => o.OrderItems)
-            .Include(c => c.Store)
-            .AsQueryable();
+            .Include(c => c.Store);
 
-        query = customerId != null
-            ? query.Where(c => c.CustomerId == customerId || c.DeviceId == deviceId)
-            : query.Where(c => c.DeviceId == deviceId);
+        if (customerId != null && normalizedDeviceId != null)
+        {
+            query = query.Where(c => c.CustomerId == customerId || c.DeviceId == normalizedDeviceId);
+        }
+        else if (customerId != null)
+        {
+            query = query.Where(c => c.CustomerId == customerId);
+        }
+        else
+        {
+            query = query.Where(c => c.DeviceId == normalizedDeviceId);
+        }
 
         return await query.OrderByDescending(c => c.LastMessageAt).ToListAsync(ct);
     }
@@ -92,10 +101,20 @@ public class ConversationService
     {
         if (customerId == null && string.IsNullOrWhiteSpace(deviceId)) return 0;
 
-        var query = _db.Conversations.AsQueryable();
-        query = customerId != null
-            ? query.Where(c => c.CustomerId == customerId || c.DeviceId == deviceId)
-            : query.Where(c => c.DeviceId == deviceId);
+        var normalizedDeviceId = NormalizeDeviceId(deviceId);
+        IQueryable<Conversation> query = _db.Conversations;
+        if (customerId != null && normalizedDeviceId != null)
+        {
+            query = query.Where(c => c.CustomerId == customerId || c.DeviceId == normalizedDeviceId);
+        }
+        else if (customerId != null)
+        {
+            query = query.Where(c => c.CustomerId == customerId);
+        }
+        else
+        {
+            query = query.Where(c => c.DeviceId == normalizedDeviceId);
+        }
 
         return await query.SumAsync(c => c.CustomerUnreadCount, ct);
     }
@@ -152,4 +171,7 @@ public class ConversationService
         await _db.SaveChangesAsync(ct);
         return conversation;
     }
+
+    private static string? NormalizeDeviceId(string? deviceId)
+        => string.IsNullOrWhiteSpace(deviceId) ? null : deviceId.Trim();
 }

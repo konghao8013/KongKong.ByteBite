@@ -145,3 +145,14 @@
 - CreateOrderAsync 各种验证（店铺/商品/数量/优惠/打包费）
 - 6种状态转换测试（accept/reject/prepare/ready/complete/cancel）
 - 非法状态转换抛异常
+---
+
+## 商家订单会话处理
+
+- 商家消息模块 `/merchant/messages` 按门店展示顾客订单会话，默认带出关联订单摘要。
+- 商家可从消息模块打开关联订单，跳转到订单管理并定位订单详情。
+- 商家聊天详情固定顶部顾客名称、订单信息和底部回复区，只有中间消息列表允许滚动。
+- 顾客发消息后通过 `ConversationHub.SubscribeStore(storeId)` 推送到商家端，并同步刷新商家消息菜单未读数。
+- 顾客侧消息中转优先使用本地缓存的游客/登录顾客 ID；没有顾客 ID 时才使用 `deviceId` 兜底。
+- 顾客端、商家端 SignalR 断线重连后需要重新订阅门店、顾客和当前会话组，避免重连后消息不刷新。
+- 商家打开会话后调用 `POST /api/conversations/{conversationId}/read` 清空门店侧该会话未读数；回复消息会实时推送给顾客。

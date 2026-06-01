@@ -39,6 +39,7 @@ web/src/
 │       └── PickupCodeDisplay.vue # 取货码展示
 ├── composables/            # 组合式函数
 │   ├── useDeviceId.ts      # 设备ID
+│   ├── useCustomerIdentity.ts # 游客/登录顾客身份
 │   └── useSignalR.ts       # SignalR 连接
 ├── layouts/                # 布局组件
 │   ├── MerchantLayout.vue  # 商家端（顶栏+TabBar）
@@ -110,3 +111,14 @@ request.get('/stores/123')  ←→   { code:200, message:"success", data:{...} }
 |------|------|------|
 | 管理员 | admin | admin123 |
 | 商家 | 18523978013 | 123456 |
+---
+
+## 消息模块前端落点
+
+- 顾客路由：`/A/:code/messages`，页面 `web/src/pages/customer/Messages.vue`，用于查看商家回复、继续回复、打开关联订单。
+- 商家路由：`/merchant/messages`，页面 `web/src/pages/merchant/Messages.vue`，用于集中处理顾客消息、回复消息、打开关联订单。
+- 消息交互：顾客端和商家端进入消息路由先展示会话列表，点击具体会话进入单独聊天详情；详情页固定顶部名称和订单信息、底部输入区，仅中间消息区域滚动，并在加载、发送、实时接收后自动滚动到底。
+- 导航角标：`CustomerLayout.vue` 和 `MerchantLayout.vue` 通过 `useConversationStore` 维护未读数，并通过 `ConversationHub` 实时更新。
+- 顾客身份：`useCustomerIdentity` 首次访问时调用匿名顾客接口，为游客生成并缓存 `customer_id`，消息中转优先按顾客 ID 分组。
+- 实时连接：`useSignalR` 防止同一组件重复启动连接，断线后自动重连并触发页面/布局恢复门店、顾客和会话订阅。
+- API 封装：`conversationApi` 增加顾客/商家未读统计接口；`models/conversation.ts` 增加 SignalR 事件载荷类型。

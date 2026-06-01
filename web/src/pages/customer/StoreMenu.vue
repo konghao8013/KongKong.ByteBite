@@ -3,7 +3,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { customerApi } from '@/api/modules/customer'
 import { useCartStore } from '@/stores/modules/useCartStore'
-import { useDeviceId } from '@/composables/useDeviceId'
+import { useCustomerIdentity } from '@/composables/useCustomerIdentity'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { StoreMenuDto, StoreMenuItemDto, StoreMenuCategoryDto } from '@/types/models/customer'
@@ -11,7 +11,7 @@ import type { StoreMenuDto, StoreMenuItemDto, StoreMenuCategoryDto } from '@/typ
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
-const { getDeviceId } = useDeviceId()
+const { ensureCustomerIdentity } = useCustomerIdentity()
 const storeCode = route.params.code as string
 
 const menuData = ref<StoreMenuDto | null>(null)
@@ -23,9 +23,10 @@ const previewImage = ref<{ url: string; name: string } | null>(null)
 
 onMounted(async () => {
   try {
+    const identity = await ensureCustomerIdentity()
     const data = await customerApi.getStoreMenuByCode(storeCode, {
-      customerId: localStorage.getItem('customer_id') || undefined,
-      deviceId: getDeviceId(),
+      customerId: identity.customerId,
+      deviceId: identity.deviceId,
     })
     menuData.value = data
     if (data.storeId) localStorage.setItem('current_store_id', data.storeId)
