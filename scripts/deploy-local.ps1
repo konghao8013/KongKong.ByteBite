@@ -10,6 +10,7 @@ param(
     [string]$DbName = "kongkong_bytebite",
     [string]$DbUser = "konghao",
     [string]$DbPassword = "hitek.123",
+    [string]$PostgresImage = "postgres:17-alpine",
     [switch]$SkipBuild,
     [switch]$SkipPostgres
 )
@@ -52,6 +53,26 @@ function Invoke-External {
     }
 }
 
+function Invoke-NpmRestore {
+    $webDir = Join-Path $RepoRoot "web"
+    Push-Location $webDir
+    try {
+        & npm.cmd ci
+        if ($LASTEXITCODE -eq 0) {
+            return
+        }
+
+        Write-Warning "npm ci failed. Falling back to npm install so locked local node_modules files do not block deployment."
+        & npm.cmd install
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm install failed with exit code $LASTEXITCODE"
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Ensure-DockerNetwork {
     docker network inspect $DockerNetwork *> $null
     if ($LASTEXITCODE -ne 0) {
@@ -80,7 +101,7 @@ function Ensure-Postgres {
         "-e", "POSTGRES_USER=$DbUser",
         "-e", "POSTGRES_PASSWORD=$DbPassword",
         "-v", "${DbContainerName}-data:/var/lib/postgresql/data",
-        "postgres:17-alpine"
+        $PostgresImage
     )
 }
 
@@ -90,7 +111,7 @@ function Build-PublishOutput {
     }
     New-Item -ItemType Directory -Force $PublishDir | Out-Null
 
-    Invoke-External "npm.cmd" @("ci") (Join-Path $RepoRoot "web")
+    Invoke-NpmRestore
     Invoke-External "npm.cmd" @("run", "build") (Join-Path $RepoRoot "web")
     Invoke-External "dotnet" @("restore", "src\ByteBite.Api\ByteBite.Api.csproj")
     Invoke-External "dotnet" @("publish", "src\ByteBite.Api\ByteBite.Api.csproj", "-c", "Release", "-o", $PublishDir, "/p:UseAppHost=false")

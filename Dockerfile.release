@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+ARG DOTNET_ASPNET_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0
+FROM ${DOTNET_ASPNET_IMAGE} AS runtime
 
 WORKDIR /app
 
