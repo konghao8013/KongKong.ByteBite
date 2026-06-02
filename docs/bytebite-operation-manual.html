@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ByteBite 用户端与商家端操作手册</title>
+  <style>
+    :root {
+      --brand: #087e6b;
+      --brand-strong: #065f51;
+      --brand-soft: #e7f4ef;
+      --accent: #ff6b4a;
+      --accent-soft: #fff1ec;
+      --warning: #f7b731;
+      --warning-soft: #fff6db;
+      --danger: #d94c4c;
+      --blue: #346ac3;
+      --blue-soft: #eaf1ff;
+      --ink: #1f2a26;
+      --muted: #687872;
+      --line: #dce6e1;
+      --line-strong: #cbd9d3;
+      --page: #f6f7f3;
+      --panel: #ffffff;
+      --note: #fffbeb;
+      --note-line: #f4d889;
+      --shadow: 0 12px 30px rgba(31, 42, 38, 0.08);
+      --shadow-soft: 0 6px 18px rgba(31, 42, 38, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--page);
+      overflow: hidden;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #eef2ef; }
+    ::-webkit-scrollbar-thumb { background: #becfc7; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a9bbb3; }
+
+    #app {
+      position: relative;
+      display: flex;
+      height: 100vh;
+      min-height: 100dvh;
+    }
+
+    #left-panel {
+      position: relative;
+      width: 78%;
+      overflow-y: auto;
+      background: var(--page);
+    }
+
+    #right-panel {
+      width: 22%;
+      min-width: 300px;
+      overflow-y: auto;
+      border-left: 2px dashed var(--note-line);
+      background: #fff9df;
+    }
+
+    #divider { width: 1px; background: var(--line-strong); }
+
+    #connections {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    .connection-line {
+      fill: none;
+      stroke: var(--brand);
+      stroke-width: 2;
+      opacity: 0.55;
+      transition: stroke-width 0.16s ease, opacity 0.16s ease;
+    }
+    .connection-line.active { stroke-width: 3; opacity: 1; }
+    .connection-label-bg { fill: var(--brand); }
+    .connection-label {
+      fill: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .proto-element,
+    .proto-desc {
+      transition: box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+    .proto-element { border-radius: 8px; }
+    .proto-element:hover,
+    .proto-element.active-highlight {
+      box-shadow: 0 0 0 2px var(--brand), 0 10px 24px rgba(8, 126, 107, 0.12);
+      background: rgba(8, 126, 107, 0.035);
+    }
+    .proto-desc {
+      border: 1px solid var(--note-line);
+      border-radius: 8px;
+      background: var(--note);
+    }
+    .proto-desc:hover,
+    .proto-desc.active-highlight {
+      border-color: #d99c20;
+      background: #fff2bd;
+      box-shadow: 0 8px 18px rgba(160, 117, 23, 0.13);
+    }
+
+    .manual-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+    }
+    .brand-block { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 900;
+    }
+    .brand-title { min-width: 0; }
+    .brand-title h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .brand-title p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .header-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip,
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 26px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      color: var(--brand);
+      background: var(--brand-soft);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .chip.gray { color: var(--muted); background: #eef2ef; }
+    .chip.red { color: var(--danger); background: #fff0f0; }
+    .chip.orange { color: #9a6a00; background: var(--warning-soft); }
+    .chip.blue { color: var(--blue); background: var(--blue-soft); }
+
+    .content {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 24px 0 44px;
+    }
+
+    .section {
+      margin-bottom: 28px;
+      scroll-margin-top: 86px;
+    }
+    .section-title {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+    .section-title h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+    .section-title p {
+      max-width: 680px;
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 14px;
+    }
+    .intro-card,
+    .panel-card,
+    .flow-card,
+    .module-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow-soft);
+    }
+    .intro-card { padding: 20px; }
+    .intro-card h2 {
+      margin: 0 0 10px;
+      font-size: 26px;
+    }
+    .intro-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .cap-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .cap-item {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fafcfa;
+    }
+    .cap-item strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    .cap-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .quick-card { padding: 16px; }
+    .quick-card h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+    .route-list {
+      display: grid;
+      gap: 9px;
+    }
+    .route-item {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .route-item strong { font-size: 13px; }
+    .route-item code {
+      display: block;
+      color: var(--brand-strong);
+      overflow-wrap: anywhere;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .route-item span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .flow-card { padding: 18px; }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: 82px repeat(5, minmax(110px, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .lane-label {
+      min-height: 74px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--brand);
+      font-size: 13px;
+      font-weight: 900;
+      text-align: center;
+    }
+    .lane-label.merchant { background: #1f2a26; }
+    .flow-step {
+      position: relative;
+      min-width: 120px;
+      min-height: 74px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .flow-step::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -9px;
+      width: 9px;
+      height: 2px;
+      background: var(--line-strong);
+    }
+    .flow-step.no-arrow::after { display: none; }
+    .flow-step.system {
+      border-color: #c5d5ff;
+      background: var(--blue-soft);
+    }
+    .flow-step .num {
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      margin-bottom: 6px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--brand);
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .flow-step.merchant .num { background: var(--ink); }
+    .flow-step strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .flow-step span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .module-card {
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .module-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .module-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .module-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .module-body {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.92fr) minmax(340px, 1.08fr);
+      gap: 16px;
+      padding: 16px;
+      align-items: start;
+    }
+
+    .phone-shell,
+    .console-shell,
+    .login-shell {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fafdFA;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .phone-shell {
+      width: min(360px, 100%);
+      margin: 0 auto;
+      border-radius: 24px;
+      background: #202522;
+      padding: 10px;
+    }
+    .phone-screen {
+      min-height: 560px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--page);
+    }
+    .phone-top {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: #fff;
+      background: #202522;
+      font-size: 10px;
+    }
+    .phone-top span {
+      width: 42px;
+      height: 5px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.45);
+    }
+    .phone-content { min-height: 532px; background: var(--page); }
+
+    .screen-header {
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.96);
+    }
+    .screen-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .screen-header h4 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+    .screen-header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    .mini-btn {
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--brand);
+      background: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .search-line {
+      height: 34px;
+      margin-top: 10px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      background: #fafcfa;
+      font-size: 12px;
+    }
+    .search-line b { color: var(--brand); }
+    .discount-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 9px;
+      padding: 8px 10px;
+      border: 1px solid #f5e2a8;
+      border-radius: 6px;
+      color: #9a6a00;
+      background: #fff8e6;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .discount-line b {
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+      background: var(--accent);
+    }
+
+    .menu-layout {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      min-height: 356px;
+      overflow: hidden;
+    }
+    .category-rail {
+      background: #eff4f1;
+      border-right: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .cat-item {
+      min-height: 52px;
+      padding: 8px 8px 8px 11px;
+      display: grid;
+      align-content: center;
+      gap: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      position: relative;
+    }
+    .cat-item.active {
+      color: var(--brand);
+      background: #fff;
+      font-weight: 900;
+    }
+    .cat-item.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      bottom: 12px;
+      width: 3px;
+      border-radius: 99px;
+      background: var(--brand);
+    }
+    .cat-item small { color: #9aa9a3; font-size: 10px; }
+    .product-list {
+      padding: 8px 10px 78px;
+      overflow: hidden;
+    }
+    .list-title {
+      margin: 4px 0 8px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .product-card {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 10px;
+      padding: 9px;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(31, 42, 38, 0.05);
+    }
+    .product-img,
+    .thumb {
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: var(--brand);
+      background:
+        radial-gradient(circle at 34% 38%, rgba(255,255,255,0.9) 0 12%, transparent 13%),
+        radial-gradient(circle at 64% 60%, rgba(31,42,38,0.12) 0 12%, transparent 13%),
+        linear-gradient(135deg, #e7f4ef, #bfe5da);
+      font-weight: 900;
+    }
+    .product-img { width: 74px; height: 74px; }
+    .thumb { width: 44px; height: 44px; }
+    .product-info { min-width: 0; display: grid; gap: 6px; }
+    .product-name {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 15px;
+      font-weight: 900;
+    }
+    .product-desc {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .product-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: auto;
+    }
+    .price {
+      color: var(--accent);
+      font-size: 17px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .round-btn,
+    .spec-btn {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--brand);
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .spec-btn {
+      min-width: 58px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+    .cart-float {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      height: 48px;
+      padding: 0 10px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #fff;
+      background: #202522;
+      box-shadow: 0 10px 24px rgba(31, 42, 38, 0.24);
+    }
+    .cart-float strong { font-size: 18px; }
+    .cart-float small { display: block; color: rgba(255,255,255,0.7); font-size: 10px; }
+    .cart-float button {
+      height: 34px;
+      padding: 0 16px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 900;
+    }
+    .phone-relative { position: relative; }
+
+    .form-panel {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .form-panel h4 { margin: 0 0 6px; font-size: 20px; }
+    .form-panel p { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      padding: 5px;
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--page);
+    }
+    .segmented span {
+      height: 34px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .segmented span.active { color: #fff; background: var(--brand); }
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .fake-input,
+    .fake-textarea {
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      color: #9aa9a3;
+      background: #fafcfa;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .fake-textarea { min-height: 62px; align-items: flex-start; padding-top: 10px; }
+    .submit-line {
+      height: 44px;
+      margin-top: 16px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 900;
+    }
+
+    .cart-screen {
+      padding: 14px 14px 84px;
+      position: relative;
+      min-height: 532px;
+    }
+    .back-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .back-title .back {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #f1f4f2;
+      font-size: 22px;
+    }
+    .back-title h4 { margin: 0; font-size: 20px; }
+    .option-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .mode-option {
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .mode-option.active {
+      border-color: var(--brand);
+      color: var(--brand);
+      background: var(--brand-soft);
+    }
+    .cart-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .cart-panel {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .cart-item strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+    .cart-item span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .qty-mini {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ink);
+      font-weight: 900;
+    }
+    .qty-mini b {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: var(--brand);
+      color: #fff;
+    }
+    .settle-bar {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 18px;
+      height: 54px;
+      padding: 0 12px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #fff;
+      background: #202522;
+    }
+    .settle-bar strong { font-size: 20px; }
+    .settle-bar button {
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 6px;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 900;
+    }
+
+    .order-detail {
+      padding: 14px;
+      min-height: 532px;
+    }
+    .status-card {
+      padding: 16px;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), #0ea389);
+    }
+    .status-card h4 {
+      margin: 0 0 5px;
+      font-size: 22px;
+    }
+    .status-card p { margin: 0; font-size: 13px; opacity: 0.9; }
+    .pickup-card {
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      text-align: center;
+    }
+    .pickup-code {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 124px;
+      height: 48px;
+      margin: 6px 0;
+      border-radius: 8px;
+      color: var(--brand);
+      background: var(--brand-soft);
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+    .qr-mock {
+      width: 76px;
+      height: 76px;
+      margin: 8px auto 0;
+      border: 5px solid #fff;
+      background:
+        linear-gradient(90deg, #111 10px, transparent 10px 15px, #111 15px 25px, transparent 25px 31px, #111 31px 42px, transparent 42px),
+        linear-gradient(#111 10px, transparent 10px 15px, #111 15px 25px, transparent 25px 31px, #111 31px 42px, transparent 42px);
+      background-size: 36px 36px;
+      box-shadow: 0 0 0 1px var(--line);
+    }
+    .timeline {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .time-row b { color: var(--ink); }
+
+    .console-shell {
+      min-height: 420px;
+      background: #fff;
+    }
+    .console-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      height: 58px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+    }
+    .console-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .console-brand span {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--brand);
+    }
+    .console-layout {
+      display: grid;
+      grid-template-columns: 156px minmax(0, 1fr);
+      min-height: 420px;
+    }
+    .console-nav {
+      padding: 12px 8px;
+      border-right: 1px solid var(--line);
+      background: #fafcfa;
+    }
+    .nav-link {
+      height: 36px;
+      margin-bottom: 6px;
+      padding: 0 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .nav-link.active {
+      color: var(--brand);
+      background: var(--brand-soft);
+    }
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      font-size: 12px;
+    }
+    .console-main {
+      min-width: 0;
+      padding: 14px;
+      background: var(--page);
+    }
+    .console-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .console-title h4 { margin: 0; font-size: 18px; }
+    .primary-button,
+    .ghost-button,
+    .danger-button {
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .primary-button { color: #fff; background: var(--brand); }
+    .ghost-button { color: var(--brand); background: var(--brand-soft); }
+    .danger-button { color: var(--danger); background: #fff0f0; }
+
+    .verify-panel,
+    .message-strip,
+    .tabs-panel,
+    .data-row,
+    .table-panel,
+    .editor-panel {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(31, 42, 38, 0.04);
+    }
+    .verify-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 72px;
+      gap: 8px;
+    }
+    .verify-row span {
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      color: #9aa9a3;
+      background: #fafcfa;
+      font-size: 12px;
+    }
+    .status-tabs {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      margin: 12px 0;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .status-tab {
+      min-height: 44px;
+      padding: 5px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+    }
+    .status-tab.active { color: #fff; background: var(--brand); }
+    .order-card {
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--brand);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .order-card-head,
+    .order-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .order-code { font-size: 18px; font-weight: 900; }
+    .order-items-mini {
+      display: grid;
+      gap: 4px;
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .order-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .money { color: var(--brand); font-size: 18px; font-weight: 900; }
+
+    .menu-admin-layout {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+    }
+    .admin-cats,
+    .admin-products {
+      min-height: 260px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .admin-cat {
+      min-height: 38px;
+      padding: 8px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      color: var(--muted);
+      background: #f6f7f3;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .admin-cat.active { color: var(--brand); background: var(--brand-soft); }
+    .admin-product {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      padding: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .admin-product strong {
+      display: block;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .admin-product small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .store-preview {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 12px;
+    }
+    .store-cover {
+      min-height: 180px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background:
+        linear-gradient(rgba(8, 126, 107, 0.18), rgba(8, 126, 107, 0.18)),
+        linear-gradient(135deg, #f0b56a, #087e6b 70%);
+      font-size: 42px;
+      font-weight: 900;
+    }
+    .store-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .info-tile {
+      min-height: 70px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .info-tile span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+    .info-tile strong { font-size: 14px; }
+
+    .discount-card,
+    .staff-card,
+    .conversation-card {
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .discount-card h5,
+    .staff-card h5,
+    .conversation-card h5 {
+      margin: 0 0 7px;
+      font-size: 14px;
+    }
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 9px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .metric {
+      min-height: 86px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--brand);
+      font-size: 24px;
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .chart-box {
+      min-height: 166px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .bars {
+      height: 100px;
+      display: flex;
+      align-items: end;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 8px 0 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .bar {
+      flex: 1;
+      min-width: 10px;
+      border-radius: 4px 4px 0 0;
+      background: var(--brand);
+    }
+
+    .guide-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .guide-card {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .guide-card h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+    .guide-card p,
+    .guide-card li {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .guide-card p { margin: 0; }
+    .guide-card ul,
+    .guide-card ol {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+    .guide-card li + li { margin-top: 5px; }
+    .guide-card .guide-label {
+      display: inline-flex;
+      margin-bottom: 7px;
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .right-inner {
+      padding: 16px;
+    }
+    .toc-card {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      margin: -16px -16px 14px;
+      padding: 16px;
+      border-bottom: 1px solid var(--note-line);
+      background: #fff4c2;
+    }
+    .toc-card h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .toc-card p {
+      margin: 6px 0 12px;
+      color: #8a6715;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .toc-links {
+      display: grid;
+      gap: 6px;
+    }
+    .toc-links a {
+      display: block;
+      padding: 7px 8px;
+      border-radius: 6px;
+      color: #704e05;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.5);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .toc-links a:hover { background: #fff; color: var(--brand); }
+    .desc-section {
+      margin-bottom: 18px;
+      scroll-margin-top: 140px;
+    }
+    .desc-section h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      color: #704e05;
+    }
+    .desc-stack {
+      display: grid;
+      gap: 10px;
+    }
+    .proto-desc {
+      padding: 12px;
+    }
+    .desc-num {
+      width: 25px;
+      height: 25px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--brand);
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .desc-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+    }
+    .proto-desc strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .proto-desc p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .mobile-toggle-btn {
+      display: none;
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 80;
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--brand);
+      box-shadow: 0 10px 24px rgba(8, 126, 107, 0.28);
+      font-weight: 900;
+    }
+
+    @media (max-width: 1180px) {
+      #left-panel { width: 74%; }
+      #right-panel { width: 26%; min-width: 280px; }
+      .overview-grid,
+      .module-body,
+      .store-preview,
+      .chart-grid { grid-template-columns: 1fr; }
+      .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 820px) {
+      body { overflow: hidden; }
+      #app { flex-direction: column; }
+      #left-panel {
+        width: 100%;
+        height: 62vh;
+      }
+      #divider,
+      #connections { display: none; }
+      #right-panel {
+        width: 100%;
+        min-width: 0;
+        height: 38vh;
+        border-left: 0;
+        border-top: 2px dashed var(--note-line);
+      }
+      .mobile-toggle-btn { display: flex; }
+      .manual-header {
+        padding: 12px 14px;
+        align-items: flex-start;
+      }
+      .header-meta { display: none; }
+      .content {
+        width: calc(100% - 24px);
+        padding-top: 14px;
+      }
+      .section-title { display: block; }
+      .cap-grid,
+      .module-body,
+      .menu-admin-layout,
+      .console-layout,
+      .flow-grid {
+        grid-template-columns: 1fr;
+      }
+      .phone-shell { width: 100%; }
+      .console-nav { display: none; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .flow-step::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <button class="mobile-toggle-btn" id="mobileToggle" type="button" aria-label="切换说明">说明</button>
+  <svg id="connections" aria-hidden="true"></svg>
+
+  <div id="app">
+    <main id="left-panel">
+      <header class="manual-header">
+        <div class="brand-block">
+          <div class="brand-mark">B</div>
+          <div class="brand-title">
+            <h1>ByteBite 用户端与商家端操作手册</h1>
+            <p>先用户端，后商家端；覆盖注册、下单、接单、核销和日常经营。</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span class="chip">HTML 单文件</span>
+          <span class="chip gray">适用：顾客与商家</span>
+          <span class="chip orange">更新：2026-06-02</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="section" id="overview">
+          <div class="overview-grid">
+            <div class="intro-card proto-element" data-proto-id="1">
+              <h2>软件简介</h2>
+              <p>
+                ByteBite 是面向餐饮门店的扫码点单和商家经营工作台。顾客可通过门店短链或二维码进入菜单，完成选品、规格选择、购物车、堂食/打包/外卖下单、取货码展示和订单消息沟通；商家可在工作台处理订单、维护门店和菜品、配置优惠活动、回复顾客消息、核销取货码、管理店员并查看经营数据。
+              </p>
+              <div class="cap-grid">
+                <div class="cap-item proto-element" data-proto-id="2">
+                  <strong>顾客端</strong>
+                  <span>扫码进店、搜索店铺、点餐结算、查看订单、取货码与二维码、联系商家、再来一单。</span>
+                </div>
+                <div class="cap-item proto-element" data-proto-id="3">
+                  <strong>商家端</strong>
+                  <span>订单接单与制作流转、菜单和规格套餐、优惠、店铺分享、消息、店员、经营数据。</span>
+                </div>
+                <div class="cap-item">
+                  <strong>实时联动</strong>
+                  <span>新订单、订单状态、消息未读数通过实时连接更新，并保留轮询兜底。</span>
+                </div>
+                <div class="cap-item">
+                  <strong>多身份入口</strong>
+                  <span>统一登录页可识别商家、顾客和管理员身份；本手册聚焦顾客与商家。</span>
+                </div>
+              </div>
+            </div>
+
+            <aside class="panel-card quick-card proto-element" data-proto-id="4">
+              <h3>常用访问入口</h3>
+              <div class="route-list">
+                <div class="route-item">
+                  <strong>顾客进店</strong>
+                  <div><code>/A/{storeCode}</code><span>扫码或打开商家分享短链进入门店菜单。</span></div>
+                </div>
+                <div class="route-item">
+                  <strong>找店</strong>
+                  <div><code>/stores/search</code><span>输入店铺名、店铺码或行业搜索。</span></div>
+                </div>
+                <div class="route-item">
+                  <strong>顾客账号</strong>
+                  <div><code>/customer/login</code><span>顾客手机号或账号名注册/登录。</span></div>
+                </div>
+                <div class="route-item">
+                  <strong>商家后台</strong>
+                  <div><code>/login</code><span>统一登录；商家登录成功后进入订单管理。</span></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="section" id="flow">
+          <div class="section-title">
+            <div>
+              <h2>用户下单到商家接单流程</h2>
+              <p>下图按操作人分成顾客、系统、商家三条线，展示从扫码进店到商家接单的关键节点。</p>
+            </div>
+          </div>
+          <div class="flow-card proto-element" data-proto-id="5">
+            <div class="flow-grid" aria-label="用户下单到商家接单流程图">
+              <div class="lane-label">顾客操作</div>
+              <div class="flow-step">
+                <span class="num">1</span>
+                <strong>扫码或搜索进店</strong>
+                <span>进入 /A/{storeCode} 菜单页。</span>
+              </div>
+              <div class="flow-step">
+                <span class="num">2</span>
+                <strong>选择商品</strong>
+                <span>按分类、搜索、规格或套餐加入购物车。</span>
+              </div>
+              <div class="flow-step">
+                <span class="num">3</span>
+                <strong>购物车结算</strong>
+                <span>选择堂食/打包/外卖，填写备注或配送信息。</span>
+              </div>
+              <div class="flow-step">
+                <span class="num">4</span>
+                <strong>提交订单</strong>
+                <span>生成待接单订单和取货码。</span>
+              </div>
+              <div class="flow-step no-arrow">
+                <span class="num">5</span>
+                <strong>查看状态</strong>
+                <span>订单详情实时显示接单结果。</span>
+              </div>
+
+              <div class="lane-label">系统处理</div>
+              <div class="flow-step system">
+                <span class="num">A</span>
+                <strong>加载门店菜单</strong>
+                <span>读取分类、商品、活动和营业状态。</span>
+              </div>
+              <div class="flow-step system">
+                <span class="num">B</span>
+                <strong>同步购物车</strong>
+                <span>匿名设备或顾客账号保存购物车。</span>
+              </div>
+              <div class="flow-step system">
+                <span class="num">C</span>
+                <strong>计算金额</strong>
+                <span>后端重新计算优惠、打包费和实付。</span>
+              </div>
+              <div class="flow-step system">
+                <span class="num">D</span>
+                <strong>推送新订单</strong>
+                <span>向商家订单页发送 NewOrder。</span>
+              </div>
+              <div class="flow-step system no-arrow">
+                <span class="num">E</span>
+                <strong>推送状态</strong>
+                <span>接单后向顾客推送 OrderStatusUpdated。</span>
+              </div>
+
+              <div class="lane-label merchant">商家操作</div>
+              <div class="flow-step merchant">
+                <span class="num">1</span>
+                <strong>登录工作台</strong>
+                <span>进入 /merchant/orders。</span>
+              </div>
+              <div class="flow-step merchant">
+                <span class="num">2</span>
+                <strong>查看待接单</strong>
+                <span>待接单角标和订单卡片提示新订单。</span>
+              </div>
+              <div class="flow-step merchant">
+                <span class="num">3</span>
+                <strong>打开详情</strong>
+                <span>核对商品、备注、金额和配送信息。</span>
+              </div>
+              <div class="flow-step merchant">
+                <span class="num">4</span>
+                <strong>接单或拒单</strong>
+                <span>点击接单；拒单需填写原因。</span>
+              </div>
+              <div class="flow-step merchant no-arrow">
+                <span class="num">5</span>
+                <strong>进入制作</strong>
+                <span>后续可开始制作、待取餐、核销完成。</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="customer">
+          <div class="section-title">
+            <div>
+              <h2>用户端操作手册</h2>
+              <p>用户端以手机页面为主，底部模块为菜单、购物车、消息、订单；注册登录不是强制点餐条件，但登录后可跨设备同步订单、最近店铺和会话。</p>
+            </div>
+            <span class="chip">先用户端</span>
+          </div>
+
+          <article class="module-card" id="customer-register">
+            <div class="module-head">
+              <div>
+                <h3>1. 普通用户注册与登录</h3>
+                <p>用于把匿名点餐记录合并到正式账号，方便跨设备查看订单、最近店铺和消息。</p>
+              </div>
+              <span class="chip blue">/customer/login</span>
+            </div>
+            <div class="module-body">
+              <div class="phone-shell proto-element" data-proto-id="6">
+                <div class="phone-top"><span></span></div>
+                <div class="phone-screen">
+                  <div class="phone-content" style="padding:18px 16px;">
+                    <div class="form-panel">
+                      <h4>顾客注册</h4>
+                      <p>登录后可跨设备查看订单和最近访问的店铺。</p>
+                      <div class="segmented proto-element" data-proto-id="7">
+                        <span>登录</span>
+                        <span class="active">注册</span>
+                      </div>
+                      <div class="segmented proto-element" data-proto-id="8">
+                        <span class="active">手机号</span>
+                        <span>账号名</span>
+                      </div>
+                      <label class="field">
+                        <span>手机号</span>
+                        <div class="fake-input">输入手机号</div>
+                      </label>
+                      <label class="field">
+                        <span>密码</span>
+                        <div class="fake-input">至少 6 位</div>
+                      </label>
+                      <label class="field">
+                        <span>昵称</span>
+                        <div class="fake-input">可选</div>
+                      </label>
+                      <div class="submit-line proto-element" data-proto-id="9">顾客注册</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>建立普通用户账号，便于订单、购物车、最近店铺和消息会话跨设备查看。未登录时也可以点餐，系统会先用设备标识保存本机数据。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>从“我的订单”提示、店铺底部“账号”入口，或直接打开 /customer/login。</li>
+                    <li>选择“注册”，再选择“手机号”或“账号名”。</li>
+                    <li>填写手机号或账号名、密码；昵称可不填。</li>
+                    <li>点击“顾客注册”。注册成功后系统会登录并合并本机匿名订单、最近店铺、购物车和消息。</li>
+                    <li>已有账号时切回“登录”，输入手机号或账号名与密码即可。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="customer-store">
+            <div class="module-head">
+              <div>
+                <h3>2. 进店、菜单浏览与加购</h3>
+                <p>用于查看门店营业状态、活动、分类、菜品、套餐和规格，并把商品加入购物车。</p>
+              </div>
+              <span class="chip blue">/A/{storeCode}</span>
+            </div>
+            <div class="module-body">
+              <div class="phone-shell proto-element" data-proto-id="10">
+                <div class="phone-top"><span></span></div>
+                <div class="phone-screen phone-relative">
+                  <div class="phone-content">
+                    <header class="screen-header">
+                      <div class="screen-header-row">
+                        <div>
+                          <h4>空空示例茶餐厅</h4>
+                          <p>营业中，支持堂食、打包、外卖。</p>
+                        </div>
+                        <button class="mini-btn">我的订单</button>
+                      </div>
+                      <div class="meta-row proto-element" data-proto-id="11">
+                        <span class="chip">营业中</span>
+                        <span class="chip gray">堂食</span>
+                        <span class="chip gray">打包</span>
+                        <span class="chip gray">外卖</span>
+                      </div>
+                      <div class="search-line proto-element" data-proto-id="12"><b>搜索</b><span>菜品、套餐、饮品</span></div>
+                      <div class="discount-line proto-element" data-proto-id="13"><b>活动</b><span>满 100 减 10</span></div>
+                    </header>
+                    <div class="menu-layout">
+                      <aside class="category-rail proto-element" data-proto-id="14">
+                        <div class="cat-item active">热销<small>3 件</small></div>
+                        <div class="cat-item">套餐<small>2 件</small></div>
+                        <div class="cat-item">饮品<small>5 件</small></div>
+                        <div class="cat-item">小吃<small>4 件</small></div>
+                      </aside>
+                      <main class="product-list">
+                        <div class="list-title">热销</div>
+                        <article class="product-card proto-element" data-proto-id="15">
+                          <div class="product-img">餐</div>
+                          <div class="product-info">
+                            <h5 class="product-name">黑椒牛肉饭</h5>
+                            <p class="product-desc">可选米饭份量和辣度</p>
+                            <div class="meta-row"><span class="chip gray">月售 88</span></div>
+                            <div class="product-bottom">
+                              <div class="price">¥28.00</div>
+                              <button class="spec-btn">选规格</button>
+                            </div>
+                          </div>
+                        </article>
+                        <article class="product-card">
+                          <div class="product-img">饮</div>
+                          <div class="product-info">
+                            <h5 class="product-name">柠檬红茶</h5>
+                            <p class="product-desc">清爽解腻</p>
+                            <div class="product-bottom">
+                              <div class="price">¥9.00</div>
+                              <button class="round-btn">+</button>
+                            </div>
+                          </div>
+                        </article>
+                      </main>
+                    </div>
+                    <div class="cart-float proto-element" data-proto-id="16">
+                      <div><strong>¥37.00</strong><small>已选 2 件，再买 63.00 元可减 10 元</small></div>
+                      <button>去结算</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>这是顾客点餐的主页面，用来选择分类、搜索菜品、查看活动、浏览商品图片和价格，并把商品加入购物车。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>扫描商家二维码或打开短链 /A/{storeCode} 进入菜单。</li>
+                    <li>在顶部查看营业状态、堂食/打包/外卖能力和活动说明；休息中时不能下单。</li>
+                    <li>用搜索框按菜品名、套餐名或描述过滤列表；左侧分类可快速切换。</li>
+                    <li>无规格商品点击“+”直接加入购物车；有规格商品点击“选规格”进入商品详情。</li>
+                    <li>底部购物车条展示已选数量、金额和优惠凑单提示，点击“去结算”进入购物车。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="customer-cart">
+            <div class="module-head">
+              <div>
+                <h3>3. 商品详情、购物车与提交订单</h3>
+                <p>用于确认规格、数量、备注、就餐方式、配送信息和优惠金额，最后提交订单。</p>
+              </div>
+              <span class="chip blue">/A/{code}/cart</span>
+            </div>
+            <div class="module-body">
+              <div class="phone-shell proto-element" data-proto-id="17">
+                <div class="phone-top"><span></span></div>
+                <div class="phone-screen">
+                  <div class="cart-screen">
+                    <div class="back-title">
+                      <div class="back">‹</div>
+                      <h4>购物车</h4>
+                    </div>
+                    <div class="option-row proto-element" data-proto-id="18">
+                      <div class="mode-option active">堂食</div>
+                      <div class="mode-option">打包</div>
+                      <div class="mode-option">外卖</div>
+                    </div>
+                    <label class="field proto-element" data-proto-id="19" style="margin-bottom:12px;">
+                      <span>桌号 / 配送信息</span>
+                      <div class="fake-input">输入桌号，如：A3</div>
+                    </label>
+                    <div class="cart-panel proto-element" data-proto-id="20">
+                      <div class="cart-item">
+                        <div><strong>黑椒牛肉饭</strong><span>大份，微辣；备注：少葱</span></div>
+                        <div class="qty-mini"><b>-</b><span>1</span><b>+</b></div>
+                      </div>
+                      <div class="cart-item">
+                        <div><strong>柠檬红茶</strong><span>正常冰</span></div>
+                        <div class="qty-mini"><b>-</b><span>1</span><b>+</b></div>
+                      </div>
+                    </div>
+                    <label class="field proto-element" data-proto-id="21">
+                      <span>订单备注</span>
+                      <div class="fake-textarea">对订单有什么想说的...</div>
+                    </label>
+                    <div class="settle-bar proto-element" data-proto-id="22">
+                      <div><strong>¥37.00</strong><small>优惠减免以提交时后端计算为准</small></div>
+                      <button>提交订单</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>购物车是下单前的确认页，用来修改数量和备注，选择堂食、打包或外卖，并提交订单。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>在商品详情中选择必选规格、单选规格、数量后加入购物车。</li>
+                    <li>在购物车中选择堂食、打包或外卖。堂食填写桌号；外卖填写配送地址和联系电话。</li>
+                    <li>逐项检查商品、规格、数量和单品备注，可用加减按钮调整数量。</li>
+                    <li>填写订单备注，例如少冰、不加葱、尽快送达等。</li>
+                    <li>点击“提交订单”。系统会重新校验库存、营业状态、优惠和金额，成功后跳转订单详情。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="customer-order">
+            <div class="module-head">
+              <div>
+                <h3>4. 订单详情、取货码、消息与我的订单</h3>
+                <p>用于查看订单状态、取消待接单订单、向商家发送消息、展示取货码和再次下单。</p>
+              </div>
+              <span class="chip blue">订单模块</span>
+            </div>
+            <div class="module-body">
+              <div class="phone-shell proto-element" data-proto-id="23">
+                <div class="phone-top"><span></span></div>
+                <div class="phone-screen">
+                  <div class="order-detail">
+                    <div class="status-card proto-element" data-proto-id="24">
+                      <h4>待接单</h4>
+                      <p>商家接单后会实时更新状态。</p>
+                    </div>
+                    <div class="pickup-card proto-element" data-proto-id="25">
+                      <div class="chip">取货码</div>
+                      <div class="pickup-code">A8K29Q</div>
+                      <p style="margin:0;color:var(--muted);font-size:12px;">向商家出示二维码可快速核销</p>
+                      <div class="qr-mock" aria-label="二维码示意"></div>
+                    </div>
+                    <div class="timeline proto-element" data-proto-id="26">
+                      <div class="time-row"><b>下单时间</b><span>2026-06-02 12:05</span></div>
+                      <div class="time-row"><b>接单时间</b><span>待商家确认</span></div>
+                      <div class="time-row"><b>制作完成</b><span>待更新</span></div>
+                    </div>
+                    <div class="card-actions proto-element" data-proto-id="27" style="margin-top:12px;">
+                      <button class="ghost-button">发送消息</button>
+                      <button class="danger-button">取消订单</button>
+                      <button class="ghost-button">再来一单</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>订单相关页面让顾客确认订单进度、查看取货凭证、联系商家、取消尚未接单的订单，以及从历史订单快速“再来一单”。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>提交订单成功后进入订单详情，状态初始为“待接单”。</li>
+                    <li>等待商家接单，状态会依次更新为已接单、制作中、待取餐、已完成等。</li>
+                    <li>待接单时可以点击“取消订单”；商家已接单后不可随意取消。</li>
+                    <li>点击“发送消息”进入与商家的订单会话，可说明餐品要求或配送问题。</li>
+                    <li>到店取餐时出示取货码或二维码；商家核销后订单变为已完成。</li>
+                    <li>在“我的订单”中可按店铺分组查看历史订单，点击“再来一单”将订单商品回填购物车。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="section" id="merchant">
+          <div class="section-title">
+            <div>
+              <h2>商家端操作手册</h2>
+              <p>商家端登录后默认进入订单管理，左侧或底部模块包括订单、消息、菜品、门店、优惠、店员和经营。</p>
+            </div>
+            <span class="chip">再商家端</span>
+          </div>
+
+          <article class="module-card" id="merchant-register">
+            <div class="module-head">
+              <div>
+                <h3>1. 商家注册与登录</h3>
+                <p>用于创建商家账号、绑定门店名称，并进入 ByteBite 商家工作台。</p>
+              </div>
+              <span class="chip blue">/login</span>
+            </div>
+            <div class="module-body">
+              <div class="login-shell proto-element" data-proto-id="28" style="max-width:420px;margin:0 auto;padding:24px;background:linear-gradient(135deg,#087e6b,#0ea389);">
+                <div class="form-panel">
+                  <h4>注册商家账号</h4>
+                  <p>注册后需管理员审核；审核通过后可登录工作台。</p>
+                  <label class="field proto-element" data-proto-id="29">
+                    <span>手机号</span>
+                    <div class="fake-input">请输入手机号</div>
+                  </label>
+                  <label class="field">
+                    <span>密码</span>
+                    <div class="fake-input">请设置密码（至少6位）</div>
+                  </label>
+                  <label class="field">
+                    <span>确认密码</span>
+                    <div class="fake-input">请再次输入密码</div>
+                  </label>
+                  <label class="field proto-element" data-proto-id="30">
+                    <span>店铺名称</span>
+                    <div class="fake-input">请输入店铺名称</div>
+                  </label>
+                  <div class="submit-line proto-element" data-proto-id="31">注 册</div>
+                  <p style="margin-top:14px;text-align:center;">已有账号？返回登录</p>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>商家注册用于创建门店经营账号。账号通常以手机号作为登录账号，系统会为门店生成店铺码，供后续二维码和短链分享使用。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>打开 /login，点击“立即注册”。</li>
+                    <li>填写手机号、密码、确认密码和店铺名称。</li>
+                    <li>点击“注册”。如果手机号已注册，系统会提示注册失败。</li>
+                    <li>注册成功后返回登录页。根据后台审核策略，审核通过后使用手机号和密码登录。</li>
+                    <li>登录成功后系统保存商家身份和门店 ID，并跳转到“订单”模块。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="merchant-orders">
+            <div class="module-head">
+              <div>
+                <h3>2. 订单管理、接单与核销</h3>
+                <p>用于处理新订单，推进订单状态，查询取货码并完成核销。</p>
+              </div>
+              <span class="chip blue">/merchant/orders</span>
+            </div>
+            <div class="module-body">
+              <div class="console-shell proto-element" data-proto-id="32">
+                <div class="console-top">
+                  <div class="console-brand"><span>B</span>ByteBite 商家工作台</div>
+                  <button class="ghost-button">退出登录</button>
+                </div>
+                <div class="console-layout">
+                  <aside class="console-nav">
+                    <div class="nav-link active"><span class="nav-icon">订</span>订单</div>
+                    <div class="nav-link"><span class="nav-icon">信</span>消息</div>
+                    <div class="nav-link"><span class="nav-icon">菜</span>菜品</div>
+                    <div class="nav-link"><span class="nav-icon">店</span>门店</div>
+                    <div class="nav-link"><span class="nav-icon">惠</span>优惠</div>
+                    <div class="nav-link"><span class="nav-icon">员</span>店员</div>
+                    <div class="nav-link"><span class="nav-icon">数</span>经营</div>
+                  </aside>
+                  <main class="console-main">
+                    <div class="console-title proto-element" data-proto-id="33">
+                      <h4>订单管理</h4>
+                      <span class="chip red">2 待接单</span>
+                    </div>
+                    <section class="verify-panel proto-element" data-proto-id="34">
+                      <div class="verify-row">
+                        <span>输入顾客取货码</span>
+                        <button class="primary-button">查询</button>
+                      </div>
+                    </section>
+                    <div class="status-tabs proto-element" data-proto-id="35">
+                      <div class="status-tab active">待接单</div>
+                      <div class="status-tab">已接单</div>
+                      <div class="status-tab">制作中</div>
+                      <div class="status-tab">待取餐</div>
+                      <div class="status-tab">已完成</div>
+                    </div>
+                    <article class="order-card proto-element" data-proto-id="36">
+                      <div class="order-card-head">
+                        <div><span class="order-code">#A8K29Q</span> <span class="chip">堂食</span></div>
+                        <span class="status-pill">待接单</span>
+                      </div>
+                      <div class="order-items-mini">
+                        <span>黑椒牛肉饭 ×1　¥28.00</span>
+                        <span>柠檬红茶 ×1　¥9.00</span>
+                        <span>备注：少葱，A3 桌</span>
+                      </div>
+                      <div class="order-footer">
+                        <div class="money">¥37.00</div>
+                        <div class="order-actions">
+                          <button class="ghost-button">详情</button>
+                          <button class="ghost-button">消息</button>
+                          <button class="primary-button">接单</button>
+                          <button class="danger-button">拒单</button>
+                        </div>
+                      </div>
+                    </article>
+                  </main>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>订单管理是商家工作台的核心模块，用于接收新订单、查看订单详情、接单或拒单、推进制作状态、核销取货码。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>登录后进入“订单”，先查看“待接单”角标和订单卡片。</li>
+                    <li>点击订单卡片或“详情”，核对商品、规格、备注、堂食桌号、外卖地址、优惠和实付金额。</li>
+                    <li>确认能制作时点击“接单”；无法制作时点击“拒单”并填写拒单原因。</li>
+                    <li>接单后根据进度依次点击“开始制作”“制作完成”，订单会进入“待取餐”。</li>
+                    <li>顾客取餐时，在取货码查询框输入取货码，或打开核销二维码落地页，确认无误后“确认核销”。</li>
+                    <li>有沟通需求时点击“消息”，会进入与该订单顾客关联的会话。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="merchant-store">
+            <div class="module-head">
+              <div>
+                <h3>3. 门店信息与二维码分享</h3>
+                <p>用于维护店铺展示信息、营业状态、点餐方式、费用配置和分享入口。</p>
+              </div>
+              <span class="chip blue">/merchant/store</span>
+            </div>
+            <div class="module-body">
+              <div class="console-shell proto-element" data-proto-id="37">
+                <div class="console-top">
+                  <div class="console-brand"><span>B</span>门店</div>
+                  <button class="ghost-button">分享</button>
+                </div>
+                <div class="console-main">
+                  <div class="console-title">
+                    <h4>门店信息</h4>
+                    <div class="card-actions">
+                      <button class="ghost-button">分享</button>
+                      <button class="primary-button">编辑</button>
+                    </div>
+                  </div>
+                  <div class="store-preview">
+                    <div class="store-cover proto-element" data-proto-id="38">店</div>
+                    <div>
+                      <div class="store-info-grid">
+                        <div class="info-tile proto-element" data-proto-id="39"><span>营业状态</span><strong>营业中</strong></div>
+                        <div class="info-tile"><span>点餐方式</span><strong>堂食、打包、外卖</strong></div>
+                        <div class="info-tile proto-element" data-proto-id="40"><span>外卖起送</span><strong>¥30.00</strong></div>
+                        <div class="info-tile"><span>打包费</span><strong>¥2.00</strong></div>
+                      </div>
+                      <div class="card-actions proto-element" data-proto-id="41">
+                        <button class="ghost-button">切换休息中</button>
+                        <button class="primary-button">分享店铺二维码和短链</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>门店模块决定顾客端看到的店铺名称、封面、简介、营业状态、堂食/打包/外卖能力、起送价和打包费。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>进入“门店”，点击“编辑”修改名称、简介、封面、营业时间、起送价和打包费。</li>
+                    <li>勾选支持的点餐方式：堂食、打包、外卖。</li>
+                    <li>点击“保存”后，顾客端菜单页会按最新门店配置展示。</li>
+                    <li>营业中/休息中可快速切换；休息中时顾客仍能浏览菜单，但无法提交订单。</li>
+                    <li>点击“分享店铺二维码和短链”，将 /A/{storeCode} 分享给顾客扫码点单。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="merchant-menu">
+            <div class="module-head">
+              <div>
+                <h3>4. 菜品、分类、规格和套餐管理</h3>
+                <p>用于维护顾客菜单，包括分类、商品、图片、价格、库存、规格、套餐和系统模板导入。</p>
+              </div>
+              <span class="chip blue">/merchant/menu</span>
+            </div>
+            <div class="module-body">
+              <div class="console-shell proto-element" data-proto-id="42">
+                <div class="console-top">
+                  <div class="console-brand"><span>B</span>菜品</div>
+                  <button class="primary-button">添加商品</button>
+                </div>
+                <div class="console-main">
+                  <div class="console-title">
+                    <h4>菜单管理</h4>
+                    <div class="card-actions proto-element" data-proto-id="43">
+                      <button class="ghost-button">引用系统模板</button>
+                      <button class="ghost-button">分类</button>
+                      <button class="primary-button">添加商品</button>
+                    </div>
+                  </div>
+                  <div class="menu-admin-layout">
+                    <aside class="admin-cats proto-element" data-proto-id="44">
+                      <div class="admin-cat active">热销菜品</div>
+                      <div class="admin-cat">套餐</div>
+                      <div class="admin-cat">饮品</div>
+                      <div class="admin-cat">小吃</div>
+                    </aside>
+                    <main class="admin-products proto-element" data-proto-id="45">
+                      <div class="admin-product">
+                        <div class="thumb">餐</div>
+                        <div><strong>黑椒牛肉饭</strong><small>¥28.00 · 上架 · 规格 2 组</small></div>
+                        <button class="ghost-button">编辑</button>
+                      </div>
+                      <div class="admin-product">
+                        <div class="thumb">套</div>
+                        <div><strong>双人套餐</strong><small>¥68.00 · 套餐 · 子商品 3 个</small></div>
+                        <button class="ghost-button">编辑</button>
+                      </div>
+                      <div class="admin-product">
+                        <div class="thumb">饮</div>
+                        <div><strong>柠檬红茶</strong><small>¥9.00 · 上架 · 库存 200</small></div>
+                        <button class="ghost-button">编辑</button>
+                      </div>
+                    </main>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>菜单模块决定顾客能看到和购买的分类、菜品、套餐、规格、图片、库存和展示顺序。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>先点击“分类”创建或编辑分类；没有分类时不能新增商品。</li>
+                    <li>点击“添加商品”，填写名称、描述、分类、价格、图片、库存和上架状态。</li>
+                    <li>需要口味、份量、温度等选项时添加规格组，并设置必选、单选、默认项和规格库存。</li>
+                    <li>套餐商品打开“套餐”开关，选择当前店铺普通商品作为子商品，并配置数量和规格替换。</li>
+                    <li>可引用系统模板导入分类和商品；同名分类会复用，导入商品默认下架，确认后再上架。</li>
+                    <li>支持拖拽排序和跨分类移动，排序会影响顾客端展示顺序。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="merchant-discounts">
+            <div class="module-head">
+              <div>
+                <h3>5. 优惠活动管理</h3>
+                <p>用于创建满减或折扣活动，并决定活动适用于全店、指定分类或指定商品。</p>
+              </div>
+              <span class="chip blue">/merchant/discounts</span>
+            </div>
+            <div class="module-body">
+              <div class="console-shell proto-element" data-proto-id="46">
+                <div class="console-top">
+                  <div class="console-brand"><span>B</span>优惠</div>
+                  <button class="primary-button">新建活动</button>
+                </div>
+                <div class="console-main">
+                  <div class="console-title proto-element" data-proto-id="47">
+                    <h4>优惠活动</h4>
+                    <button class="primary-button">新建活动</button>
+                  </div>
+                  <article class="discount-card proto-element" data-proto-id="48">
+                    <h5>满100减10</h5>
+                    <div class="card-meta">
+                      <span class="chip orange">满减</span>
+                      <span>全店适用</span>
+                      <span>2026-06-01 至 2026-06-30</span>
+                    </div>
+                    <div class="card-actions">
+                      <button class="ghost-button">编辑</button>
+                      <button class="ghost-button">停用</button>
+                      <button class="danger-button">删除</button>
+                    </div>
+                  </article>
+                  <div class="editor-panel proto-element" data-proto-id="49">
+                    <label class="field"><span>优惠类型</span><div class="fake-input">满减 / 折扣</div></label>
+                    <label class="field"><span>适用范围</span><div class="fake-input">全店 / 指定分类 / 指定商品</div></label>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>优惠模块用于提升下单转化。活动会展示在顾客菜单和购物车中，最终优惠金额由后端在提交订单时重新计算。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>点击“新建活动”，填写活动名称。</li>
+                    <li>选择优惠类型：满减填写门槛金额和减免金额；折扣填写折扣率。</li>
+                    <li>选择适用范围：全店、指定分类或指定商品。</li>
+                    <li>设置活动开始和结束时间，保存后活动进入列表。</li>
+                    <li>活动可编辑、启用/停用或删除；停用后顾客端不再享受该活动。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="merchant-messages">
+            <div class="module-head">
+              <div>
+                <h3>6. 顾客消息会话</h3>
+                <p>用于处理顾客围绕订单发起的咨询，并可快速回到关联订单。</p>
+              </div>
+              <span class="chip blue">/merchant/messages</span>
+            </div>
+            <div class="module-body">
+              <div class="console-shell proto-element" data-proto-id="50">
+                <div class="console-top">
+                  <div class="console-brand"><span>B</span>消息</div>
+                  <button class="ghost-button">刷新</button>
+                </div>
+                <div class="console-main">
+                  <div class="console-title">
+                    <h4>顾客消息</h4>
+                    <span class="chip red">3 未读</span>
+                  </div>
+                  <article class="conversation-card proto-element" data-proto-id="51">
+                    <h5>顾客 186****0134</h5>
+                    <div class="card-meta"><span>#A8K29Q</span><span>2 条未读</span><span>刚刚</span></div>
+                  </article>
+                  <section class="editor-panel proto-element" data-proto-id="52">
+                    <div class="card-meta" style="justify-content:space-between;margin-bottom:10px;">
+                      <strong>关联订单 #A8K29Q</strong>
+                      <button class="ghost-button">打开订单</button>
+                    </div>
+                    <div class="fake-textarea">顾客：请问可以少葱吗？</div>
+                    <div class="verify-row" style="margin-top:10px;">
+                      <span>回复顾客</span>
+                      <button class="primary-button">发送</button>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">用途</span>
+                  <p>消息模块集中展示顾客会话和未读数。订单页点击“消息”会自动打开该订单对应会话，便于商家主动联系顾客。</p>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">操作方式</span>
+                  <ol>
+                    <li>进入“消息”查看会话列表，未读会显示数量角标。</li>
+                    <li>点击会话进入详情；顶部会显示顾客身份和关联订单。</li>
+                    <li>输入回复内容，点击“发送”。新消息会实时送达顾客端。</li>
+                    <li>点击“打开订单”可返回该会话关联的订单详情。</li>
+                    <li>从订单页进入消息时，系统会携带订单 ID、顾客 ID 或设备 ID 自动创建/打开会话。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card" id="merchant-staff-dashboard">
+            <div class="module-head">
+              <div>
+                <h3>7. 店员管理与经营数据</h3>
+                <p>用于分配门店操作人员，查看销售、订单、分类和时段经营情况。</p>
+              </div>
+              <span class="chip blue">/merchant/staff · /merchant/dashboard</span>
+            </div>
+            <div class="module-body">
+              <div class="console-shell proto-element" data-proto-id="53">
+                <div class="console-top">
+                  <div class="console-brand"><span>B</span>经营与店员</div>
+                  <button class="primary-button">新增店员</button>
+                </div>
+                <div class="console-main">
+                  <div class="dashboard-grid proto-element" data-proto-id="54">
+                    <div class="metric"><span>今日订单</span><strong>128</strong></div>
+                    <div class="metric"><span>今日营收</span><strong>¥4,286</strong></div>
+                    <div class="metric"><span>待接单</span><strong>2</strong></div>
+                    <div class="metric"><span>客单价</span><strong>¥33.5</strong></div>
+                  </div>
+                  <div class="chart-grid">
+                    <div class="chart-box proto-element" data-proto-id="55">
+                      <strong>分类销量</strong>
+                      <div class="bars">
+                        <div class="bar" style="height:72%;"></div>
+                        <div class="bar" style="height:48%;"></div>
+                        <div class="bar" style="height:86%;"></div>
+                        <div class="bar" style="height:34%;"></div>
+                      </div>
+                    </div>
+                    <div class="chart-box proto-element" data-proto-id="56">
+                      <strong>店员列表</strong>
+                      <article class="staff-card" style="margin-top:12px;">
+                        <h5>张三</h5>
+                        <div class="card-meta"><span>仅接单</span><span>启用</span><span>185****8013</span></div>
+                        <div class="card-actions">
+                          <button class="ghost-button">编辑</button>
+                          <button class="ghost-button">重置密码</button>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="guide-grid">
+                <div class="guide-card">
+                  <span class="guide-label">店员管理</span>
+                  <ol>
+                    <li>进入“店员”，点击“新增店员”。</li>
+                    <li>填写店员姓名、手机号、密码，并选择权限：全部权限或仅接单。</li>
+                    <li>保存后店员可按分配权限协助门店操作。</li>
+                    <li>可对店员进行编辑、启用/停用、重置密码或删除。</li>
+                  </ol>
+                </div>
+                <div class="guide-card">
+                  <span class="guide-label">经营数据</span>
+                  <ol>
+                    <li>进入“经营”，查看订单量、营收、客单价、待处理订单等概览指标。</li>
+                    <li>查看分类销量，判断热销和滞销分类。</li>
+                    <li>查看时段分布，安排备餐和店员排班。</li>
+                    <li>数据来源于订单状态和统计服务，适合日常复盘，不替代财务结算。</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="section" id="daily">
+          <div class="section-title">
+            <div>
+              <h2>建议日常操作顺序</h2>
+              <p>以下顺序适合门店每天开业前和营业中快速检查。</p>
+            </div>
+          </div>
+          <div class="flow-card">
+            <div class="cap-grid">
+              <div class="cap-item">
+                <strong>开业前</strong>
+                <span>登录商家端，检查门店营业状态、菜单上架状态、库存、优惠活动和店员账号。</span>
+              </div>
+              <div class="cap-item">
+                <strong>营业中</strong>
+                <span>停留在订单页处理待接单订单，必要时通过消息和顾客确认需求。</span>
+              </div>
+              <div class="cap-item">
+                <strong>取餐时</strong>
+                <span>核对顾客取货码或二维码，仅对“待取餐”订单执行核销。</span>
+              </div>
+              <div class="cap-item">
+                <strong>收档后</strong>
+                <span>进入经营数据查看当天订单、营收、分类销量和高峰时段。</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="divider"></div>
+
+    <aside id="right-panel">
+      <div class="right-inner">
+        <div class="toc-card">
+          <h2>操作说明索引</h2>
+          <p>悬停左侧重点界面或右侧编号说明，会高亮对应连线。移动端会隐藏连线，保留上下阅读。</p>
+          <nav class="toc-links">
+            <a href="#overview">软件简介</a>
+            <a href="#flow">下单到接单流程</a>
+            <a href="#customer">用户端模块</a>
+            <a href="#merchant">商家端模块</a>
+            <a href="#daily">日常操作顺序</a>
+          </nav>
+        </div>
+
+        <section class="desc-section">
+          <h3>整体认识</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="1"><div class="desc-row"><span class="desc-num">1</span><div><strong>ByteBite 是什么</strong><p>一套连接顾客扫码点餐和商家工作台的餐饮经营系统，核心是“顾客自助下单，商家及时接单”。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="2"><div class="desc-row"><span class="desc-num">2</span><div><strong>顾客端能力</strong><p>负责进店、浏览、加购、结算、查看订单、取货和沟通。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="3"><div class="desc-row"><span class="desc-num">3</span><div><strong>商家端能力</strong><p>负责接单、菜单、门店、活动、消息、店员和经营复盘。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="4"><div class="desc-row"><span class="desc-num">4</span><div><strong>入口区</strong><p>顾客通常从 /A/{storeCode} 进店；商家从 /login 登录；普通用户从 /customer/login 注册或登录。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>流程图</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="5"><div class="desc-row"><span class="desc-num">5</span><div><strong>从下单到接单</strong><p>流程分为顾客操作、系统处理、商家操作三部分。关键状态是 pending 待接单，商家点击接单后变为 accepted。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>用户注册登录</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="6"><div class="desc-row"><span class="desc-num">6</span><div><strong>顾客账号页面</strong><p>用于手机号或账号名注册/登录。登录后会合并当前设备上的游客数据。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="7"><div class="desc-row"><span class="desc-num">7</span><div><strong>登录/注册切换</strong><p>已有账号选登录；第一次使用或需要跨设备同步时选注册。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="8"><div class="desc-row"><span class="desc-num">8</span><div><strong>注册方式</strong><p>普通用户支持手机号注册和账号名注册，密码至少 6 位，昵称可选。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="9"><div class="desc-row"><span class="desc-num">9</span><div><strong>提交注册</strong><p>点击后系统创建账号并登录，随后合并匿名设备下的订单、购物车、最近店铺和会话。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>用户菜单点餐</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="10"><div class="desc-row"><span class="desc-num">10</span><div><strong>门店菜单界面</strong><p>顾客扫码后看到的主界面，展示门店名、简介、营业状态、活动、分类和商品列表。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="11"><div class="desc-row"><span class="desc-num">11</span><div><strong>营业与点餐方式</strong><p>确认门店是否营业，以及是否支持堂食、打包、外卖。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="12"><div class="desc-row"><span class="desc-num">12</span><div><strong>商品搜索</strong><p>输入菜品、套餐或饮品关键字，页面会过滤分类和商品。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="13"><div class="desc-row"><span class="desc-num">13</span><div><strong>活动提示</strong><p>展示当前可用优惠，并在购物车中提示凑单差额。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="14"><div class="desc-row"><span class="desc-num">14</span><div><strong>分类侧栏</strong><p>独立滚动，点击分类可跳到对应菜品区域。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="15"><div class="desc-row"><span class="desc-num">15</span><div><strong>商品卡片</strong><p>显示图片、名称、描述、销量、套餐标记、价格和加购按钮。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="16"><div class="desc-row"><span class="desc-num">16</span><div><strong>购物车浮条</strong><p>有商品后显示已选数量和金额，点击“去结算”进入购物车。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>用户提交订单</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="17"><div class="desc-row"><span class="desc-num">17</span><div><strong>购物车界面</strong><p>下单前最后确认商品、数量、备注、就餐方式和金额。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="18"><div class="desc-row"><span class="desc-num">18</span><div><strong>堂食/打包/外卖</strong><p>堂食可填桌号；外卖需要配送地址和联系电话；打包会按门店配置计算打包费。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="19"><div class="desc-row"><span class="desc-num">19</span><div><strong>补充信息</strong><p>根据点餐方式填写桌号或配送信息，便于商家制作和交付。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="20"><div class="desc-row"><span class="desc-num">20</span><div><strong>商品确认</strong><p>可加减数量，检查规格和单品备注，避免错单。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="21"><div class="desc-row"><span class="desc-num">21</span><div><strong>订单备注</strong><p>填写对整单的说明，例如少放辣、尽快送达或餐具要求。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="22"><div class="desc-row"><span class="desc-num">22</span><div><strong>提交订单</strong><p>点击后系统创建订单并生成取货码，订单状态进入待接单。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>用户订单与取货</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="23"><div class="desc-row"><span class="desc-num">23</span><div><strong>订单详情页面</strong><p>查看状态、商品、金额、备注、时间线和操作按钮。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="24"><div class="desc-row"><span class="desc-num">24</span><div><strong>订单状态</strong><p>待接单、已接单、制作中、待取餐、已完成等状态会实时更新。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="25"><div class="desc-row"><span class="desc-num">25</span><div><strong>取货码与二维码</strong><p>待取餐时向商家展示取货码或二维码，商家核销后订单完成。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="26"><div class="desc-row"><span class="desc-num">26</span><div><strong>时间线</strong><p>记录下单、接单、制作、完成和取消等关键时间。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="27"><div class="desc-row"><span class="desc-num">27</span><div><strong>消息、取消、再来一单</strong><p>待接单可取消；可联系商家；历史订单可回填购物车再次购买。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>商家注册登录</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="28"><div class="desc-row"><span class="desc-num">28</span><div><strong>商家账号页</strong><p>/login 同时支持统一登录和商家注册。商家登录成功后进入订单管理。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="29"><div class="desc-row"><span class="desc-num">29</span><div><strong>手机号</strong><p>商家用手机号注册和登录。手机号需符合 11 位格式。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="30"><div class="desc-row"><span class="desc-num">30</span><div><strong>店铺名称</strong><p>注册时必须填写，作为初始门店名称，后续可在门店模块修改。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="31"><div class="desc-row"><span class="desc-num">31</span><div><strong>注册提交</strong><p>注册后按系统策略等待管理员审核，审核通过后返回登录页使用手机号和密码登录。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>商家订单</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="32"><div class="desc-row"><span class="desc-num">32</span><div><strong>商家工作台</strong><p>左侧为模块导航，移动端会变为底部模块菜单。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="33"><div class="desc-row"><span class="desc-num">33</span><div><strong>待接单角标</strong><p>提示当前有多少订单需要立即处理。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="34"><div class="desc-row"><span class="desc-num">34</span><div><strong>取货码查询</strong><p>顾客到店后输入取货码查询订单，只有待取餐订单可核销。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="35"><div class="desc-row"><span class="desc-num">35</span><div><strong>状态筛选</strong><p>按待接单、已接单、制作中、待取餐、已完成查看订单。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="36"><div class="desc-row"><span class="desc-num">36</span><div><strong>订单卡片操作</strong><p>新订单可接单或拒单；接单后继续开始制作、制作完成和核销。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>商家门店</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="37"><div class="desc-row"><span class="desc-num">37</span><div><strong>门店模块</strong><p>维护顾客端门店展示和下单配置。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="38"><div class="desc-row"><span class="desc-num">38</span><div><strong>门店封面</strong><p>建议上传能代表门店或招牌菜的图片，顾客更容易识别。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="39"><div class="desc-row"><span class="desc-num">39</span><div><strong>营业状态</strong><p>休息中会阻止顾客提交订单，适合临时打烊或备餐不足时使用。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="40"><div class="desc-row"><span class="desc-num">40</span><div><strong>费用配置</strong><p>外卖起送价和打包费会影响顾客结算金额。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="41"><div class="desc-row"><span class="desc-num">41</span><div><strong>二维码和短链</strong><p>分享 /A/{storeCode}，顾客扫码即可进入本店菜单。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>商家菜品</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="42"><div class="desc-row"><span class="desc-num">42</span><div><strong>菜单管理</strong><p>维护顾客端所有可售商品，是开业前最需要检查的模块。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="43"><div class="desc-row"><span class="desc-num">43</span><div><strong>快捷操作</strong><p>可引用模板、维护分类和添加商品。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="44"><div class="desc-row"><span class="desc-num">44</span><div><strong>分类列表</strong><p>分类影响顾客浏览效率，建议热销和套餐放在靠前位置。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="45"><div class="desc-row"><span class="desc-num">45</span><div><strong>商品列表</strong><p>编辑价格、库存、上架状态、规格、套餐子商品和图片。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>商家优惠</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="46"><div class="desc-row"><span class="desc-num">46</span><div><strong>优惠模块</strong><p>活动会出现在顾客菜单和购物车中。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="47"><div class="desc-row"><span class="desc-num">47</span><div><strong>新建活动</strong><p>创建满减或折扣活动，需填写范围和生效时间。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="48"><div class="desc-row"><span class="desc-num">48</span><div><strong>活动卡片</strong><p>查看活动类型、适用范围和有效期，可编辑、停用或删除。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="49"><div class="desc-row"><span class="desc-num">49</span><div><strong>活动配置</strong><p>全店、分类、商品三种范围会影响最终优惠计算。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>商家消息</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="50"><div class="desc-row"><span class="desc-num">50</span><div><strong>消息模块</strong><p>集中处理顾客咨询和订单沟通，未读数会显示在导航上。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="51"><div class="desc-row"><span class="desc-num">51</span><div><strong>会话列表</strong><p>每条会话关联一个订单，可按未读数优先处理。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="52"><div class="desc-row"><span class="desc-num">52</span><div><strong>会话详情</strong><p>商家可回复顾客，并快速打开关联订单核对信息。</p></div></div></div>
+          </div>
+        </section>
+
+        <section class="desc-section">
+          <h3>商家店员与经营</h3>
+          <div class="desc-stack">
+            <div class="proto-desc" data-proto-id="53"><div class="desc-row"><span class="desc-num">53</span><div><strong>复合管理区</strong><p>店员和经营数据是日常运营辅助模块。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="54"><div class="desc-row"><span class="desc-num">54</span><div><strong>经营指标</strong><p>查看订单量、营收、待接单、客单价等关键数据。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="55"><div class="desc-row"><span class="desc-num">55</span><div><strong>分类/时段分析</strong><p>用于判断热门分类和高峰时段，辅助备货与排班。</p></div></div></div>
+            <div class="proto-desc" data-proto-id="56"><div class="desc-row"><span class="desc-num">56</span><div><strong>店员管理</strong><p>新增、编辑、启停、重置密码和删除店员，可分配全部权限或仅接单。</p></div></div></div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const svg = document.getElementById('connections');
+    const leftPanel = document.getElementById('left-panel');
+    const rightPanel = document.getElementById('right-panel');
+    const mobileToggle = document.getElementById('mobileToggle');
+    let connections = [];
+    let mobileMode = 'both';
+
+    function isSmallScreen() {
+      return window.matchMedia('(max-width: 820px)').matches;
+    }
+
+    function isElementVisible(rect) {
+      return rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth;
+    }
+
+    function drawConnections() {
+      svg.innerHTML = '';
+      connections = [];
+      if (isSmallScreen()) return;
+
+      const leftElements = document.querySelectorAll('.proto-element[data-proto-id]');
+      leftElements.forEach((leftEl) => {
+        const protoId = leftEl.getAttribute('data-proto-id');
+        const rightEl = document.querySelector('.proto-desc[data-proto-id="' + protoId + '"]');
+        if (!rightEl) return;
+
+        const leftRect = leftEl.getBoundingClientRect();
+        const rightRect = rightEl.getBoundingClientRect();
+        if (!isElementVisible(leftRect) && !isElementVisible(rightRect)) return;
+
+        const x1 = leftRect.right;
+        const y1 = leftRect.top + leftRect.height / 2;
+        const x2 = rightRect.left;
+        const y2 = rightRect.top + rightRect.height / 2;
+        if (x2 <= x1) return;
+
+        const delta = Math.max(60, (x2 - x1) * 0.5);
+        const cp1x = x1 + delta;
+        const cp2x = x2 - delta;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + cp1x + ' ' + y1 + ', ' + cp2x + ' ' + y2 + ', ' + x2 + ' ' + y2);
+        path.setAttribute('class', 'connection-line');
+        path.setAttribute('data-proto-id', protoId);
+        svg.appendChild(path);
+
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        bg.setAttribute('cx', midX);
+        bg.setAttribute('cy', midY);
+        bg.setAttribute('r', 11);
+        bg.setAttribute('class', 'connection-label-bg');
+        svg.appendChild(bg);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', midX);
+        text.setAttribute('y', midY);
+        text.setAttribute('dy', '0.04em');
+        text.setAttribute('class', 'connection-label');
+        text.textContent = protoId;
+        svg.appendChild(text);
+
+        connections.push({ protoId, path, leftEl, rightEl });
+      });
+    }
+
+    function highlightConnection(protoId, active) {
+      connections
+        .filter((item) => item.protoId === protoId)
+        .forEach((item) => {
+          item.path.classList.toggle('active', active);
+          item.leftEl.classList.toggle('active-highlight', active);
+          item.rightEl.classList.toggle('active-highlight', active);
+        });
+    }
+
+    function bindHoverEvents() {
+      document.querySelectorAll('[data-proto-id]').forEach((el) => {
+        el.addEventListener('mouseenter', () => highlightConnection(el.getAttribute('data-proto-id'), true));
+        el.addEventListener('mouseleave', () => highlightConnection(el.getAttribute('data-proto-id'), false));
+      });
+    }
+
+    function scheduleDraw() {
+      window.requestAnimationFrame(drawConnections);
+    }
+
+    function toggleMobileView() {
+      if (!isSmallScreen()) return;
+      if (mobileMode === 'both') {
+        mobileMode = 'guide';
+        leftPanel.style.display = 'none';
+        rightPanel.style.height = '100vh';
+        mobileToggle.textContent = '界面';
+      } else {
+        mobileMode = 'both';
+        leftPanel.style.display = '';
+        rightPanel.style.height = '';
+        mobileToggle.textContent = '说明';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      bindHoverEvents();
+      setTimeout(drawConnections, 120);
+    });
+    leftPanel.addEventListener('scroll', scheduleDraw, { passive: true });
+    rightPanel.addEventListener('scroll', scheduleDraw, { passive: true });
+    window.addEventListener('resize', () => {
+      if (!isSmallScreen()) {
+        leftPanel.style.display = '';
+        rightPanel.style.height = '';
+        mobileMode = 'both';
+        mobileToggle.textContent = '说明';
+      }
+      scheduleDraw();
+    });
+    mobileToggle.addEventListener('click', toggleMobileView);
+  </script>
+</body>
+</html>

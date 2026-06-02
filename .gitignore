@@ -368,3 +368,5 @@ FodyWeavers.xsd
 /.codex-push-worktree-20260526205955
 /.codex-temp
 /.codex-build/
+/scripts/deploy-local-click.cmd
+/scripts/deploy-server-click.cmd

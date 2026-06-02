@@ -1,6 +1,5 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$ServerHost,
+    [string]$ServerHost = "39.97.243.210",
     [string]$ServerUser = "root",
     [int]$ServerPort = 22,
     [string]$SshKeyPath = "",
@@ -36,6 +35,10 @@ $DockerConfigDir = Join-Path $RepoRoot "artifacts\docker\config"
 $NpmCacheDir = Join-Path $RepoRoot "artifacts\npm-cache"
 $ImageRef = "${ImageName}:${ImageTag}"
 $Remote = "${ServerUser}@${ServerHost}"
+
+if (-not $SshKeyPath) {
+    $SshKeyPath = Join-Path $RepoRoot "artifacts\ssh\bytebite_deploy_ed25519"
+}
 
 New-Item -ItemType Directory -Force $DockerConfigDir | Out-Null
 $env:DOCKER_CONFIG = $DockerConfigDir
@@ -119,6 +122,7 @@ function Get-SshOptions {
     $args = @(
         "-p", "$ServerPort",
         "-o", "StrictHostKeyChecking=accept-new",
+        "-o", "BatchMode=yes",
         "-o", "ServerAliveInterval=30",
         "-o", "ServerAliveCountMax=4"
     )
@@ -133,7 +137,8 @@ function Get-SshOptions {
 function Get-ScpOptions {
     $args = @(
         "-P", "$ServerPort",
-        "-o", "StrictHostKeyChecking=accept-new"
+        "-o", "StrictHostKeyChecking=accept-new",
+        "-o", "BatchMode=yes"
     )
 
     if ($SshKeyPath -and (Test-Path $SshKeyPath)) {
@@ -154,6 +159,14 @@ function Get-NativeTool {
     }
 
     throw "Required command not found: $($Names -join ', ')"
+}
+
+function Assert-SshKeyReady {
+    if ($SshKeyPath -and (Test-Path $SshKeyPath)) {
+        return
+    }
+
+    throw "SSH key not found: $SshKeyPath. Run scripts\setup-server-ssh-key.ps1 once, then run this deploy script again."
 }
 
 function Invoke-RemoteScript {
@@ -415,6 +428,7 @@ Invoke-CommandStep "Build local publish output" {
 }
 
 Invoke-CommandStep "Prepare server Docker and PostgreSQL" {
+    Assert-SshKeyReady
     Ensure-RemoteEnvironment
 }
 
